@@ -23,6 +23,7 @@ export function LyricsSearch({ initialQuery = '', onFound, onClose }: LyricsSear
   const [searching, setSearching] = useState(false)
   const [fetchingId, setFetchingId] = useState<number | null>(null)
   const [noResults, setNoResults] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [notFoundResult, setNotFoundResult] = useState<SearchResult | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -36,15 +37,21 @@ export function LyricsSearch({ initialQuery = '', onFound, onClose }: LyricsSear
     if (!q.trim()) { setResults([]); return }
     setSearching(true)
     setNoResults(false)
+    setSearchError(null)
     setNotFoundResult(null)
     try {
       const res = await fetch(`/api/lyrics/search?q=${encodeURIComponent(q)}`)
       const data = await res.json()
-      setResults(data.results ?? [])
-      if ((data.results ?? []).length === 0) setNoResults(true)
-    } catch {
+      if (!res.ok) {
+        setSearchError(data.error ?? `Error ${res.status}`)
+        setResults([])
+      } else {
+        setResults(data.results ?? [])
+        if ((data.results ?? []).length === 0) setNoResults(true)
+      }
+    } catch (err: any) {
       setResults([])
-      setNoResults(true)
+      setSearchError(err?.message ?? 'Network error')
     }
     setSearching(false)
   }
@@ -52,6 +59,7 @@ export function LyricsSearch({ initialQuery = '', onFound, onClose }: LyricsSear
   const handleQueryChange = (val: string) => {
     setQuery(val)
     setNotFoundResult(null)
+    setSearchError(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => doSearch(val), 500)
   }
@@ -102,7 +110,7 @@ export function LyricsSearch({ initialQuery = '', onFound, onClose }: LyricsSear
         )}
         {!searching && query && (
           <button
-            onClick={() => { setQuery(''); setResults([]); setNoResults(false); setNotFoundResult(null) }}
+            onClick={() => { setQuery(''); setResults([]); setNoResults(false); setSearchError(null); setNotFoundResult(null) }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]"
           >
             <X className="w-4 h-4" />
@@ -162,7 +170,13 @@ export function LyricsSearch({ initialQuery = '', onFound, onClose }: LyricsSear
         </div>
       )}
 
-      {noResults && (
+      {searchError && (
+        <p className="text-xs text-center text-red-400 py-3">
+          Search error: {searchError}
+        </p>
+      )}
+
+      {noResults && !searchError && (
         <p className="text-xs text-center text-[var(--fg-subtle)] py-3">
           No results found. Try a different search.
         </p>
