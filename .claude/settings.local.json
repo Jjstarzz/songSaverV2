@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git)",
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git --yes)",
+      "Read(//c/Users/Admin/Documents/Projects/**)",
+      "Bash(npx create-next-app@14 songsaverv2-temp --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git --yes)",
+      "Bash(cd /tmp)",
+      "Bash(npx create-next-app@14 songsaver --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --no-git --yes)",
+      "Bash(npm install:*)",
+      "Bash(sed -i 's/import type { NextConfig } from .next.//' /c/Users/Admin/Documents/Projects/SongSaverV2/next.config.mjs)",
+      "Bash(sed -i 's/const nextConfig: NextConfig = {/const nextConfig = {/' /c/Users/Admin/Documents/Projects/SongSaverV2/next.config.mjs)",
+      "Bash(npm run:*)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@supabase/ssr/package.json'\\); console.log\\(pkg.version, JSON.stringify\\(pkg.peerDependencies\\)\\)\")",
+      "Bash(gh auth:*)",
+      "Bash(git config:*)",
+      "Read(//c/Users/Admin/.config/gh/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -H \"Authorization: token $\\(cat ~/.config/gh/hosts.yml)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git credential:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

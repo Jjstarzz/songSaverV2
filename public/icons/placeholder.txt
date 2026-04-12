@@ -1,0 +1,9 @@
+Place your app icons here:
+- icon-192.png (192x192)
+- icon-512.png (512x512)
+- icon-180.png (180x180 for Apple)
+
+You can generate icons from any PNG using:
+https://maskable.app/editor
+or
+https://realfavicongenerator.net

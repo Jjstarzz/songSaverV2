@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   CSS Variables — theme tokens
+   ───────────────────────────────────────────── */
+:root {
+  /* dark theme (default) */
+  --bg:           #0a0a0f;
+  --bg-surface:   #111118;
+  --bg-elevated:  #16161f;
+  --bg-card:      rgba(255,255,255,0.04);
+  --bg-card-hover:rgba(255,255,255,0.07);
+  --bg-input:     rgba(255,255,255,0.06);
+  --fg:           #ffffff;
+  --fg-muted:     rgba(255,255,255,0.50);
+  --fg-subtle:    rgba(255,255,255,0.30);
+  --border:       rgba(255,255,255,0.08);
+  --border-focus: rgba(124,92,252,0.50);
+  color-scheme: dark;
+}
+
+html.light {
+  --bg:           #f8f7f4;
+  --bg-surface:   #edecea;
+  --bg-elevated:  #ffffff;
+  --bg-card:      rgba(255,255,255,0.75);
+  --bg-card-hover:rgba(255,255,255,0.95);
+  --bg-input:     rgba(0,0,0,0.04);
+  --fg:           #111118;
+  --fg-muted:     rgba(17,17,24,0.55);
+  --fg-subtle:    rgba(17,17,24,0.35);
+  --border:       rgba(0,0,0,0.08);
+  --border-focus: rgba(124,92,252,0.50);
+  color-scheme: light;
+}
+
+/* ─────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────── */
+@layer base {
+  * { @apply border-[var(--border)]; }
+
+  html {
+    background-color: var(--bg);
+    color: var(--fg);
+    @apply antialiased;
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    min-height: 100vh;
+  }
+
+  a, button { -webkit-tap-highlight-color: transparent; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--fg-subtle);
+    border-radius: 9999px;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent-500 ring-offset-2;
+    ring-offset-color: var(--bg);
+  }
+
+  ::selection {
+    background: rgba(124,92,252,0.30);
+    color: var(--fg);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Component layer — uses CSS vars for theming
+   ───────────────────────────────────────────── */
+@layer components {
+
+  /* Glass card */
+  .glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    @apply rounded-2xl;
+  }
+
+  .glass-card-hover {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    @apply rounded-2xl transition-all duration-200;
+  }
+  .glass-card-hover:hover {
+    background: var(--bg-card-hover);
+    border-color: color-mix(in srgb, var(--border) 100%, white 30%);
+  }
+
+  /* In light mode, add a subtle shadow to cards */
+  html.light .glass-card,
+  html.light .glass-card-hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+    backdrop-filter: none;
+  }
+
+  /* Section label */
+  .section-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+
+  /* Input base */
+  .input-base {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    @apply rounded-xl px-4 py-3 text-sm transition-all duration-200;
+    color: var(--fg);
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+  .input-base::placeholder { color: var(--fg-subtle); }
+  .input-base:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--border-focus);
+    border-color: rgba(124,92,252,0.50);
+    background: color-mix(in srgb, var(--bg-input) 100%, rgba(124,92,252,0.05) 100%);
+  }
+  @media (min-width: 640px) {
+    .input-base { font-size: 0.875rem; }
+  }
+
+  /* Tag pill */
+  .tag-pill {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           text-xs font-medium bg-accent-500/15 text-accent-400 border border-accent-500/20;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent;
+  }
+
+  /* Status badges */
+  .status-draft     { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/60 border border-white/10; }
+  .status-confirmed { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20; }
+  .status-completed { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-500/15 text-accent-400 border border-accent-500/20; }
+
+  /* Lyrics display */
+  .lyrics-text {
+    color: var(--fg);
+    opacity: 0.9;
+    white-space: pre-wrap;
+    line-height: 1.9;
+    font-size: clamp(0.95rem, 2.5vw, 1.125rem);
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Light mode: bottom nav */
+  html.light .bottom-nav {
+    background: rgba(248,247,244,0.9) !important;
+    border-top-color: var(--border);
+  }
+
+  /* Light mode: sticky back header */
+  html.light .sticky-header-bg {
+    background: rgba(248,247,244,0.90) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Utility overrides — light mode text/bg fixes
+   ───────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Override hard-coded dark Tailwind classes in light mode */
+
+/* text-white (no opacity modifier) */
+html.light .text-white { color: var(--fg) !important; }
+
+/* text-white with opacity modifiers */
+html.light .text-white\/90,
+html.light .text-white\/80,
+html.light .text-white\/70 { color: rgba(17,17,24,0.75) !important; }
+
+html.light .text-white\/60,
+html.light .text-white\/50 { color: var(--fg-muted) !important; }
+
+html.light .text-white\/40,
+html.light .text-white\/30,
+html.light .text-white\/20 { color: var(--fg-subtle) !important; }
+
+/* bg-white with opacity → light input/surface tones */
+html.light .bg-white\/\[0\.04\],
+html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\],
+html.light .bg-white\/\[0\.07\],
+html.light .bg-white\/\[0\.08\] { background-color: var(--bg-input) !important; }
+
+html.light .bg-white\/10 { background-color: rgba(0,0,0,0.05) !important; }
+html.light .bg-white\/20 { background-color: rgba(0,0,0,0.08) !important; }
+
+/* border-white with opacity → light border */
+html.light .border-white\/\[0\.06\],
+html.light .border-white\/\[0\.08\],
+html.light .border-white\/10,
+html.light .border-white\/20 { border-color: var(--border) !important; }
+
+/* divide utility */
+html.light .divide-white\/\[0\.06\] > * + * { border-color: var(--border) !important; }
+
+/* Keep accent/semantic colours untouched */
+html.light .text-accent-400,
+html.light .text-accent-300,
+html.light .text-emerald-400,
+html.light .text-red-400,
+html.light .text-amber-400 { color: revert !important; }
+
+/* ─────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity: 0 }              to { opacity: 1 } }
+@keyframes slideUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+
+.animate-fade-in  { animation: fadeIn  0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
