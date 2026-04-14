@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')
   if (!q) return NextResponse.json({ results: [] })
 
-  const token = process.env.GENIUS_ACCESS_TOKEN
+  const token = process.env.NEXT_PUBLIC_GENIUS_ACCESS_TOKEN ?? process.env.GENIUS_ACCESS_TOKEN
   if (!token) {
     return NextResponse.json({ error: 'GENIUS_ACCESS_TOKEN not set' }, { status: 500 })
   }
