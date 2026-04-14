@@ -2,16 +2,20 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+// Temporary debug endpoint — safe to delete once search is confirmed working
 export async function GET() {
-  // Scan ALL env keys for anything resembling our token
-  const geniusKeys = Object.keys(process.env).filter(k =>
-    k.toLowerCase().includes('genius') || k.toLowerCase().includes('access_token')
-  )
-
-  return NextResponse.json({
-    geniusKeys,                       // all matching key names found
-    totalEnvKeys: Object.keys(process.env).length,
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV ?? null,
-  })
+  try {
+    const res = await fetch(
+      'https://itunes.apple.com/search?term=amazing+grace&entity=song&limit=2&media=music',
+      { cache: 'no-store' }
+    )
+    const data = await res.json()
+    return NextResponse.json({
+      itunesOk: res.ok,
+      resultCount: data.resultCount ?? 0,
+      firstResult: data.results?.[0]?.trackName ?? null,
+    })
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message })
+  }
 }
