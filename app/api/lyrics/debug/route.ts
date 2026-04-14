@@ -6,9 +6,12 @@ export async function GET() {
   const token = process.env.NEXT_PUBLIC_GENIUS_ACCESS_TOKEN ?? process.env.GENIUS_ACCESS_TOKEN
   return NextResponse.json({
     tokenSet: !!token,
-    tokenLength: token?.length ?? 0,
-    tokenPrefix: token ? token.slice(0, 6) : null,
     nodeEnv: process.env.NODE_ENV,
-    usingPublicVar: !!process.env.NEXT_PUBLIC_GENIUS_ACCESS_TOKEN,
+    // Which Supabase key name does this project use?
+    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    hasPublishableKey: !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+    supabaseUrlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) ?? null,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    vercelProject: process.env.VERCEL_PROJECT_ID ?? null,
   })
 }
