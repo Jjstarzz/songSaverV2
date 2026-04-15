@@ -117,40 +117,39 @@ export function PresentationController({ title, lyricsText }: Props) {
 
   // Full-screen controller overlay — rendered via portal to escape any parent stacking context
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#09090b' }}>
+    <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#09090b', color: '#ffffff' }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/[0.08]"
-        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
-        <div className="min-w-0">
-          <p className="text-[10px] text-white/30 uppercase tracking-widest mb-0.5">Now Presenting</p>
-          <p className="font-semibold text-white truncate">{title}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', paddingTop: 'max(1rem, env(safe-area-inset-top))', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '2px' }}>Now Presenting</p>
+          <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
         </div>
         <button
           onClick={() => setOpen(false)}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/50 hover:text-white hover:bg-white/10 transition-all shrink-0 ml-3"
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 12 }}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* ── Display URL ── */}
-      <div className="px-4 py-3 border-b border-white/[0.08] space-y-2">
-        <p className="text-[10px] text-white/30 uppercase tracking-widest">Projector screen — open this URL in a browser</p>
-        <div className="flex items-center gap-2 bg-white/[0.05] rounded-xl px-3 py-2.5 border border-white/[0.08]">
-          <code className="text-xs text-white/60 flex-1 truncate">{displayUrl}</code>
-          <button onClick={copyUrl} className="shrink-0 text-white/30 hover:text-white/60 transition-colors">
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px' }}>Projector screen URL</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
+          <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           </button>
-          <button onClick={openDisplay} className="shrink-0 text-purple-400 hover:text-purple-300 transition-colors">
-            <ExternalLink className="w-3.5 h-3.5" />
+          <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+            <ExternalLink className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* ── Background picker ── */}
-      <div className="px-4 py-3 border-b border-white/[0.08]">
-        <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2.5">Background</p>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '10px' }}>Background</p>
         <div className="flex gap-2.5">
           {BACKGROUNDS.map((bg) => (
             <button
@@ -169,33 +168,41 @@ export function PresentationController({ title, lyricsText }: Props) {
 
       {/* ── Sections list ── */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: '#09090b' }}>
-        <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Sections — tap to display</p>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Sections — tap to display</p>
         {slides.length === 0 ? (
-          <div className="text-center py-12 space-y-2">
-            <p className="text-white/30 text-sm">No lyrics added to this song yet</p>
+          <div className="text-center py-12">
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>No lyrics added to this song yet</p>
           </div>
         ) : (
-          slides.map((slide, i) => (
-            <button
-              key={i}
-              onClick={() => showSlide(i)}
-              className={cn(
-                'w-full text-left px-4 py-3.5 rounded-2xl border transition-all duration-150',
-                currentIdx === i && !blank
-                  ? 'bg-purple-600/25 border-purple-500/40 shadow-lg shadow-purple-500/10'
-                  : 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.07]'
-              )}
-            >
-              {slide.label && (
-                <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-purple-400/70 mb-1">
-                  {slide.label}
+          slides.map((slide, i) => {
+            const firstLine = slide.content.split('\n').find((l) => l.trim()) ?? ''
+            const isActive = currentIdx === i && !blank
+            return (
+              <button
+                key={i}
+                onClick={() => showSlide(i)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
+                  border: `1px solid ${isActive ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                  background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.06)',
+                  display: 'block',
+                  cursor: 'pointer',
+                }}
+              >
+                {slide.label && (
+                  <p style={{ color: '#a78bfa', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    {slide.label}
+                  </p>
+                )}
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', fontWeight: 300, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {firstLine || slide.content.slice(0, 60)}
                 </p>
-              )}
-              <p className="text-sm text-white/70 font-light leading-snug line-clamp-2">
-                {slide.content.split('\n')[0]}
-              </p>
-            </button>
-          ))
+              </button>
+            )
+          })
         )}
       </div>
 
