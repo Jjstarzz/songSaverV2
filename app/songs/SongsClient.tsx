@@ -9,6 +9,7 @@ import { useSongs } from '@/hooks/useSongs'
 import { useUserSongKeys } from '@/hooks/useUserSongKeys'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useOfflineSongs } from '@/hooks/useOfflineSong'
+import { useOfflineSync } from '@/hooks/useOfflineSync'
 import { cn } from '@/lib/utils'
 
 export function SongsClient() {
@@ -16,6 +17,7 @@ export function SongsClient() {
   const userKeys = useUserSongKeys()
   const online = useOnlineStatus()
   const { songs: offlineSongs, loading: offlineLoading } = useOfflineSongs()
+  useOfflineSync() // silently syncs all songs to IndexedDB in the background
 
   if (!online) {
     // Offline: show only saved songs
