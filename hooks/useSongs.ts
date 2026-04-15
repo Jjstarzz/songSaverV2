@@ -14,9 +14,18 @@ export function useSongs() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchSongs = useCallback(async () => {
-    if (!user) return
     setLoading(true)
     setError(null)
+
+    // If offline, load from IndexedDB immediately — no network needed
+    if (!navigator.onLine) {
+      const offline = await getAllOfflineSongs()
+      setSongs(offline as unknown as SongWithLanguages[])
+      setLoading(false)
+      return
+    }
+
+    if (!user) { setLoading(false); return }
 
     const { data, error: err } = await supabase
       .from('songs')
@@ -24,13 +33,9 @@ export function useSongs() {
       .order('updated_at', { ascending: false })
 
     if (err) {
-      // Fallback: load offline-saved songs when no internet
-      if (!navigator.onLine) {
-        const offline = await getAllOfflineSongs()
-        setSongs(offline as unknown as SongWithLanguages[])
-      } else {
-        setError(err.message)
-      }
+      // Network failed mid-request — fall back to offline cache
+      const offline = await getAllOfflineSongs()
+      setSongs(offline as unknown as SongWithLanguages[])
     } else {
       setSongs((data ?? []) as unknown as SongWithLanguages[])
     }
