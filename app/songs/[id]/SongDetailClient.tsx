@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Pencil, Trash2, Music2, Clock, Hash,
-  ExternalLink, Youtube, Music, ChevronDown, ChevronUp
+  ArrowLeft, Pencil, Trash2, Music2,
+  ExternalLink, Youtube, Music, ChevronDown, ChevronUp,
+  BookmarkPlus, BookmarkCheck, Loader2
 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +24,7 @@ import { MUSICAL_KEYS, formatKey } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
 import { PresentationController } from '@/components/presentation/PresentationController'
+import { useOfflineSong } from '@/hooks/useOfflineSong'
 
 interface Props {
   id: string
@@ -38,6 +40,7 @@ export function SongDetailClient({ id }: Props) {
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [keyPickerOpen, setKeyPickerOpen] = useState(false)
+  const { saved: offlineSaved, saving: offlineSaving, toggle: toggleOffline } = useOfflineSong(song)
 
   useEffect(() => {
     if (song) track({ id: song.id, title: song.title, artist: song.artist })
@@ -96,6 +99,21 @@ export function SongDetailClient({ id }: Props) {
                 <PresentationController title={song.title} lyricsText={defaultLyric.lyrics} />
               ) : null
             })()}
+            {/* Save for offline */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={toggleOffline}
+              disabled={offlineSaving}
+              title={offlineSaved ? 'Remove from offline' : 'Save for offline'}
+            >
+              {offlineSaving
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : offlineSaved
+                  ? <BookmarkCheck className="w-4 h-4 text-emerald-400" />
+                  : <BookmarkPlus className="w-4 h-4" />
+              }
+            </Button>
             {isOwner && (
               <>
                 <Link href={`/songs/${id}/edit`}>

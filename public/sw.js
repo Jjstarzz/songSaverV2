@@ -1,22 +1,11 @@
-const CACHE_NAME = 'songsaver-v1'
-const OFFLINE_URLS = [
-  '/',
-  '/songs',
-  '/services',
-  '/rehearsal',
-  '/profile',
-]
+const CACHE_NAME = 'songsaver-v2'
 
-// Assets to cache on install
-const STATIC_ASSETS = [
-  '/manifest.json',
-]
+// App-shell pages to pre-cache
+const PRECACHE_URLS = ['/manifest.json']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS)
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   )
   self.skipWaiting()
 })
@@ -24,9 +13,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
   )
   self.clients.claim()
@@ -36,54 +23,39 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Skip non-GET, cross-origin, and Supabase API calls
+  // Skip non-GET, cross-origin, Supabase, and internal Next.js requests
   if (
     request.method !== 'GET' ||
     url.origin !== self.location.origin ||
     url.pathname.startsWith('/api/') ||
-    url.hostname.includes('supabase')
+    url.hostname.includes('supabase') ||
+    url.pathname.startsWith('/_next/data/')  // dynamic RSC payloads — always fresh
   ) {
     return
   }
 
-  // Network-first for navigation (pages), fall back to cache
+  // Cache-first for immutable static assets (_next/static has content hashes)
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.match(/\.(png|svg|ico|woff2?)$/)) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) => cached ?? fetch(request).then((res) => {
+          caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()))
+          return res
+        })
+      )
+    )
+    return
+  }
+
+  // Network-first for navigation — cache successful responses as fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-          return response
+        .then((res) => {
+          caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()))
+          return res
         })
         .catch(() => caches.match(request))
     )
-    return
-  }
-
-  // Cache-first for static assets
-  if (
-    url.pathname.startsWith('/_next/static/') ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.svg')
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached
-        return fetch(request).then((response) => {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
-          return response
-        })
-      })
-    )
-    return
-  }
-})
-
-// Background sync for offline actions (future enhancement)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-songs') {
-    // Handle offline song saves
-    console.log('[SW] Background sync: sync-songs')
   }
 })

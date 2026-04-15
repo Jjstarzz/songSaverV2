@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/layout/BottomNav'
 import { Toaster } from '@/components/ui/Toaster'
 import { ServiceWorkerInit } from '@/components/layout/ServiceWorkerInit'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
+import { OfflineBanner } from '@/components/ui/OfflineBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -59,6 +60,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <OfflineBanner />
           {/* Max-width container centred on large screens, full-width on mobile */}
           <div className="min-h-screen pb-24 max-w-lg mx-auto relative">
             {children}

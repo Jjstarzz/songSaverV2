@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSupabase } from './useSupabase'
 import { useAuth } from './useAuth'
 import { SongWithLanguages, SongWithLyrics } from '@/types/database'
+import { getAllOfflineSongs, getOfflineSong } from '@/lib/offlineDB'
 
 export function useSongs() {
   const supabase = useSupabase()
@@ -23,7 +24,13 @@ export function useSongs() {
       .order('updated_at', { ascending: false })
 
     if (err) {
-      setError(err.message)
+      // Fallback: load offline-saved songs when no internet
+      if (!navigator.onLine) {
+        const offline = await getAllOfflineSongs()
+        setSongs(offline as unknown as SongWithLanguages[])
+      } else {
+        setError(err.message)
+      }
     } else {
       setSongs((data ?? []) as unknown as SongWithLanguages[])
     }
@@ -63,7 +70,14 @@ export function useSong(id: string) {
       .single()
 
     if (err) {
-      setError(err.message)
+      // Fallback to offline cache
+      if (!navigator.onLine) {
+        const offline = await getOfflineSong(id)
+        if (offline) setSong(offline as unknown as SongWithLyrics)
+        else setError('Song not available offline')
+      } else {
+        setError(err.message)
+      }
     } else {
       setSong(data as unknown as SongWithLyrics)
     }
