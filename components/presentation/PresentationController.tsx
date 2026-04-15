@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, ChevronLeft, ChevronRight, EyeOff, ExternalLink, Copy, Check, Monitor } from 'lucide-react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { parseLyrics } from '@/lib/parseLyrics'
@@ -114,8 +115,8 @@ export function PresentationController({ title, lyricsText }: Props) {
     )
   }
 
-  // Full-screen controller overlay
-  return (
+  // Full-screen controller overlay — rendered via portal to escape any parent stacking context
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#09090b' }}>
 
       {/* ── Header ── */}
@@ -237,6 +238,7 @@ export function PresentationController({ title, lyricsText }: Props) {
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
