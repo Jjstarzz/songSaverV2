@@ -22,6 +22,7 @@ import { useUserSongKey } from '@/hooks/useUserSongKey'
 import { MUSICAL_KEYS, formatKey } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
+import { PresentationController } from '@/components/presentation/PresentationController'
 
 interface Props {
   id: string
@@ -88,18 +89,26 @@ export function SongDetailClient({ id }: Props) {
       <BackHeader
         title={song.title}
         action={
-          isOwner ? (
-            <div className="flex gap-1.5">
-              <Link href={`/songs/${id}/edit`}>
-                <Button variant="ghost" size="icon-sm">
-                  <Pencil className="w-4 h-4" />
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const defaultLyric = song.song_lyrics?.find(l => l.is_default) ?? song.song_lyrics?.[0]
+              return defaultLyric ? (
+                <PresentationController title={song.title} lyricsText={defaultLyric.lyrics} />
+              ) : null
+            })()}
+            {isOwner && (
+              <>
+                <Link href={`/songs/${id}/edit`}>
+                  <Button variant="ghost" size="icon-sm">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="w-4 h-4 text-red-400" />
                 </Button>
-              </Link>
-              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="w-4 h-4 text-red-400" />
-              </Button>
-            </div>
-          ) : undefined
+              </>
+            )}
+          </div>
         }
       >
         <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
