@@ -116,7 +116,7 @@ export function PresentationController({ title, lyricsText }: Props) {
 
   // Full-screen controller overlay
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#09090b]/98 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#09090b' }}>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/[0.08]"
@@ -167,7 +167,7 @@ export function PresentationController({ title, lyricsText }: Props) {
       </div>
 
       {/* ── Sections list ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: '#09090b' }}>
         <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Sections — tap to display</p>
         {slides.length === 0 ? (
           <div className="text-center py-12 space-y-2">
