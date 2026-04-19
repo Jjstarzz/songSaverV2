@@ -2,9 +2,14 @@
 
 import { WifiOff } from 'lucide-react'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { usePathname } from 'next/navigation'
 
 export function OfflineBanner() {
   const online = useOnlineStatus()
+  const pathname = usePathname()
+
+  // Don't show on public/embed pages
+  if (pathname.endsWith('/view') || pathname === '/present') return null
   if (online) return null
 
   return (

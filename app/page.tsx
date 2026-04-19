@@ -116,8 +116,8 @@ export default function DashboardPage() {
         />
         <StatCard
           icon={CalendarDays}
-          label="Services"
-          value={servicesLoading ? '…' : services.length}
+          label="Upcoming"
+          value={servicesLoading ? '…' : upcomingServices.length}
           href="/services"
           color="bg-emerald-500/15 text-emerald-400"
         />
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[var(--fg)] truncate">
-                    {SERVICE_TYPES[service.type]}
+                    {service.theme || SERVICE_TYPES[service.type]}
                   </p>
                   <p className="text-xs text-[var(--fg-muted)]">{formatDate(service.date)}</p>
                 </div>

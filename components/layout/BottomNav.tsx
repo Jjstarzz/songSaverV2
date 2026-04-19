@@ -16,6 +16,9 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname()
 
+  // Hide nav on public/embed pages that shouldn't show app chrome
+  if (pathname.endsWith('/view') || pathname === '/present') return null
+
   return (
     <nav className="bottom-nav bg-[var(--bg-surface)]/90 backdrop-blur-xl border-t border-[var(--border)]">
       <div className="flex items-stretch max-w-lg mx-auto">

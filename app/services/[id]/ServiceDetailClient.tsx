@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Trash2, CalendarDays, Globe, Lock, FileDown } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, CalendarDays, Globe, Lock, FileDown, Share2, Check } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { SetlistManager } from '@/components/services/SetlistManager'
@@ -26,6 +26,14 @@ export function ServiceDetailClient({ id }: Props) {
   const { service, loading, refetch } = useService(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copyPublicLink = async () => {
+    const url = `${window.location.origin}/services/${id}/view`
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
 
   const isOwner = !!user && !!service && service.created_by === user.id
   const isPast = !!service && service.date < new Date().toISOString().split('T')[0]
@@ -74,6 +82,16 @@ export function ServiceDetailClient({ id }: Props) {
         title={service.theme || formatDate(service.date)}
         action={
           <div className="flex gap-1.5">
+            {service.is_public && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={copyPublicLink}
+                title={copied ? 'Link copied!' : 'Copy public link'}
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+              </Button>
+            )}
             <Link href={`/services/${id}/print`} target="_blank">
               <Button variant="ghost" size="icon-sm" title="Export PDF">
                 <FileDown className="w-4 h-4" />
