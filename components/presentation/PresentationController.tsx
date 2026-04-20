@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, EyeOff, ExternalLink,
-  Copy, Check, Monitor, Tv2, List,
+  Copy, Check, Monitor, Tv2, List, QrCode,
 } from 'lucide-react'
+import QRCode from 'react-qr-code'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
@@ -35,6 +36,7 @@ export function PresentationController({ title, lyricsText }: Props) {
   const [currentIdx, setCurrentIdx] = useState<number | null>(null)
   const [blank, setBlank] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [showQr, setShowQr] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const slides: Slide[] = parseLyrics(lyricsText).map(s => ({
@@ -336,6 +338,9 @@ export function PresentationController({ title, lyricsText }: Props) {
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Projector screen URL</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
+              <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="Show QR code">
+                <QrCode className="w-4 h-4" />
+              </button>
               <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </button>
@@ -343,6 +348,30 @@ export function PresentationController({ title, lyricsText }: Props) {
                 <ExternalLink className="w-4 h-4" />
               </button>
             </div>
+
+            {/* QR code panel */}
+            {showQr && displayUrl && (
+              <div style={{
+                marginTop: 12, padding: 16, borderRadius: 16,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+              }}>
+                {/* White card behind QR so it scans cleanly on dark background */}
+                <div style={{ background: '#ffffff', borderRadius: 12, padding: 12, display: 'inline-block' }}>
+                  <QRCode
+                    value={displayUrl}
+                    size={180}
+                    bgColor="#ffffff"
+                    fgColor="#09090b"
+                    level="M"
+                  />
+                </div>
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', textAlign: 'center', letterSpacing: '0.05em' }}>
+                  Scan to open on the projector screen
+                </p>
+              </div>
+            )}
 
             {/* Present on this screen button */}
             <button
