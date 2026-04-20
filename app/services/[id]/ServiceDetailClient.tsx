@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Trash2, CalendarDays, Globe, Lock, FileDown, Share2, Check } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, CalendarDays, Globe, Lock, FileDown, Share2, Check, UserRound } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { SetlistManager } from '@/components/services/SetlistManager'
 import { ConfirmModal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useService, useServices } from '@/hooks/useServices'
+import { useCreatorName } from '@/hooks/useCreatorName'
 import { useAuth } from '@/hooks/useAuth'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
@@ -36,6 +37,7 @@ export function ServiceDetailClient({ id }: Props) {
   }
 
   const isOwner = !!user && !!service && service.created_by === user.id
+  const creatorName = useCreatorName(service?.created_by)
   const isPast = !!service && service.date < new Date().toISOString().split('T')[0]
 
   const toggleVisibility = async () => {
@@ -167,6 +169,19 @@ export function ServiceDetailClient({ id }: Props) {
               </span>
             )}
           </div>
+
+          {/* Creator */}
+          {creatorName && (
+            <div className="flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
+              <UserRound className="w-3 h-3 text-white/30 shrink-0" />
+              <p className="text-xs text-white/40">
+                Created by{' '}
+                <span className={isOwner ? 'text-white/60' : 'text-accent-400 font-medium'}>
+                  {isOwner ? 'you' : creatorName}
+                </span>
+              </p>
+            </div>
+          )}
 
           {service.notes && (
             <p className="text-sm text-white/60 pt-1 border-t border-white/[0.06] whitespace-pre-wrap">

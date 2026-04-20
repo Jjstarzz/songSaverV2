@@ -264,6 +264,7 @@ export type SongWithLyrics = Song & {
 
 export type SongWithLanguages = Song & {
   song_lyrics: { language: string; is_default: boolean }[]
+  creator_name?: string | null
 }
 
 export interface SongTransition {

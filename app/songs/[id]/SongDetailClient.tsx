@@ -19,6 +19,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import { useUserSongKey } from '@/hooks/useUserSongKey'
+import { useCreatorName } from '@/hooks/useCreatorName'
 import { MUSICAL_KEYS, formatKey } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,7 @@ export function SongDetailClient({ id }: Props) {
   const { user } = useAuth()
   const { song, loading, refetch } = useSong(id)
   const isOwner = !!user && !!song && song.created_by === user.id
+  const creatorName = useCreatorName(song?.created_by)
   const { track } = useRecentlyViewed()
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -281,11 +283,18 @@ export function SongDetailClient({ id }: Props) {
                   <ExternalLink className="w-3 h-3 ml-auto" />
                 </a>
               )}
-              <div className="pt-1 border-t border-white/[0.06]">
+              <div className="pt-1 border-t border-white/[0.06] space-y-0.5">
                 <p className="text-xs text-white/30">
                   Added {new Date(song.created_at).toLocaleDateString()}
-                  {!isOwner && ' · Added by another user'}
                 </p>
+                {creatorName && (
+                  <p className="text-xs text-white/30">
+                    Added by{' '}
+                    <span className={isOwner ? 'text-white/50' : 'text-accent-400'}>
+                      {isOwner ? 'you' : creatorName}
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           )}

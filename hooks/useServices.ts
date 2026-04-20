@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSupabase } from './useSupabase'
 import { useAuth } from './useAuth'
 import { Service, ServiceWithSongs } from '@/types/database'
+import { batchFetchCreatorNames } from './useCreatorName'
 
 export interface ServiceWithPreview extends Service {
   service_songs: { id: string; order_index: number; songs: { title: string; artist: string | null } }[]
+  creator_name?: string | null
 }
 
 export function useServices() {
@@ -25,8 +27,12 @@ export function useServices() {
       .select('*, service_songs(id, order_index, songs(title, artist))')
       .order('date', { ascending: false })
 
-    if (err) setError(err.message)
-    else setServices((data ?? []) as unknown as ServiceWithPreview[])
+    if (err) { setError(err.message); setLoading(false); return }
+
+    const list = (data ?? []) as any[]
+    // Batch-fetch creator display names
+    const nameMap = await batchFetchCreatorNames(supabase, list.map((s) => s.created_by))
+    setServices(list.map((s) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })) as unknown as ServiceWithPreview[])
     setLoading(false)
   }, [supabase, user])
 

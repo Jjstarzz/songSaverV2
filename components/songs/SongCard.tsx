@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Music2, Heart, ChevronRight } from 'lucide-react'
+import { Music2, Heart, ChevronRight, UserRound } from 'lucide-react'
 import { SongWithLanguages, LANGUAGE_NAMES, formatKey } from '@/types/database'
 import { useFavorites } from '@/hooks/useFavorites'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
 interface SongCardProps {
@@ -14,7 +15,12 @@ interface SongCardProps {
 
 export function SongCard({ song, compact, userKey }: SongCardProps) {
   const { isFavorite, toggle } = useFavorites()
+  const { user } = useAuth()
   const fav = isFavorite(song.id)
+  const isOwn = user?.id === song.created_by
+  const creatorLabel = song.creator_name
+    ? isOwn ? 'You' : song.creator_name
+    : null
   const languages = song.song_lyrics?.map((l) => l.language) ?? []
 
   return (
@@ -74,6 +80,14 @@ export function SongCard({ song, compact, userKey }: SongCardProps) {
               </>
             )}
           </div>
+
+          {/* Creator */}
+          {!compact && creatorLabel && (
+            <div className="flex items-center gap-1 mt-1">
+              <UserRound className="w-2.5 h-2.5 text-white/25 shrink-0" />
+              <span className="text-[10px] text-white/35">{creatorLabel}</span>
+            </div>
+          )}
 
           {/* Tags */}
           {!compact && song.tags.length > 0 && (

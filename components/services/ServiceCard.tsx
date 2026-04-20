@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { ChevronRight, Music2, Globe, Lock } from 'lucide-react'
+import { ChevronRight, Music2, Globe, Lock, UserRound } from 'lucide-react'
 import { SERVICE_TYPES } from '@/types/database'
 import { ServiceWithPreview } from '@/hooks/useServices'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
 interface ServiceCardProps {
@@ -10,9 +11,14 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, past }: ServiceCardProps) {
+  const { user } = useAuth()
   const d = new Date(service.date + 'T00:00:00')
   const month = d.toLocaleDateString('en-US', { month: 'short' })
   const day = d.getDate()
+  const isOwn = user?.id === service.created_by
+  const creatorLabel = service.creator_name
+    ? isOwn ? 'You' : service.creator_name
+    : null
 
   const sortedSongs = [...(service.service_songs ?? [])].sort((a, b) => a.order_index - b.order_index)
   const previewSongs = sortedSongs.slice(0, 3)
@@ -72,9 +78,17 @@ export function ServiceCard({ service, past }: ServiceCardProps) {
           )}
         </div>
 
-        <h3 className="text-sm font-semibold text-[var(--fg)] truncate">
-          {service.theme || `${SERVICE_TYPES[service.type]} · ${month} ${day}`}
-        </h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold text-[var(--fg)] truncate">
+            {service.theme || `${SERVICE_TYPES[service.type]} · ${month} ${day}`}
+          </h3>
+          {creatorLabel && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-[var(--fg-subtle)] shrink-0">
+              <UserRound className="w-2.5 h-2.5" />
+              {creatorLabel}
+            </span>
+          )}
+        </div>
 
         {/* Setlist preview */}
         {sortedSongs.length > 0 ? (

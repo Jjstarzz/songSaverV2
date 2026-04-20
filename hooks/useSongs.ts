@@ -5,6 +5,7 @@ import { useSupabase } from './useSupabase'
 import { useAuth } from './useAuth'
 import { SongWithLanguages, SongWithLyrics } from '@/types/database'
 import { getAllOfflineSongs, getOfflineSong } from '@/lib/offlineDB'
+import { batchFetchCreatorNames } from './useCreatorName'
 
 export function useSongs() {
   const supabase = useSupabase()
@@ -37,7 +38,9 @@ export function useSongs() {
       const offline = await getAllOfflineSongs()
       setSongs(offline as unknown as SongWithLanguages[])
     } else {
-      setSongs((data ?? []) as unknown as SongWithLanguages[])
+      const list = (data ?? []) as any[]
+      const nameMap = await batchFetchCreatorNames(supabase, list.map((s) => s.created_by))
+      setSongs(list.map((s) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })) as unknown as SongWithLanguages[])
     }
     setLoading(false)
   }, [supabase, user])
