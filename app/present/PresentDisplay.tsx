@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { Tv2 } from 'lucide-react'
-import { BG_STATIC, LIVE_BG_IDS, ANIMATION_CSS } from '@/lib/presentationBackgrounds'
+import {
+  BG_STATIC, LIVE_BG_IDS, ANIMATION_CSS,
+  FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
+} from '@/lib/presentationBackgrounds'
 
 interface SlideState {
   blank: boolean
@@ -12,9 +15,14 @@ interface SlideState {
   lines: string
   title: string
   background: string
+  fontSizeKey?: string
+  fontFamily?: string
 }
 
-const INITIAL: SlideState = { blank: true, section: '', lines: '', title: '', background: 'dark' }
+const INITIAL: SlideState = {
+  blank: true, section: '', lines: '', title: '',
+  background: 'dark', fontSizeKey: 'md', fontFamily: 'sans',
+}
 
 export function PresentDisplay() {
   const searchParams = useSearchParams()
@@ -44,16 +52,21 @@ export function PresentDisplay() {
     document.documentElement.requestFullscreen?.().catch(() => {})
   }
 
+  // Background
   const bgId = slide.background ?? 'dark'
   const isLive = LIVE_BG_IDS.has(bgId)
   const bgStyle = isLive ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
   const bgClass = isLive ? `live-${bgId}` : ''
 
+  // Typography
   const lines = slide.lines ? slide.lines.split('\n').filter(Boolean) : []
-  const fontSize =
-    lines.length <= 2 ? '5.5vw' :
-    lines.length <= 4 ? '4.5vw' :
-    lines.length <= 6 ? '3.8vw' : '3.2vw'
+  const baseVw =
+    lines.length <= 2 ? 5.5 :
+    lines.length <= 4 ? 4.5 :
+    lines.length <= 6 ? 3.8 : 3.2
+  const multiplier = SIZE_MULTIPLIERS[slide.fontSizeKey ?? 'md'] ?? 1
+  const fontSize = `${(baseVw * multiplier).toFixed(2)}vw`
+  const fontFamily = FONT_FAMILY_MAP[slide.fontFamily ?? 'sans'] ?? FONT_FAMILY_MAP.sans
 
   if (!code) {
     return (
@@ -65,7 +78,12 @@ export function PresentDisplay() {
 
   return (
     <>
-      <style>{ANIMATION_CSS}</style>
+      {/* Inject animations + load Playfair Display for the Elegant option */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');
+        ${ANIMATION_CSS}
+      `}</style>
+
       <div
         className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none transition-[background] duration-700 ${bgClass}`}
         style={bgStyle}
@@ -90,16 +108,18 @@ export function PresentDisplay() {
                 {slide.section && (
                   <p
                     className="absolute top-12 left-1/2 -translate-x-1/2 text-white/30 font-bold tracking-[0.5em] uppercase whitespace-nowrap"
-                    style={{ fontSize: '0.7rem' }}
+                    style={{ fontSize: '0.7rem', fontFamily }}
                   >
                     {slide.section}
                   </p>
                 )}
 
                 <p
-                  className="text-white text-center font-light whitespace-pre-line"
+                  className="text-white text-center whitespace-pre-line"
                   style={{
                     fontSize,
+                    fontFamily,
+                    fontWeight: 300,
                     lineHeight: 1.55,
                     letterSpacing: '0.01em',
                     textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
@@ -112,7 +132,7 @@ export function PresentDisplay() {
                 {slide.title && (
                   <p
                     className="absolute bottom-10 right-12 text-white/20 italic"
-                    style={{ fontSize: '0.75rem' }}
+                    style={{ fontSize: '0.75rem', fontFamily }}
                   >
                     {slide.title}
                   </p>
