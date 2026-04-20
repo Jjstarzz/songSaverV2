@@ -10,24 +10,10 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
-
-const BACKGROUNDS = [
-  { id: 'dark',    label: 'Dark',   gradient: 'radial-gradient(ellipse at center, #1a1a2e 0%, #000 70%)' },
-  { id: 'purple',  label: 'Purple', gradient: 'radial-gradient(ellipse at center, #2d1b69 0%, #06030f 70%)' },
-  { id: 'blue',    label: 'Blue',   gradient: 'radial-gradient(ellipse at center, #0c1445 0%, #000 70%)' },
-  { id: 'green',   label: 'Green',  gradient: 'radial-gradient(ellipse at center, #0a2e1a 0%, #000 70%)' },
-  { id: 'teal',    label: 'Teal',   gradient: 'radial-gradient(ellipse at center, #0a2a2a 0%, #000 70%)' },
-  { id: 'crimson', label: 'Red',    gradient: 'radial-gradient(ellipse at center, #2a0a0a 0%, #000 70%)' },
-]
-
-const BG_GRADIENTS: Record<string, string> = {
-  dark:    'radial-gradient(ellipse at 50% 60%, #1a1a2e 0%, #000 70%)',
-  purple:  'radial-gradient(ellipse at 50% 60%, #2d1b69 0%, #06030f 70%)',
-  blue:    'radial-gradient(ellipse at 50% 60%, #0c1445 0%, #000 70%)',
-  green:   'radial-gradient(ellipse at 50% 60%, #0a2e1a 0%, #000 70%)',
-  teal:    'radial-gradient(ellipse at 50% 60%, #0a2a2a 0%, #000 70%)',
-  crimson: 'radial-gradient(ellipse at 50% 60%, #2a0a0a 0%, #000 70%)',
-}
+import {
+  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS,
+  LIVE_BG_IDS, BG_STATIC, ANIMATION_CSS,
+} from '@/lib/presentationBackgrounds'
 
 interface Props {
   title: string
@@ -131,6 +117,11 @@ export function PresentationController({ title, lyricsText }: Props) {
     inlineLines.length <= 4 ? '4.5vw' :
     inlineLines.length <= 6 ? '3.8vw' : '3.2vw'
 
+  // Background resolution for inline display
+  const isLiveBg = LIVE_BG_IDS.has(background)
+  const inlineBgStyle = isLiveBg ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
+  const inlineBgClass = isLiveBg ? `live-${background}` : ''
+
   // ── Present button (shown in song detail header) ──
   if (!open) {
     return (
@@ -146,14 +137,16 @@ export function PresentationController({ title, lyricsText }: Props) {
 
   // ── Inline display (same-device presentation) — z-[200], above controller ──
   const inlineDisplay = inlineOpen ? createPortal(
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        display: 'flex', flexDirection: 'column',
-        background: BG_GRADIENTS[background] ?? BG_GRADIENTS.dark,
-        transition: 'background 0.7s ease',
-      }}
-    >
+    <>
+      <style>{ANIMATION_CSS}</style>
+      <div
+        className={inlineBgClass}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          display: 'flex', flexDirection: 'column',
+          ...(inlineBgStyle ?? {}),
+        }}
+      >
       {/* Section list sheet (slides over inline when open) */}
       {showSections && (
         <div style={{
@@ -312,7 +305,8 @@ export function PresentationController({ title, lyricsText }: Props) {
           <X style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.5)' }} />
         </button>
       </div>
-    </div>,
+    </div>
+    </>,
     document.body
   ) : null
 
@@ -369,9 +363,10 @@ export function PresentationController({ title, lyricsText }: Props) {
 
           {/* Background picker */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Background</p>
-            <div className="flex gap-2.5">
-              {BACKGROUNDS.map((bg) => (
+            {/* Static row */}
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
+            <div className="flex gap-2.5 mb-3">
+              {STATIC_BACKGROUNDS.map((bg) => (
                 <button
                   key={bg.id}
                   onClick={() => changeBackground(bg.id)}
@@ -380,8 +375,36 @@ export function PresentationController({ title, lyricsText }: Props) {
                     'w-9 h-9 rounded-full border-2 transition-all duration-150',
                     background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
                   )}
-                  style={{ background: bg.gradient }}
+                  style={{ background: bg.swatch }}
                 />
+              ))}
+            </div>
+
+            {/* Live row */}
+            <div className="flex items-center gap-2 mb-2">
+              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Live</p>
+              <span style={{ fontSize: '0.55rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>ANIMATED</span>
+            </div>
+            <div className="flex gap-2.5">
+              {LIVE_BACKGROUNDS.map((bg) => (
+                <button
+                  key={bg.id}
+                  onClick={() => changeBackground(bg.id)}
+                  title={bg.label}
+                  className={cn(
+                    'w-9 h-9 rounded-full border-2 transition-all duration-150 relative',
+                    background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
+                  )}
+                  style={{ background: bg.swatch }}
+                >
+                  {/* Pulse ring to indicate it's animated */}
+                  {background !== bg.id && (
+                    <span style={{
+                      position: 'absolute', inset: -3, borderRadius: '50%',
+                      border: '1px solid rgba(167,139,250,0.25)',
+                    }} />
+                  )}
+                </button>
               ))}
             </div>
           </div>

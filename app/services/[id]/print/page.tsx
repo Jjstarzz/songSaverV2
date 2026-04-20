@@ -144,25 +144,25 @@ export default function PrintPage() {
 
         .section-label {
           font-family: Arial, sans-serif;
-          font-size: 0.62rem;
+          font-size: 0.75rem;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
           color: #888;
-          margin-bottom: 0.2rem;
+          margin-bottom: 0.3rem;
         }
 
         .key-badge {
           display: inline-block;
           font-family: Arial, sans-serif;
-          font-size: 0.65rem;
+          font-size: 0.75rem;
           font-weight: 700;
           color: #6d28d9;
           background: #ede9fe;
           border: 1px solid #c4b5fd;
           border-radius: 4px;
-          padding: 1px 7px;
-          margin-left: 8px;
+          padding: 2px 8px;
+          margin-left: 10px;
           vertical-align: middle;
         }
 
@@ -210,15 +210,15 @@ export default function PrintPage() {
       <div className="page-wrap">
         {/* ── Service header ─────────────────────── */}
         <div style={{ borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 'bold', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: 1.2 }}>
             {service?.theme || (service ? SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES] : 'Service')}
           </h1>
-          <p style={{ color: '#555', marginTop: '0.3rem', fontSize: '0.9rem', fontFamily: 'Arial, sans-serif' }}>
+          <p style={{ color: '#555', marginTop: '0.4rem', fontSize: '1rem', fontFamily: 'Arial, sans-serif' }}>
             {service ? fmtDate(service.date) : ''}&ensp;·&ensp;
             {service ? SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES] : ''}
           </p>
           {service?.notes && (
-            <p style={{ color: '#666', marginTop: '0.5rem', fontSize: '0.85rem', fontStyle: 'italic' }}>
+            <p style={{ color: '#666', marginTop: '0.6rem', fontSize: '0.95rem', fontStyle: 'italic' }}>
               {service.notes}
             </p>
           )}
@@ -249,17 +249,17 @@ export default function PrintPage() {
               style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: index < songs.length - 1 ? '1px solid #e5e5e5' : 'none' }}
             >
               {/* Song title row */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginBottom: '0.6rem' }}>
-                <span style={{ fontFamily: 'Arial, sans-serif', fontSize: '0.75rem', color: '#aaa', minWidth: '1.4rem', paddingTop: '0.2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontFamily: 'Arial, sans-serif', fontSize: '0.9rem', color: '#aaa', minWidth: '1.6rem', paddingTop: '0.15rem' }}>
                   {index + 1}.
                 </span>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ fontSize: '1.05rem', fontWeight: 'bold', lineHeight: 1.3 }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 'bold', lineHeight: 1.3 }}>
                     {song.title}
                     {keyLabel && <span className="key-badge">{keyLabel}</span>}
                   </h2>
                   {song.artist && (
-                    <p style={{ color: '#777', fontSize: '0.8rem', fontFamily: 'Arial, sans-serif', marginTop: '2px' }}>
+                    <p style={{ color: '#777', fontSize: '0.95rem', fontFamily: 'Arial, sans-serif', marginTop: '3px' }}>
                       {song.artist}
                     </p>
                   )}
@@ -267,20 +267,20 @@ export default function PrintPage() {
               </div>
 
               {/* Lyrics */}
-              <div style={{ paddingLeft: '2rem' }}>
+              <div style={{ paddingLeft: '2.25rem' }}>
                 {sections.length > 0 ? (
                   sections.map((sec, si) => (
-                    <div key={si} style={{ marginBottom: '0.6rem' }}>
+                    <div key={si} style={{ marginBottom: '0.85rem' }}>
                       {sec.label && (
                         <p className="section-label">{sec.label}</p>
                       )}
-                      <p style={{ lineHeight: 1.75, whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>
+                      <p style={{ lineHeight: 1.9, whiteSpace: 'pre-wrap', fontSize: '1.1rem' }}>
                         {sec.lines.join('\n').trim()}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <p style={{ color: '#bbb', fontSize: '0.8rem', fontStyle: 'italic', fontFamily: 'Arial, sans-serif' }}>
+                  <p style={{ color: '#bbb', fontSize: '0.9rem', fontStyle: 'italic', fontFamily: 'Arial, sans-serif' }}>
                     No lyrics saved for this song
                   </p>
                 )}
