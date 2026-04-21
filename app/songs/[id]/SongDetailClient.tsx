@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import { useUserSongKey } from '@/hooks/useUserSongKey'
 import { useCreatorName } from '@/hooks/useCreatorName'
+import { useRole } from '@/hooks/useRole'
 import { MUSICAL_KEYS, formatKey } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
@@ -34,7 +35,10 @@ export function SongDetailClient({ id }: Props) {
   const supabase = useSupabase()
   const { user } = useAuth()
   const { song, loading, refetch } = useSong(id)
+  const { isOwner: isAppOwner } = useRole()
   const isOwner = !!user && !!song && song.created_by === user.id
+  const canEdit = isOwner
+  const canDelete = isOwner || isAppOwner
   const creatorName = useCreatorName(song?.created_by)
   const { track } = useRecentlyViewed()
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
@@ -98,17 +102,17 @@ export function SongDetailClient({ id }: Props) {
                 <PresentationController title={song.title} lyricsText={defaultLyric.lyrics} />
               ) : null
             })()}
-            {isOwner && (
-              <>
-                <Link href={`/songs/${id}/edit`}>
-                  <Button variant="ghost" size="icon-sm">
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="w-4 h-4 text-red-400" />
+            {canEdit && (
+              <Link href={`/songs/${id}/edit`}>
+                <Button variant="ghost" size="icon-sm">
+                  <Pencil className="w-4 h-4" />
                 </Button>
-              </>
+              </Link>
+            )}
+            {canDelete && (
+              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </Button>
             )}
           </div>
         }

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useService, useServices } from '@/hooks/useServices'
 import { useCreatorName } from '@/hooks/useCreatorName'
 import { useAuth } from '@/hooks/useAuth'
+import { useRole } from '@/hooks/useRole'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { SERVICE_TYPES, SERVICE_STATUSES } from '@/types/database'
@@ -36,7 +37,10 @@ export function ServiceDetailClient({ id }: Props) {
     setTimeout(() => setCopied(false), 2500)
   }
 
+  const { isOwner: isAppOwner } = useRole()
   const isOwner = !!user && !!service && service.created_by === user.id
+  const canEdit = isOwner
+  const canDelete = isOwner || isAppOwner
   const creatorName = useCreatorName(service?.created_by)
   const isPast = !!service && service.date < new Date().toISOString().split('T')[0]
 
@@ -99,15 +103,15 @@ export function ServiceDetailClient({ id }: Props) {
                 <FileDown className="w-4 h-4" />
               </Button>
             </Link>
-            {isOwner && (
-              <>
-                <Link href={`/services/${id}/edit`}>
-                  <Button variant="ghost" size="icon-sm"><Pencil className="w-4 h-4" /></Button>
-                </Link>
-                <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </Button>
-              </>
+            {canEdit && (
+              <Link href={`/services/${id}/edit`}>
+                <Button variant="ghost" size="icon-sm"><Pencil className="w-4 h-4" /></Button>
+              </Link>
+            )}
+            {canDelete && (
+              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </Button>
             )}
           </div>
         }
@@ -144,7 +148,7 @@ export function ServiceDetailClient({ id }: Props) {
             )}>
               {SERVICE_STATUSES[service.status]}
             </span>
-            {isOwner ? (
+            {(isOwner || isAppOwner) ? (
               <button
                 onClick={toggleVisibility}
                 className={cn(
@@ -195,7 +199,7 @@ export function ServiceDetailClient({ id }: Props) {
           serviceId={id}
           items={setlistItems}
           onUpdate={refetch}
-          readOnly={!isOwner}
+          readOnly={!isOwner && !isAppOwner}
         />
       </div>
 

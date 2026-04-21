@@ -7,13 +7,14 @@ import Link from 'next/link'
 import {
   User, Mail, Shield, Users, LogOut, ChevronRight,
   Globe, Bell, Moon, Sun, Smartphone, Info, ExternalLink,
-  Trash2, Copy, Check, Download
+  Trash2, Copy, Check, Download, Crown,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { useAuth } from '@/hooks/useAuth'
+import { useRole } from '@/hooks/useRole'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { LANGUAGE_NAMES, Profile } from '@/types/database'
@@ -53,6 +54,7 @@ function SettingRow({
 
 export default function SettingsPage() {
   const { user } = useAuth()
+  const { isOwner } = useRole()
   const supabase = useSupabase()
   const { theme, setTheme } = useTheme()
 
@@ -69,7 +71,7 @@ export default function SettingsPage() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signingIn, setSigningIn] = useState(false)
   const [signInSent, setSignInSent] = useState(false)
-  const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team'>('account')
+  const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team' | 'owner'>('account')
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -137,6 +139,7 @@ export default function SettingsPage() {
     { key: 'account', label: 'Account' },
     { key: 'app', label: 'App' },
     { key: 'team', label: 'Team' },
+    ...(isOwner ? [{ key: 'owner', label: '👑' }] : []),
   ] as const
 
   return (
@@ -419,6 +422,37 @@ export default function SettingsPage() {
               </SettingRow>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── OWNER TAB ── */}
+      {activeSection === 'owner' && isOwner && (
+        <div className="space-y-5 animate-fade-in">
+          {/* Owner badge */}
+          <div className="glass-card p-4 flex items-center gap-3 border border-amber-500/20">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <Crown className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Owner Access</p>
+              <p className="text-xs text-white/40 mt-0.5">Full control over all content and users</p>
+            </div>
+          </div>
+
+          {/* Owner actions */}
+          <div className="glass-card divide-y divide-white/[0.06]">
+            <div className="px-4">
+              <SettingRow icon={Users} label="Manage Users" description="View all accounts, remove users">
+                <Link href="/settings/users" className="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium">
+                  Open →
+                </Link>
+              </SettingRow>
+            </div>
+          </div>
+
+          <p className="text-xs text-white/25 text-center px-4">
+            As owner you can delete any song or service in the app, and see all content regardless of visibility settings.
+          </p>
         </div>
       )}
 

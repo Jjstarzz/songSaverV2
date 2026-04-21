@@ -85,7 +85,7 @@ export function PresentDisplay() {
       `}</style>
 
       <div
-        className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none transition-[background] duration-700 ${bgClass}`}
+        className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none ${bgClass}`}
         style={bgStyle}
         onClick={requestFullscreen}
       >

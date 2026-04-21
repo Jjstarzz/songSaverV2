@@ -16,6 +16,7 @@ export interface Database {
           default_language: string
           avatar_url: string | null
           is_anonymous: boolean
+          role: string
           created_at: string
           updated_at: string
         }
@@ -25,6 +26,7 @@ export interface Database {
           default_language?: string
           avatar_url?: string | null
           is_anonymous?: boolean
+          role?: string
           created_at?: string
           updated_at?: string
         }
@@ -33,6 +35,7 @@ export interface Database {
           default_language?: string
           avatar_url?: string | null
           is_anonymous?: boolean
+          role?: string
           updated_at?: string
         }
       }
@@ -314,6 +317,8 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   ja: '日本語',
   sw: 'Swahili',
   hi: 'हिन्दी',
+  ta: 'தமிழ்',
+  te: 'తెలుగు',
   tl: 'Filipino',
   ml: 'Malayalam',
 }

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import {
   STATIC_BACKGROUNDS, LIVE_BACKGROUNDS,
   LIVE_BG_IDS, BG_STATIC, ANIMATION_CSS,
+  FONT_OPTIONS, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
 interface Props {
@@ -33,6 +34,8 @@ export function PresentationController({ title, lyricsText }: Props) {
   const [showSections, setShowSections] = useState(false)
   const [code, setCode] = useState('')
   const [background, setBackground] = useState('dark')
+  const [fontSizeKey, setFontSizeKey] = useState('md')
+  const [fontFamily, setFontFamily] = useState('sans')
   const [currentIdx, setCurrentIdx] = useState<number | null>(null)
   const [blank, setBlank] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -77,12 +80,12 @@ export function PresentationController({ title, lyricsText }: Props) {
     setCurrentIdx(idx)
     setBlank(false)
     const s = slides[idx]
-    broadcast({ blank: false, section: s.label, lines: s.content, title, background })
+    broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title, background })
+    broadcast({ blank: true, section: '', lines: '', title, background, fontSizeKey, fontFamily })
   }
 
   const revealCurrent = () => {
@@ -93,7 +96,7 @@ export function PresentationController({ title, lyricsText }: Props) {
     setBackground(bg)
     if (currentIdx !== null && !blank) {
       const s = slides[currentIdx]
-      broadcast({ blank: false, section: s.label, lines: s.content, title, background: bg })
+      broadcast({ blank: false, section: s.label, lines: s.content, title, background: bg, fontSizeKey, fontFamily })
     }
   }
 
@@ -114,10 +117,12 @@ export function PresentationController({ title, lyricsText }: Props) {
   // Current slide details for inline display
   const currentSlide = currentIdx !== null ? slides[currentIdx] : null
   const inlineLines = currentSlide ? currentSlide.content.split('\n').filter(Boolean) : []
-  const inlineFontSize =
-    inlineLines.length <= 2 ? '5.5vw' :
-    inlineLines.length <= 4 ? '4.5vw' :
-    inlineLines.length <= 6 ? '3.8vw' : '3.2vw'
+  const inlineBaseVw =
+    inlineLines.length <= 2 ? 5.5 :
+    inlineLines.length <= 4 ? 4.5 :
+    inlineLines.length <= 6 ? 3.8 : 3.2
+  const inlineFontSize = `${(inlineBaseVw * (SIZE_MULTIPLIERS[fontSizeKey] ?? 1)).toFixed(2)}vw`
+  const inlineFontFamily = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
 
   // Background resolution for inline display
   const isLiveBg = LIVE_BG_IDS.has(background)
@@ -140,7 +145,7 @@ export function PresentationController({ title, lyricsText }: Props) {
   // ── Inline display (same-device presentation) — z-[200], above controller ──
   const inlineDisplay = inlineOpen ? createPortal(
     <>
-      <style>{ANIMATION_CSS}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');${ANIMATION_CSS}`}</style>
       <div
         className={inlineBgClass}
         style={{
@@ -209,6 +214,7 @@ export function PresentationController({ title, lyricsText }: Props) {
                 position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
                 color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 700,
                 letterSpacing: '0.5em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                fontFamily: inlineFontFamily,
               }}>
                 {currentSlide.label}
               </p>
@@ -217,6 +223,7 @@ export function PresentationController({ title, lyricsText }: Props) {
               color: '#ffffff', textAlign: 'center', fontWeight: 300,
               fontSize: inlineFontSize, lineHeight: 1.55,
               letterSpacing: '0.01em', whiteSpace: 'pre-line',
+              fontFamily: inlineFontFamily,
               textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
             }}>
               {currentSlide.content}
@@ -224,6 +231,7 @@ export function PresentationController({ title, lyricsText }: Props) {
             <p style={{
               position: 'absolute', bottom: '1rem', right: '1rem',
               color: 'rgba(255,255,255,0.2)', fontStyle: 'italic', fontSize: '0.7rem',
+              fontFamily: inlineFontFamily,
             }}>
               {title}
             </p>
@@ -433,6 +441,63 @@ export function PresentationController({ title, lyricsText }: Props) {
                       border: '1px solid rgba(167,139,250,0.25)',
                     }} />
                   )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font controls */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* Size row */}
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Size</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              {(['sm', 'md', 'lg', 'xl'] as const).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setFontSizeKey(key)
+                    if (currentIdx !== null && !blank) {
+                      const s = slides[currentIdx]
+                      broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey: key, fontFamily })
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: '7px 0', borderRadius: 10,
+                    border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                    background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                    color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
+                    fontWeight: 600, transition: 'all 0.15s',
+                  }}
+                >
+                  {key.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Font family row */}
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {FONT_OPTIONS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setFontFamily(f.id)
+                    if (currentIdx !== null && !blank) {
+                      const s = slides[currentIdx]
+                      broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily: f.id })
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: '7px 0', borderRadius: 10,
+                    border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                    background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                    color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
+                    fontWeight: 500, transition: 'all 0.15s',
+                  }}
+                >
+                  {f.label}
                 </button>
               ))}
             </div>
