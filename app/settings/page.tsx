@@ -71,7 +71,7 @@ export default function SettingsPage() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signingIn, setSigningIn] = useState(false)
   const [signInSent, setSignInSent] = useState(false)
-  const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team' | 'owner'>('account')
+  const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team' | 'owner'>('account') // Section type defined below in TABS
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -135,12 +135,13 @@ export default function SettingsPage() {
     window.location.reload()
   }
 
-  const TABS = [
+  type Section = 'account' | 'app' | 'team' | 'owner'
+  const TABS: { key: Section; label: string }[] = [
     { key: 'account', label: 'Account' },
     { key: 'app', label: 'App' },
     { key: 'team', label: 'Team' },
-    ...(isOwner ? [{ key: 'owner', label: '👑' }] : []),
-  ] as const
+    ...(isOwner ? [{ key: 'owner' as Section, label: '👑' }] : []),
+  ]
 
   return (
     <div className="px-4 pb-12">
