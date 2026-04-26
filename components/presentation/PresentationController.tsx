@@ -40,6 +40,7 @@ export function PresentationController({ title, lyricsText }: Props) {
   const [blank, setBlank] = useState(true)
   const [copied, setCopied] = useState(false)
   const [showQr, setShowQr] = useState(false)
+  const [showFontControls, setShowFontControls] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const slides: Slide[] = parseLyrics(lyricsText).map(s => ({
@@ -446,61 +447,78 @@ export function PresentationController({ title, lyricsText }: Props) {
             </div>
           </div>
 
-          {/* Font controls */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            {/* Size row */}
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Size</p>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              {(['sm', 'md', 'lg', 'xl'] as const).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setFontSizeKey(key)
-                    if (currentIdx !== null && !blank) {
-                      const s = slides[currentIdx]
-                      broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey: key, fontFamily })
-                    }
-                  }}
-                  style={{
-                    flex: 1, padding: '7px 0', borderRadius: 10,
-                    border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                    background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                    color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
-                    fontWeight: 600, transition: 'all 0.15s',
-                  }}
-                >
-                  {key.toUpperCase()}
-                </button>
-              ))}
-            </div>
+          {/* Font controls — collapsible */}
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setShowFontControls(v => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                Font &amp; Size
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: showFontControls ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+            </button>
 
-            {/* Font family row */}
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {FONT_OPTIONS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => {
-                    setFontFamily(f.id)
-                    if (currentIdx !== null && !blank) {
-                      const s = slides[currentIdx]
-                      broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily: f.id })
-                    }
-                  }}
-                  style={{
-                    flex: 1, padding: '7px 0', borderRadius: 10,
-                    border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                    background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                    color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
-                    fontWeight: 500, transition: 'all 0.15s',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            {showFontControls && (
+              <div style={{ padding: '0 16px 12px' }}>
+                {/* Size row */}
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Size</p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                  {(['sm', 'md', 'lg', 'xl'] as const).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setFontSizeKey(key)
+                        if (currentIdx !== null && !blank) {
+                          const s = slides[currentIdx]
+                          broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey: key, fontFamily })
+                        }
+                      }}
+                      style={{
+                        flex: 1, padding: '7px 0', borderRadius: 10,
+                        border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                        background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                        color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                        cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
+                        fontWeight: 600, transition: 'all 0.15s',
+                      }}
+                    >
+                      {key.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Font family row */}
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {FONT_OPTIONS.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        setFontFamily(f.id)
+                        if (currentIdx !== null && !blank) {
+                          const s = slides[currentIdx]
+                          broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily: f.id })
+                        }
+                      }}
+                      style={{
+                        flex: 1, padding: '7px 0', borderRadius: 10,
+                        border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                        background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                        color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                        cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
+                        fontWeight: 500, transition: 'all 0.15s',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sections list */}
