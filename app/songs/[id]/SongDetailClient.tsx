@@ -21,7 +21,7 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import { useUserSongKey } from '@/hooks/useUserSongKey'
 import { useCreatorName } from '@/hooks/useCreatorName'
 import { useRole } from '@/hooks/useRole'
-import { MUSICAL_KEYS, formatKey } from '@/types/database'
+import { MUSICAL_KEYS, formatKey, LANGUAGE_NAMES, SERVICE_TYPES } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
 import { PresentationController } from '@/components/presentation/PresentationController'
@@ -44,6 +44,22 @@ export function SongDetailClient({ id }: Props) {
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [keyPickerOpen, setKeyPickerOpen] = useState(false)
+  const [serviceHistory, setServiceHistory] = useState<{ service_id: string; date: string; theme: string | null; type: string }[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('service_songs')
+      .select('service_id, services(id, date, theme, type)')
+      .eq('song_id', id)
+      .then(({ data }) => {
+        if (!data) return
+        const history = (data as any[])
+          .flatMap((ss) => ss.services ? [{ service_id: ss.service_id, ...ss.services }] : [])
+          .sort((a: any, b: any) => b.date.localeCompare(a.date))
+        setServiceHistory(history)
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   useEffect(() => {
     if (song) track({ id: song.id, title: song.title, artist: song.artist })
@@ -240,6 +256,43 @@ export function SongDetailClient({ id }: Props) {
         <section>
           <KeySuggester songKey={song.default_key} />
         </section>
+
+        {/* Service history */}
+        {serviceHistory.length > 0 && (
+          <section>
+            <p className="section-label mb-3">Service History</p>
+            <div className="space-y-2">
+              {serviceHistory.map((s) => (
+                <a
+                  key={s.service_id}
+                  href={`/services/${s.service_id}`}
+                  className="glass-card flex items-center gap-3 px-4 py-3 hover:bg-white/[0.06] transition-colors"
+                >
+                  <div className="w-2 h-2 rounded-full bg-accent-500/60 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white/80 font-medium">
+                      {new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                    </p>
+                    <p className="text-xs text-white/40">
+                      {s.theme ? s.theme : SERVICE_TYPES[s.type as keyof typeof SERVICE_TYPES] ?? s.type}
+                    </p>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-white/20 -rotate-90 shrink-0" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Original language */}
+        {song.original_language && (
+          <section>
+            <p className="section-label mb-2">Original Language</p>
+            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              {LANGUAGE_NAMES[song.original_language] ?? song.original_language}
+            </span>
+          </section>
+        )}
 
         {/* Details accordion */}
         <section>

@@ -24,7 +24,8 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(npx tsc *)",
-      "Bash(node -e \"require\\('react-qr-code'\\); console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('react-qr-code'\\); console.log\\('ok'\\)\")",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")"
     ]
   }
 }

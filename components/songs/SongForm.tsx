@@ -44,6 +44,7 @@ export function SongForm({ song }: SongFormProps) {
     youtube_url: song?.youtube_url ?? '',
     spotify_url: song?.spotify_url ?? '',
     notes: song?.notes ?? '',
+    original_language: song?.original_language ?? '',
   })
   const [tags, setTags] = useState<string[]>(song?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
@@ -124,6 +125,7 @@ export function SongForm({ song }: SongFormProps) {
       youtube_url: form.youtube_url.trim() || null,
       spotify_url: form.spotify_url.trim() || null,
       notes: form.notes.trim() || null,
+      original_language: form.original_language || null,
       tags,
     }
 
@@ -177,6 +179,12 @@ export function SongForm({ song }: SongFormProps) {
           value={form.artist}
           onChange={(e) => set('artist', e.target.value)}
           placeholder="Chris Tomlin"
+        />
+        <Select
+          label="Original Language"
+          value={form.original_language}
+          onChange={(e) => set('original_language', e.target.value)}
+          options={[{ value: '', label: '— Select language —' }, ...LANG_OPTIONS]}
         />
       </section>
 

@@ -37,6 +37,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
   const [selectedUserKey, setSelectedUserKey] = useState('')
   const [selectedMode, setSelectedMode] = useState<'' | 'major' | 'minor'>('')
   const [selectedLang, setSelectedLang] = useState('')
+  const [selectedOriginalLang, setSelectedOriginalLang] = useState('')
   const [selectedTimeSig, setSelectedTimeSig] = useState('')
   const [bpmMin, setBpmMin] = useState('')
   const [bpmMax, setBpmMax] = useState('')
@@ -53,12 +54,19 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     return Array.from(langSet).sort()
   }, [songs])
 
+  const availableOriginalLanguages = useMemo(() => {
+    const langSet = new Set<string>()
+    songs.forEach((s) => { if (s.original_language) langSet.add(s.original_language) })
+    return Array.from(langSet).sort()
+  }, [songs])
+
   const activeFilterCount = [
     selectedTags.length > 0,
     selectedKey !== '',
     selectedUserKey !== '',
     selectedMode !== '',
     selectedLang !== '',
+    selectedOriginalLang !== '',
     selectedTimeSig !== '',
     bpmMin !== '' || bpmMax !== '',
     showFavs,
@@ -85,6 +93,8 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
         if (!langs.includes(selectedLang)) return false
       }
 
+      if (selectedOriginalLang && song.original_language !== selectedOriginalLang) return false
+
       if (bpmMin && song.bpm != null && song.bpm < Number(bpmMin)) return false
       if (bpmMax && song.bpm != null && song.bpm > Number(bpmMax)) return false
 
@@ -106,13 +116,14 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     })
 
     return result
-  }, [songs, query, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, isFavorite, user?.id, userKeys])
+  }, [songs, query, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, isFavorite, user?.id, userKeys])
 
   const clearFilters = () => {
     setQuery('')
     setSelectedTags([])
     setSelectedKey('')
     setSelectedLang('')
+    setSelectedOriginalLang('')
     setSelectedTimeSig('')
     setBpmMin('')
     setBpmMax('')
@@ -123,7 +134,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     setSortBy('recent')
   }
 
-  const hasFilters = query || selectedTags.length > 0 || selectedKey || selectedUserKey || selectedMode || selectedLang || selectedTimeSig || bpmMin || bpmMax || showFavs || showMine
+  const hasFilters = query || selectedTags.length > 0 || selectedKey || selectedUserKey || selectedMode || selectedLang || selectedOriginalLang || selectedTimeSig || bpmMin || bpmMax || showFavs || showMine
 
   const toggleTag = (tag: string) =>
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])
@@ -316,25 +327,49 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
 
             {/* Language filter */}
             {filterTab === 'lang' && (
-              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                {availableLanguages.length === 0 ? (
-                  <p className="text-xs text-[var(--fg-subtle)] py-1">No lyrics added yet</p>
-                ) : (
-                  availableLanguages.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
-                      className={cn(
-                        'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                        selectedLang === lang
-                          ? 'bg-accent-600 border-accent-500 text-white'
-                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                      )}
-                    >
-                      {LANGUAGE_NAMES[lang] ?? lang}
-                    </button>
-                  ))
+              <div className="space-y-2">
+                {availableOriginalLanguages.length > 0 && (
+                  <>
+                    <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider">Original Language</p>
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                      {availableOriginalLanguages.map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => setSelectedOriginalLang(selectedOriginalLang === lang ? '' : lang)}
+                          className={cn(
+                            'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                            selectedOriginalLang === lang
+                              ? 'bg-sky-600 border-sky-500 text-white'
+                              : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
+                          )}
+                        >
+                          {LANGUAGE_NAMES[lang] ?? lang}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
+                <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider pt-1">Has Lyrics In</p>
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                  {availableLanguages.length === 0 ? (
+                    <p className="text-xs text-[var(--fg-subtle)] py-1">No lyrics added yet</p>
+                  ) : (
+                    availableLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
+                        className={cn(
+                          'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                          selectedLang === lang
+                            ? 'bg-accent-600 border-accent-500 text-white'
+                            : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
+                        )}
+                      >
+                        {LANGUAGE_NAMES[lang] ?? lang}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 

@@ -41,6 +41,7 @@ export function PresentationController({ title, lyricsText }: Props) {
   const [copied, setCopied] = useState(false)
   const [showQr, setShowQr] = useState(false)
   const [showFontControls, setShowFontControls] = useState(false)
+  const [showBackgroundControls, setShowBackgroundControls] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const slides: Slide[] = parseLyrics(lyricsText).map(s => ({
@@ -72,6 +73,24 @@ export function PresentationController({ title, lyricsText }: Props) {
       channelRef.current = null
     }
   }, [open, supabase])
+
+  // Arrow key navigation when controller is open
+  useEffect(() => {
+    if (!open) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        const next = currentIdx === null ? 0 : Math.min(currentIdx + 1, slides.length - 1)
+        showSlide(next)
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (currentIdx !== null && currentIdx > 0) showSlide(currentIdx - 1)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentIdx, slides, title, background, fontSizeKey, fontFamily])
 
   const broadcast = (payload: object) => {
     channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
@@ -399,52 +418,68 @@ export function PresentationController({ title, lyricsText }: Props) {
             </button>
           </div>
 
-          {/* Background picker */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            {/* Static row */}
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
-            <div className="flex gap-2.5 mb-3">
-              {STATIC_BACKGROUNDS.map((bg) => (
-                <button
-                  key={bg.id}
-                  onClick={() => changeBackground(bg.id)}
-                  title={bg.label}
-                  className={cn(
-                    'w-9 h-9 rounded-full border-2 transition-all duration-150',
-                    background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
-                  )}
-                  style={{ background: bg.swatch }}
-                />
-              ))}
-            </div>
+          {/* Background picker — collapsible */}
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setShowBackgroundControls(v => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                Background
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showBackgroundControls ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+            </button>
 
-            {/* Live row */}
-            <div className="flex items-center gap-2 mb-2">
-              <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Live</p>
-              <span style={{ fontSize: '0.55rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>ANIMATED</span>
-            </div>
-            <div className="flex gap-2.5">
-              {LIVE_BACKGROUNDS.map((bg) => (
-                <button
-                  key={bg.id}
-                  onClick={() => changeBackground(bg.id)}
-                  title={bg.label}
-                  className={cn(
-                    'w-9 h-9 rounded-full border-2 transition-all duration-150 relative',
-                    background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
-                  )}
-                  style={{ background: bg.swatch }}
-                >
-                  {/* Pulse ring to indicate it's animated */}
-                  {background !== bg.id && (
-                    <span style={{
-                      position: 'absolute', inset: -3, borderRadius: '50%',
-                      border: '1px solid rgba(167,139,250,0.25)',
-                    }} />
-                  )}
-                </button>
-              ))}
-            </div>
+            {showBackgroundControls && (
+              <div style={{ padding: '0 16px 12px' }}>
+                {/* Static row */}
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
+                <div className="flex gap-2.5 mb-3">
+                  {STATIC_BACKGROUNDS.map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => changeBackground(bg.id)}
+                      title={bg.label}
+                      className={cn(
+                        'w-9 h-9 rounded-full border-2 transition-all duration-150',
+                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
+                      )}
+                      style={{ background: bg.swatch }}
+                    />
+                  ))}
+                </div>
+
+                {/* Live row */}
+                <div className="flex items-center gap-2 mb-2">
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Live</p>
+                  <span style={{ fontSize: '0.55rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>ANIMATED</span>
+                </div>
+                <div className="flex gap-2.5">
+                  {LIVE_BACKGROUNDS.map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => changeBackground(bg.id)}
+                      title={bg.label}
+                      className={cn(
+                        'w-9 h-9 rounded-full border-2 transition-all duration-150 relative',
+                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
+                      )}
+                      style={{ background: bg.swatch }}
+                    >
+                      {background !== bg.id && (
+                        <span style={{
+                          position: 'absolute', inset: -3, borderRadius: '50%',
+                          border: '1px solid rgba(167,139,250,0.25)',
+                        }} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Font controls — collapsible */}
@@ -524,13 +559,35 @@ export function PresentationController({ title, lyricsText }: Props) {
           {/* Sections list */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: '#09090b' }}>
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Sections — tap to display</p>
+
+            {/* Now Playing preview */}
+            {currentIdx !== null && !blank && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 12, marginBottom: 8,
+                background: 'rgba(124,58,237,0.15)',
+                border: '1px solid rgba(139,92,246,0.35)',
+              }}>
+                <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>
+                  Now on screen
+                </p>
+                {slides[currentIdx].label && (
+                  <p style={{ color: '#c4b5fd', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {slides[currentIdx].label}
+                  </p>
+                )}
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 300, lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {slides[currentIdx].content.split('\n').filter(l => l.trim()).slice(0, 2).join('\n')}
+                </p>
+              </div>
+            )}
+
             {slides.length === 0 ? (
               <div className="text-center py-12">
                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>No lyrics added to this song yet</p>
               </div>
             ) : (
               slides.map((slide, i) => {
-                const firstLine = slide.content.split('\n').find((l) => l.trim()) ?? ''
+                const previewLines = slide.content.split('\n').filter((l) => l.trim()).slice(0, 2).join('\n')
                 const isActive = currentIdx === i && !blank
                 return (
                   <button
@@ -548,8 +605,8 @@ export function PresentationController({ title, lyricsText }: Props) {
                         {slide.label}
                       </p>
                     )}
-                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', fontWeight: 300, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {firstLine || slide.content.slice(0, 60)}
+                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', fontWeight: 300, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-line' }}>
+                      {previewLines || slide.content.slice(0, 80)}
                     </p>
                   </button>
                 )

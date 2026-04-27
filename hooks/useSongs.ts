@@ -30,7 +30,7 @@ export function useSongs() {
 
     const { data, error: err } = await supabase
       .from('songs')
-      .select('*, song_lyrics(language, is_default)')
+      .select('*, song_lyrics(language, is_default), service_songs(services(date))')
       .order('updated_at', { ascending: false })
 
     if (err) {
@@ -40,7 +40,13 @@ export function useSongs() {
     } else {
       const list = (data ?? []) as any[]
       const nameMap = await batchFetchCreatorNames(supabase, list.map((s) => s.created_by))
-      setSongs(list.map((s) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })) as unknown as SongWithLanguages[])
+      setSongs(list.map((s) => {
+        const dates: string[] = (s.service_songs ?? [])
+          .map((ss: any) => ss.services?.date)
+          .filter(Boolean)
+        const last_sung_date = dates.length > 0 ? dates.sort().at(-1) : null
+        return { ...s, creator_name: nameMap[s.created_by] ?? null, last_sung_date }
+      }) as unknown as SongWithLanguages[])
     }
     setLoading(false)
   }, [supabase, user])

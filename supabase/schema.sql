@@ -54,6 +54,7 @@ create table public.songs (
   youtube_url     text,
   spotify_url     text,
   notes           text,
+  original_language text check (original_language in ('en','es','fr','pt','de','it','zh','ko','ja','sw','hi','ta','te','tl','ml')),
   created_by      uuid not null references auth.users(id) on delete cascade,
   team_id         uuid references public.teams(id) on delete cascade,
   created_at      timestamptz not null default now(),

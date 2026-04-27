@@ -92,6 +92,7 @@ export interface Database {
           youtube_url: string | null
           spotify_url: string | null
           notes: string | null
+          original_language: string | null
           created_by: string
           team_id: string | null
           created_at: string
@@ -110,6 +111,7 @@ export interface Database {
           youtube_url?: string | null
           spotify_url?: string | null
           notes?: string | null
+          original_language?: string | null
           created_by: string
           team_id?: string | null
           created_at?: string
@@ -127,6 +129,7 @@ export interface Database {
           youtube_url?: string | null
           spotify_url?: string | null
           notes?: string | null
+          original_language?: string | null
           team_id?: string | null
           updated_at?: string
         }
@@ -268,6 +271,8 @@ export type SongWithLyrics = Song & {
 export type SongWithLanguages = Song & {
   song_lyrics: { language: string; is_default: boolean }[]
   creator_name?: string | null
+  last_sung_date?: string | null
+  service_songs?: { services: { date: string } | null }[]
 }
 
 export interface SongTransition {

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Music2, Heart, ChevronRight, UserRound } from 'lucide-react'
+import { Music2, Heart, ChevronRight, UserRound, Calendar } from 'lucide-react'
 import { SongWithLanguages, LANGUAGE_NAMES, formatKey } from '@/types/database'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
@@ -102,8 +102,13 @@ export function SongCard({ song, compact, userKey }: SongCardProps) {
           )}
 
           {/* Language badges */}
-          {!compact && languages.length > 0 && (
-            <div className="flex gap-1 mt-1.5 flex-wrap">
+          {!compact && (song.original_language || languages.length > 0) && (
+            <div className="flex gap-1 mt-1.5 flex-wrap items-center">
+              {song.original_language && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-500/10 text-sky-400 border border-sky-500/15">
+                  {LANGUAGE_NAMES[song.original_language] ?? song.original_language.toUpperCase()}
+                </span>
+              )}
               {languages.slice(0, 4).map((lang) => (
                 <span
                   key={lang}
@@ -115,6 +120,16 @@ export function SongCard({ song, compact, userKey }: SongCardProps) {
               {languages.length > 4 && (
                 <span className="text-[10px] text-white/30 self-center">+{languages.length - 4}</span>
               )}
+            </div>
+          )}
+
+          {/* Last sung date */}
+          {!compact && song.last_sung_date && (
+            <div className="flex items-center gap-1 mt-1">
+              <Calendar className="w-2.5 h-2.5 text-white/25 shrink-0" />
+              <span className="text-[10px] text-white/35">
+                Last sung {new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
             </div>
           )}
         </div>
