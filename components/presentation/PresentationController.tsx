@@ -575,8 +575,8 @@ export function PresentationController({ title, lyricsText }: Props) {
                     {slides[currentIdx].label}
                   </p>
                 )}
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 300, lineHeight: 1.45, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                  {slides[currentIdx].content.split('\n').filter(l => l.trim()).slice(0, 2).join('\n')}
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 300, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                  {slides[currentIdx].content.trim()}
                 </p>
               </div>
             )}
