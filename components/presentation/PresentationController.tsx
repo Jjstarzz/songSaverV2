@@ -12,8 +12,8 @@ import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
 import {
-  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS,
-  LIVE_BG_IDS, BG_STATIC, ANIMATION_CSS,
+  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS,
+  LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
   FONT_OPTIONS, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
@@ -158,8 +158,10 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
 
   // Background resolution for inline display
   const isLiveBg = LIVE_BG_IDS.has(background)
-  const inlineBgStyle = isLiveBg ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
+  const isVideoBg = VIDEO_BG_IDS.has(background)
+  const inlineBgStyle = (isLiveBg || isVideoBg) ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
   const inlineBgClass = isLiveBg ? `live-${background}` : ''
+  const inlineVideoUrl = isVideoBg ? VIDEO_BG_URLS[background] : null
 
   // ── Present button (shown in song detail / service header) ──
   if (!open) {
@@ -186,6 +188,14 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
           ...(inlineBgStyle ?? {}),
         }}
       >
+      {inlineVideoUrl && (
+        <video
+          key={inlineVideoUrl}
+          autoPlay loop muted playsInline
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+          src={inlineVideoUrl}
+        />
+      )}
       {/* Section list sheet (slides over inline when open) */}
       {showSections && (
         <div style={{
@@ -488,6 +498,26 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         }} />
                       )}
                     </button>
+                  ))}
+                </div>
+
+                {/* Video row */}
+                <div className="flex items-center gap-2 mb-2 mt-3">
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Video</p>
+                  <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>MP4</span>
+                </div>
+                <div className="flex gap-2.5">
+                  {VIDEO_BACKGROUNDS.map((bg) => (
+                    <button
+                      key={bg.id}
+                      onClick={() => changeBackground(bg.id)}
+                      title={bg.label}
+                      className={cn(
+                        'w-9 h-9 rounded-full border-2 transition-all duration-150',
+                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
+                      )}
+                      style={{ background: bg.swatch }}
+                    />
                   ))}
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { Tv2 } from 'lucide-react'
 import {
-  BG_STATIC, LIVE_BG_IDS, ANIMATION_CSS,
+  BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, ANIMATION_CSS,
   FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
@@ -55,7 +55,9 @@ export function PresentDisplay() {
   // Background
   const bgId = slide.background ?? 'dark'
   const isLive = LIVE_BG_IDS.has(bgId)
-  const bgStyle = isLive ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
+  const isVideo = VIDEO_BG_IDS.has(bgId)
+  const videoUrl = isVideo ? VIDEO_BG_URLS[bgId] : null
+  const bgStyle = (isLive || isVideo) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
   const bgClass = isLive ? `live-${bgId}` : ''
 
   // Typography
@@ -85,12 +87,20 @@ export function PresentDisplay() {
       `}</style>
 
       <div
-        className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none ${bgClass}`}
+        className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative ${bgClass}`}
         style={bgStyle}
         onClick={requestFullscreen}
       >
+        {videoUrl && (
+          <video
+            key={videoUrl}
+            autoPlay loop muted playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+            src={videoUrl}
+          />
+        )}
         {!connected ? (
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-3 relative z-10">
             <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mx-auto">
               <Tv2 className="w-7 h-7 text-white/20" />
             </div>
@@ -100,7 +110,7 @@ export function PresentDisplay() {
           </div>
         ) : (
           <div
-            className="w-full h-full flex flex-col items-center justify-center px-[8%] relative"
+            className="w-full h-full flex flex-col items-center justify-center px-[8%] relative z-10"
             style={{ opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}
           >
             {!slide.blank && (

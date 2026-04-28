@@ -86,6 +86,27 @@ export const LIVE_BACKGROUNDS: Background[] = [
   },
 ]
 
+export interface VideoBackground {
+  id: string
+  label: string
+  url: string
+  swatch: string
+}
+
+export const VIDEO_BACKGROUNDS: VideoBackground[] = [
+  {
+    id: 'meadow',
+    label: 'Green Meadow',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1777415923/green-meadow-under-blue-sky-moewalls-com_uldhna.mp4',
+    swatch: 'linear-gradient(135deg, #4a7c59, #6db88a, #87ceeb)',
+  },
+]
+
+export const VIDEO_BG_IDS = new Set(VIDEO_BACKGROUNDS.map(b => b.id))
+export const VIDEO_BG_URLS: Record<string, string> = Object.fromEntries(
+  VIDEO_BACKGROUNDS.map(b => [b.id, b.url])
+)
+
 export const ALL_BACKGROUNDS: Background[] = [...STATIC_BACKGROUNDS, ...LIVE_BACKGROUNDS]
 export const LIVE_BG_IDS = new Set(LIVE_BACKGROUNDS.map(b => b.id))
 
