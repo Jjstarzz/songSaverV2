@@ -97,8 +97,14 @@ export const VIDEO_BACKGROUNDS: VideoBackground[] = [
   {
     id: 'meadow',
     label: 'Green Meadow',
-    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1777415923/green-meadow-under-blue-sky-moewalls-com_uldhna.mp4',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/v1777415923/green-meadow-under-blue-sky-moewalls-com_uldhna.mp4',
     swatch: 'linear-gradient(135deg, #4a7c59, #6db88a, #87ceeb)',
+  },
+  {
+    id: 'particles',
+    label: 'Particles',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/v1777416858/71122-537102350_medium_zp1nof.mp4',
+    swatch: 'linear-gradient(135deg, #0a0a1a, #1a1a3e, #2a1a5e)',
   },
 ]
 

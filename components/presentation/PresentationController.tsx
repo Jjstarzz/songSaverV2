@@ -190,8 +190,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
       >
       {inlineVideoUrl && (
         <video
-          key={inlineVideoUrl}
-          autoPlay loop muted playsInline
+          key={background}
+          autoPlay loop muted playsInline preload="auto"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
           src={inlineVideoUrl}
         />
