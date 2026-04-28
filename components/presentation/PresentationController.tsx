@@ -20,6 +20,7 @@ import {
 interface Props {
   title: string
   lyricsText: string
+  playlist?: { title: string; lyricsText: string }[]
 }
 
 interface Slide {
@@ -27,7 +28,7 @@ interface Slide {
   content: string
 }
 
-export function PresentationController({ title, lyricsText }: Props) {
+export function PresentationController({ title, lyricsText, playlist }: Props) {
   const supabase = useSupabase()
   const [open, setOpen] = useState(false)
   const [inlineOpen, setInlineOpen] = useState(false)
@@ -42,9 +43,13 @@ export function PresentationController({ title, lyricsText }: Props) {
   const [showQr, setShowQr] = useState(false)
   const [showFontControls, setShowFontControls] = useState(false)
   const [showBackgroundControls, setShowBackgroundControls] = useState(false)
+  const [songIdx, setSongIdx] = useState(0)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
-  const slides: Slide[] = parseLyrics(lyricsText).map(s => ({
+  const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
+  const activeLyricsText = playlist ? (playlist[songIdx]?.lyricsText ?? '') : lyricsText
+
+  const slides: Slide[] = parseLyrics(activeLyricsText).map(s => ({
     label: s.label ?? '',
     content: s.content,
   }))
@@ -90,7 +95,7 @@ export function PresentationController({ title, lyricsText }: Props) {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentIdx, slides, title, background, fontSizeKey, fontFamily])
+  }, [open, currentIdx, slides, activeTitle, background, fontSizeKey, fontFamily])
 
   const broadcast = (payload: object) => {
     channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
@@ -100,12 +105,19 @@ export function PresentationController({ title, lyricsText }: Props) {
     setCurrentIdx(idx)
     setBlank(false)
     const s = slides[idx]
-    broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title, background, fontSizeKey, fontFamily })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily })
+  }
+
+  const goToSong = (idx: number) => {
+    setSongIdx(idx)
+    setCurrentIdx(null)
+    setBlank(true)
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily })
   }
 
   const revealCurrent = () => {
@@ -116,7 +128,7 @@ export function PresentationController({ title, lyricsText }: Props) {
     setBackground(bg)
     if (currentIdx !== null && !blank) {
       const s = slides[currentIdx]
-      broadcast({ blank: false, section: s.label, lines: s.content, title, background: bg, fontSizeKey, fontFamily })
+      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily })
     }
   }
 
@@ -149,7 +161,7 @@ export function PresentationController({ title, lyricsText }: Props) {
   const inlineBgStyle = isLiveBg ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
   const inlineBgClass = isLiveBg ? `live-${background}` : ''
 
-  // ── Present button (shown in song detail header) ──
+  // ── Present button (shown in song detail / service header) ──
   if (!open) {
     return (
       <button
@@ -157,7 +169,7 @@ export function PresentationController({ title, lyricsText }: Props) {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:bg-purple-500/25 transition-colors"
       >
         <Monitor className="w-3.5 h-3.5" />
-        Present
+        {playlist ? 'Present Service' : 'Present'}
       </button>
     )
   }
@@ -253,7 +265,7 @@ export function PresentationController({ title, lyricsText }: Props) {
               color: 'rgba(255,255,255,0.2)', fontStyle: 'italic', fontSize: '0.7rem',
               fontFamily: inlineFontFamily,
             }}>
-              {title}
+              {activeTitle}
             </p>
           </>
         )}
@@ -351,7 +363,7 @@ export function PresentationController({ title, lyricsText }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', paddingTop: 'max(1rem, env(safe-area-inset-top))', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>Now Presenting</p>
-              <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
+              <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTitle}</p>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -509,7 +521,7 @@ export function PresentationController({ title, lyricsText }: Props) {
                         setFontSizeKey(key)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey: key, fontFamily })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily })
                         }
                       }}
                       style={{
@@ -536,7 +548,7 @@ export function PresentationController({ title, lyricsText }: Props) {
                         setFontFamily(f.id)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title, background, fontSizeKey, fontFamily: f.id })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id })
                         }
                       }}
                       style={{
@@ -558,6 +570,47 @@ export function PresentationController({ title, lyricsText }: Props) {
 
           {/* Sections list */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: '#09090b' }}>
+
+            {/* Song navigation (playlist mode only) */}
+            {playlist && playlist.length > 1 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+                padding: '8px 12px', borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <button
+                  onClick={() => goToSong(songIdx - 1)}
+                  disabled={songIdx === 0}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
+                    color: songIdx === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <ChevronLeft style={{ width: 16, height: 16 }} />
+                </button>
+                <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>
+                    Song {songIdx + 1} of {playlist.length}
+                  </p>
+                  <p style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {activeTitle}
+                  </p>
+                </div>
+                <button
+                  onClick={() => goToSong(songIdx + 1)}
+                  disabled={songIdx === playlist.length - 1}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
+                    color: songIdx === playlist.length - 1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <ChevronRight style={{ width: 16, height: 16 }} />
+                </button>
+              </div>
+            )}
+
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Sections — tap to display</p>
 
             {/* Now Playing preview */}

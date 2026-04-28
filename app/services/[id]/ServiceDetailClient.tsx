@@ -16,6 +16,7 @@ import { useRole } from '@/hooks/useRole'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { SERVICE_TYPES, SERVICE_STATUSES } from '@/types/database'
+import { PresentationController } from '@/components/presentation/PresentationController'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -82,12 +83,28 @@ export function ServiceDetailClient({ id }: Props) {
 
   const setlistItems = (service.service_songs ?? []) as any[]
 
+  const servicePlaylist = setlistItems
+    .filter((ss: any) => ss.songs)
+    .map((ss: any) => {
+      const songLyrics: { lyrics: string; is_default: boolean }[] = ss.songs.song_lyrics ?? []
+      const defaultLyric = songLyrics.find((l) => l.is_default) ?? songLyrics[0]
+      return { title: ss.songs.title as string, lyricsText: defaultLyric?.lyrics ?? '' }
+    })
+    .filter((item) => item.lyricsText)
+
   return (
     <>
       <BackHeader
         title={service.theme || formatDate(service.date)}
         action={
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 items-center">
+            {servicePlaylist.length > 0 && (
+              <PresentationController
+                title=""
+                lyricsText=""
+                playlist={servicePlaylist}
+              />
+            )}
             {service.is_public && (
               <Button
                 variant="ghost"
