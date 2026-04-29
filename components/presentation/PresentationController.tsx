@@ -12,7 +12,7 @@ import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
 import {
-  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS,
+  STATIC_BACKGROUNDS, VIDEO_BACKGROUNDS,
   LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
   FONT_OPTIONS, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
@@ -44,6 +44,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [showFontControls, setShowFontControls] = useState(false)
   const [showBackgroundControls, setShowBackgroundControls] = useState(false)
   const [songIdx, setSongIdx] = useState(0)
+  const [textColor, setTextColor] = useState('#ffffff')
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
@@ -95,7 +96,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentIdx, slides, activeTitle, background, fontSizeKey, fontFamily])
+  }, [open, currentIdx, slides, activeTitle, background, fontSizeKey, fontFamily, textColor])
 
   const broadcast = (payload: object) => {
     channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
@@ -105,19 +106,19 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     setCurrentIdx(idx)
     setBlank(false)
     const s = slides[idx]
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor })
   }
 
   const goToSong = (idx: number) => {
     setSongIdx(idx)
     setCurrentIdx(null)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily })
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor })
   }
 
   const revealCurrent = () => {
@@ -128,7 +129,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     setBackground(bg)
     if (currentIdx !== null && !blank) {
       const s = slides[currentIdx]
-      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily })
+      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily, textColor })
     }
   }
 
@@ -262,7 +263,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
               </p>
             )}
             <p style={{
-              color: '#ffffff', textAlign: 'center', fontWeight: 300,
+              color: textColor, textAlign: 'center', fontWeight: 300,
               fontSize: inlineFontSize, lineHeight: 1.55,
               letterSpacing: '0.01em', whiteSpace: 'pre-line',
               fontFamily: inlineFontFamily,
@@ -474,35 +475,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   ))}
                 </div>
 
-                {/* Live row */}
-                <div className="flex items-center gap-2 mb-2">
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Live</p>
-                  <span style={{ fontSize: '0.55rem', color: '#a78bfa', background: 'rgba(167,139,250,0.15)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>ANIMATED</span>
-                </div>
-                <div className="flex gap-2.5">
-                  {LIVE_BACKGROUNDS.map((bg) => (
-                    <button
-                      key={bg.id}
-                      onClick={() => changeBackground(bg.id)}
-                      title={bg.label}
-                      className={cn(
-                        'w-9 h-9 rounded-full border-2 transition-all duration-150 relative',
-                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
-                      )}
-                      style={{ background: bg.swatch }}
-                    >
-                      {background !== bg.id && (
-                        <span style={{
-                          position: 'absolute', inset: -3, borderRadius: '50%',
-                          border: '1px solid rgba(167,139,250,0.25)',
-                        }} />
-                      )}
-                    </button>
-                  ))}
-                </div>
-
                 {/* Video row */}
-                <div className="flex items-center gap-2 mb-2 mt-3">
+                <div className="flex items-center gap-2 mb-2">
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Video</p>
                   <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>MP4</span>
                 </div>
@@ -551,7 +525,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         setFontSizeKey(key)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor })
                         }
                       }}
                       style={{
@@ -570,7 +544,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
 
                 {/* Font family row */}
                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   {FONT_OPTIONS.map((f) => (
                     <button
                       key={f.id}
@@ -578,7 +552,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         setFontFamily(f.id)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor })
                         }
                       }}
                       style={{
@@ -592,6 +566,40 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                     >
                       {f.label}
                     </button>
+                  ))}
+                </div>
+
+                {/* Text colour row */}
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Colour</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[
+                    { color: '#ffffff', label: 'White' },
+                    { color: '#fef9c3', label: 'Cream' },
+                    { color: '#fde68a', label: 'Yellow' },
+                    { color: '#bfdbfe', label: 'Blue' },
+                    { color: '#fbcfe8', label: 'Pink' },
+                    { color: '#bbf7d0', label: 'Mint' },
+                  ].map(({ color, label }) => (
+                    <button
+                      key={color}
+                      title={label}
+                      onClick={() => {
+                        setTextColor(color)
+                        if (currentIdx !== null && !blank) {
+                          const s = slides[currentIdx]
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor: color })
+                        }
+                      }}
+                      style={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        background: color,
+                        border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)',
+                        cursor: 'pointer', flexShrink: 0,
+                        transform: textColor === color ? 'scale(1.15)' : 'scale(1)',
+                        transition: 'all 0.15s',
+                        boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
+                      }}
+                    />
                   ))}
                 </div>
               </div>

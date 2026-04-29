@@ -17,6 +17,7 @@ interface SlideState {
   background: string
   fontSizeKey?: string
   fontFamily?: string
+  textColor?: string
 }
 
 const INITIAL: SlideState = {
@@ -125,13 +126,14 @@ export function PresentDisplay() {
                 )}
 
                 <p
-                  className="text-white text-center whitespace-pre-line"
+                  className="text-center whitespace-pre-line"
                   style={{
                     fontSize,
                     fontFamily,
                     fontWeight: 300,
                     lineHeight: 1.55,
                     letterSpacing: '0.01em',
+                    color: slide.textColor ?? '#ffffff',
                     textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
                     maxWidth: '90%',
                   }}

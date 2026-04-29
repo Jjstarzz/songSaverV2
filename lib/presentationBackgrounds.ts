@@ -106,6 +106,12 @@ export const VIDEO_BACKGROUNDS: VideoBackground[] = [
     url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/v1777416858/71122-537102350_medium_zp1nof.mp4',
     swatch: 'linear-gradient(135deg, #0a0a1a, #1a1a3e, #2a1a5e)',
   },
+  {
+    id: 'bokeh',
+    label: 'Bokeh',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/v1777447384/12530-239934669_rrmykv.mp4',
+    swatch: 'linear-gradient(135deg, #1a0a2e, #2e1a0a, #0a1a2e)',
+  },
 ]
 
 export const VIDEO_BG_IDS = new Set(VIDEO_BACKGROUNDS.map(b => b.id))
