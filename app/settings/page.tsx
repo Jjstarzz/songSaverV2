@@ -170,9 +170,9 @@ export default function SettingsPage() {
                 {profile?.display_name || 'Worshiper'}
               </p>
               <p className="text-xs text-white/40 mt-0.5 truncate">
-                {user?.email ?? (profile?.is_anonymous ? 'Guest account' : '')}
+                {user?.email ?? (user?.is_anonymous ? 'Guest account' : '')}
               </p>
-              {profile?.is_anonymous && (
+              {user?.is_anonymous && (
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
                   Guest
                 </span>
@@ -181,7 +181,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Unified link account card */}
-          {profile?.is_anonymous && (
+          {user?.is_anonymous && (
             <div className={cn('glass-card overflow-hidden transition-all', linkOpen ? 'border border-accent-500/25' : '')}>
               {/* Header row — always visible */}
               {!linkSent && (
@@ -299,7 +299,7 @@ export default function SettingsPage() {
               <SettingRow
                 icon={LogOut}
                 label="Sign Out"
-                description={profile?.is_anonymous ? "You'll start a new anonymous session" : "You can sign back in with your email"}
+                description={user?.is_anonymous ? "You'll start a new anonymous session" : "You can sign back in with your email"}
                 danger
               >
                 <Button variant="destructive" size="sm" onClick={signOut}>
