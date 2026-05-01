@@ -18,6 +18,7 @@ interface SlideState {
   fontSizeKey?: string
   fontFamily?: string
   textColor?: string
+  holdingImageUrl?: string
 }
 
 const INITIAL: SlideState = {
@@ -114,6 +115,14 @@ export function PresentDisplay() {
             className="w-full h-full flex flex-col items-center justify-center px-[8%] relative z-10"
             style={{ opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}
           >
+            {slide.blank && slide.holdingImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={slide.holdingImageUrl}
+                alt=""
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+              />
+            )}
             {!slide.blank && (
               <>
                 {slide.section && (

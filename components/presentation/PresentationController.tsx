@@ -45,6 +45,11 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [showBackgroundControls, setShowBackgroundControls] = useState(false)
   const [songIdx, setSongIdx] = useState(0)
   const [textColor, setTextColor] = useState('#ffffff')
+  const [holdingImageUrl, setHoldingImageUrl] = useState<string>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('songsaver-holding-image') ?? ''
+    return ''
+  })
+  const [holdingInputVal, setHoldingInputVal] = useState('')
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
@@ -106,19 +111,19 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     setCurrentIdx(idx)
     setBlank(false)
     const s = slides[idx]
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
   }
 
   const goToSong = (idx: number) => {
     setSongIdx(idx)
     setCurrentIdx(null)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor })
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
   }
 
   const revealCurrent = () => {
@@ -129,7 +134,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     setBackground(bg)
     if (currentIdx !== null && !blank) {
       const s = slides[currentIdx]
-      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily, textColor })
+      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
     }
   }
 
@@ -494,6 +499,61 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                     />
                   ))}
                 </div>
+
+                {/* Holding slide image */}
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 14, marginBottom: 6 }}>Holding Slide Image</p>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', marginBottom: 8 }}>
+                  Shown when screen is blanked. Paste an image URL.
+                </p>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    defaultValue={holdingImageUrl}
+                    onChange={e => setHoldingInputVal(e.target.value)}
+                    style={{
+                      flex: 1, padding: '7px 10px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                      color: '#fff', fontSize: '0.72rem', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const url = holdingInputVal.trim()
+                      setHoldingImageUrl(url)
+                      localStorage.setItem('songsaver-holding-image', url)
+                    }}
+                    style={{
+                      padding: '7px 12px', borderRadius: 10, flexShrink: 0,
+                      background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)',
+                      color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600,
+                    }}
+                  >
+                    Set
+                  </button>
+                  {holdingImageUrl && (
+                    <button
+                      onClick={() => {
+                        setHoldingImageUrl('')
+                        setHoldingInputVal('')
+                        localStorage.removeItem('songsaver-holding-image')
+                      }}
+                      style={{
+                        padding: '7px 10px', borderRadius: 10, flexShrink: 0,
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                        color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                {holdingImageUrl && (
+                  <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56, position: 'relative' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -525,7 +585,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         setFontSizeKey(key)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
                         }
                       }}
                       style={{
@@ -552,7 +612,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         setFontFamily(f.id)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor })
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
                         }
                       }}
                       style={{
