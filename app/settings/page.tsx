@@ -63,14 +63,12 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState('')
   const [defaultLang, setDefaultLang] = useState('en')
   const [saving, setSaving] = useState(false)
-  const [upgradeEmail, setUpgradeEmail] = useState('')
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const [upgrading, setUpgrading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [signInOpen, setSignInOpen] = useState(false)
-  const [signInEmail, setSignInEmail] = useState('')
-  const [signingIn, setSigningIn] = useState(false)
-  const [signInSent, setSignInSent] = useState(false)
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkMode, setLinkMode] = useState<'new' | 'existing'>('new')
+  const [linkEmail, setLinkEmail] = useState('')
+  const [linking, setLinking] = useState(false)
+  const [linkSent, setLinkSent] = useState(false)
   const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team' | 'owner'>('account') // Section type defined below in TABS
 
   useEffect(() => { setMounted(true) }, [])
@@ -99,15 +97,6 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
-  const upgradeAccount = async () => {
-    if (!upgradeEmail.trim()) { toast.error('Enter your email'); return }
-    setUpgrading(true)
-    const { error } = await supabase.auth.updateUser({ email: upgradeEmail })
-    if (error) toast.error(error.message)
-    else { toast.success('Check your email to confirm!'); setUpgradeOpen(false) }
-    setUpgrading(false)
-  }
-
   const copyUserId = () => {
     if (!user?.id) return
     navigator.clipboard.writeText(user.id)
@@ -115,19 +104,22 @@ export default function SettingsPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const signIn = async () => {
-    if (!signInEmail.trim()) { toast.error('Enter your email'); return }
-    setSigningIn(true)
-    const { error } = await supabase.auth.signInWithOtp({
-      email: signInEmail.trim(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: window.location.origin,
-      },
-    })
-    if (error) toast.error(error.message)
-    else setSignInSent(true)
-    setSigningIn(false)
+  const submitLink = async () => {
+    if (!linkEmail.trim()) { toast.error('Enter your email'); return }
+    setLinking(true)
+    if (linkMode === 'new') {
+      const { error } = await supabase.auth.updateUser({ email: linkEmail.trim() })
+      if (error) toast.error(error.message)
+      else { toast.success('Check your email to confirm!'); setLinkOpen(false); setLinkEmail('') }
+    } else {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: linkEmail.trim(),
+        options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
+      })
+      if (error) toast.error(error.message)
+      else setLinkSent(true)
+    }
+    setLinking(false)
   }
 
   const signOut = async () => {
@@ -178,105 +170,91 @@ export default function SettingsPage() {
                 {profile?.display_name || 'Worshiper'}
               </p>
               <p className="text-xs text-white/40 mt-0.5 truncate">
-                {user?.email ?? (profile?.is_anonymous ? 'Anonymous account' : '')}
+                {user?.email ?? (profile?.is_anonymous ? 'Guest account' : '')}
               </p>
               {profile?.is_anonymous && (
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/20">
-                  Anonymous
+                  Guest
                 </span>
               )}
             </div>
           </div>
 
-          {/* Upgrade CTA */}
-          {profile?.is_anonymous && !upgradeOpen && (
-            <button
-              onClick={() => setUpgradeOpen(true)}
-              className="w-full glass-card p-4 flex items-center gap-3 text-left hover:bg-white/[0.07] transition-all border border-accent-500/20"
-            >
-              <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center shrink-0">
-                <Shield className="w-5 h-5 text-accent-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Secure your account</p>
-                <p className="text-xs text-white/50">Add email to keep your data safe</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/30" />
-            </button>
-          )}
+          {/* Unified link account card */}
+          {profile?.is_anonymous && (
+            <div className={cn('glass-card overflow-hidden transition-all', linkOpen ? 'border border-accent-500/25' : '')}>
+              {/* Header row — always visible */}
+              {!linkSent && (
+                <button
+                  onClick={() => setLinkOpen(v => !v)}
+                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-white/[0.04] transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center shrink-0">
+                    <Shield className="w-5 h-5 text-accent-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-white">Link your account</p>
+                    <p className="text-xs text-white/50">Save your data permanently with an email</p>
+                  </div>
+                  <ChevronRight className={cn('w-4 h-4 text-white/30 transition-transform duration-200', linkOpen && 'rotate-90')} />
+                </button>
+              )}
 
-          {upgradeOpen && (
-            <div className="glass-card p-4 space-y-3 animate-fade-in border border-accent-500/20">
-              <p className="text-sm font-semibold text-white">Add Email to Your Account</p>
-              <p className="text-xs text-white/50">Your existing songs and data will be preserved.</p>
-              <Input
-                type="email"
-                value={upgradeEmail}
-                onChange={(e) => setUpgradeEmail(e.target.value)}
-                placeholder="your@email.com"
-                leftIcon={<Mail className="w-4 h-4" />}
-              />
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setUpgradeOpen(false)} disabled={upgrading}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={upgradeAccount} loading={upgrading}>
-                  Send Confirmation Email
-                </Button>
-              </div>
-            </div>
-          )}
+              {/* Expanded form */}
+              {linkOpen && !linkSent && (
+                <div className="px-4 pb-4 space-y-3 animate-fade-in">
+                  {/* Mode toggle */}
+                  <div className="flex gap-1 p-1 bg-white/[0.04] rounded-xl">
+                    {(['new', 'existing'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => { setLinkMode(mode); setLinkEmail('') }}
+                        className={cn(
+                          'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                          linkMode === mode ? 'bg-accent-600 text-white' : 'text-white/50 hover:text-white/70'
+                        )}
+                      >
+                        {mode === 'new' ? 'New account' : 'Sign in'}
+                      </button>
+                    ))}
+                  </div>
 
-          {/* Sign in to existing account */}
-          {profile?.is_anonymous && !signInOpen && !upgradeOpen && (
-            <button
-              onClick={() => setSignInOpen(true)}
-              className="w-full glass-card p-4 flex items-center gap-3 text-left hover:bg-white/[0.07] transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0">
-                <Mail className="w-5 h-5 text-white/40" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Sign in to existing account</p>
-                <p className="text-xs text-white/50">Already have an account? Sign in with your email</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/30" />
-            </button>
-          )}
+                  <p className="text-xs text-white/40">
+                    {linkMode === 'new'
+                      ? 'Add an email to this account — your songs and data will be preserved.'
+                      : "Already have an account? We'll send a magic link to sign you in."}
+                  </p>
 
-          {signInOpen && !signInSent && (
-            <div className="glass-card p-4 space-y-3 animate-fade-in">
-              <p className="text-sm font-semibold text-white">Sign In</p>
-              <p className="text-xs text-white/50">
-                {"We'll send a magic link to your email — no password needed."}
-              </p>
-              <Input
-                type="email"
-                value={signInEmail}
-                onChange={(e) => setSignInEmail(e.target.value)}
-                placeholder="your@email.com"
-                leftIcon={<Mail className="w-4 h-4" />}
-              />
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setSignInOpen(false)} disabled={signingIn}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={signIn} loading={signingIn}>
-                  Send Magic Link
-                </Button>
-              </div>
-            </div>
-          )}
+                  <Input
+                    type="email"
+                    value={linkEmail}
+                    onChange={(e) => setLinkEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    leftIcon={<Mail className="w-4 h-4" />}
+                  />
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => { setLinkOpen(false); setLinkEmail('') }} disabled={linking}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={submitLink} loading={linking}>
+                      {linkMode === 'new' ? 'Send Confirmation' : 'Send Magic Link'}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-          {signInSent && (
-            <div className="glass-card p-4 text-center space-y-2 animate-fade-in border border-emerald-500/20">
-              <p className="text-sm font-semibold text-emerald-400">Check your email</p>
-              <p className="text-xs text-white/50">
-                We sent a sign-in link to <span className="text-white/70">{signInEmail}</span>. Click it to sign back into your account.
-              </p>
-              <Button variant="ghost" size="sm" onClick={() => { setSignInSent(false); setSignInEmail(''); setSignInOpen(false) }}>
-                Use a different email
-              </Button>
+              {/* Sent confirmation */}
+              {linkSent && (
+                <div className="p-4 text-center space-y-2 animate-fade-in">
+                  <p className="text-sm font-semibold text-emerald-400">Check your email</p>
+                  <p className="text-xs text-white/50">
+                    We sent a link to <span className="text-white/70">{linkEmail}</span>. Click it to sign in.
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={() => { setLinkSent(false); setLinkEmail('') }}>
+                    Use a different email
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
