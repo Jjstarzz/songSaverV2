@@ -465,18 +465,22 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
               <div style={{ padding: '0 16px 12px' }}>
                 {/* Static row */}
                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
-                <div className="flex gap-2.5 mb-3">
+                <div className="flex flex-wrap gap-x-3 gap-y-2 mb-3">
                   {STATIC_BACKGROUNDS.map((bg) => (
                     <button
                       key={bg.id}
                       onClick={() => changeBackground(bg.id)}
-                      title={bg.label}
-                      className={cn(
-                        'w-9 h-9 rounded-full border-2 transition-all duration-150',
-                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
-                      )}
-                      style={{ background: bg.swatch }}
-                    />
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <span
+                        className={cn(
+                          'w-9 h-9 rounded-full border-2 transition-all duration-150 block',
+                          background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20'
+                        )}
+                        style={{ background: bg.swatch }}
+                      />
+                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                    </button>
                   ))}
                 </div>
 
@@ -485,18 +489,22 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Video</p>
                   <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>MP4</span>
                 </div>
-                <div className="flex gap-2.5">
+                <div className="flex flex-wrap gap-x-3 gap-y-2">
                   {VIDEO_BACKGROUNDS.map((bg) => (
                     <button
                       key={bg.id}
                       onClick={() => changeBackground(bg.id)}
-                      title={bg.label}
-                      className={cn(
-                        'w-9 h-9 rounded-full border-2 transition-all duration-150',
-                        background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20 hover:border-white/40'
-                      )}
-                      style={{ background: bg.swatch }}
-                    />
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <span
+                        className={cn(
+                          'w-9 h-9 rounded-full border-2 transition-all duration-150 block',
+                          background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20'
+                        )}
+                        style={{ background: bg.swatch }}
+                      />
+                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                    </button>
                   ))}
                 </div>
 

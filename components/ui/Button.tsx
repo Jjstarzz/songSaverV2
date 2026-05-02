@@ -21,11 +21,11 @@ const buttonVariants = cva(
           'border border-accent-500/40 hover:border-accent-500/70 text-accent-400 hover:bg-accent-500/10',
       },
       size: {
-        sm: 'text-xs px-3 py-1.5 h-8',
+        sm: 'text-xs px-3 py-2 h-9',
         md: 'text-sm px-4 py-2.5 h-10',
         lg: 'text-base px-6 py-3.5 h-12',
         icon: 'w-10 h-10 rounded-xl',
-        'icon-sm': 'w-8 h-8 rounded-lg',
+        'icon-sm': 'w-10 h-10 rounded-xl',
       },
     },
     defaultVariants: {

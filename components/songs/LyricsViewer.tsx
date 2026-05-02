@@ -156,7 +156,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                 key={lyric.language}
                 onClick={() => { setActiveLang(lyric.language); setEditing(false) }}
                 className={cn(
-                  'shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+                  'shrink-0 px-3.5 py-2 rounded-full text-xs font-medium border transition-all duration-200',
                   activeLang === lyric.language
                     ? 'bg-accent-600 border-accent-500 text-white'
                     : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'

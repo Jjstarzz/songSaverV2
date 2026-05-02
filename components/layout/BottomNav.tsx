@@ -43,7 +43,7 @@ export function BottomNav() {
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-accent-500" />
               )}
               <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium leading-none">{label}</span>
+              <span className="text-[11px] font-medium leading-none">{label}</span>
             </Link>
           )
         })}

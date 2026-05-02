@@ -28,7 +28,7 @@ interface BackHeaderProps {
 export function BackHeader({ title, action, children }: BackHeaderProps) {
   return (
     <div className="sticky-header-bg sticky top-0 z-40 bg-[var(--bg)]/90 backdrop-blur-xl border-b border-[var(--border)]">
-      <div className="flex items-center gap-2 px-3 py-3 max-w-lg mx-auto">
+      <div className="flex items-center gap-1 px-2 py-2 max-w-lg mx-auto">
         {children}
         <h1 className="flex-1 text-base font-semibold text-white truncate">{title}</h1>
         {action && <div className="flex items-center gap-1 shrink-0">{action}</div>}

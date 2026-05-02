@@ -254,7 +254,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
                     key={tag}
                     onClick={() => toggleTag(tag)}
                     className={cn(
-                      'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                      'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
                       selectedTags.includes(tag)
                         ? 'bg-accent-600 border-accent-500 text-white'
                         : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
@@ -337,7 +337,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
                           key={lang}
                           onClick={() => setSelectedOriginalLang(selectedOriginalLang === lang ? '' : lang)}
                           className={cn(
-                            'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                            'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
                             selectedOriginalLang === lang
                               ? 'bg-sky-600 border-sky-500 text-white'
                               : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
@@ -359,7 +359,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
                         key={lang}
                         onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
                         className={cn(
-                          'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                          'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
                           selectedLang === lang
                             ? 'bg-accent-600 border-accent-500 text-white'
                             : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
@@ -403,7 +403,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
                       key={ts}
                       onClick={() => setSelectedTimeSig(selectedTimeSig === ts ? '' : ts)}
                       className={cn(
-                        'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                        'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
                         selectedTimeSig === ts
                           ? 'bg-accent-600 border-accent-500 text-white'
                           : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
