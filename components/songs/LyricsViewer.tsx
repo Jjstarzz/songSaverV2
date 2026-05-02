@@ -238,55 +238,56 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
       {/* Add language form */}
       {adding && (
         <div className="glass-card p-4 space-y-3 animate-fade-in">
-          <div className="flex items-center justify-between">
+          {/* Header row: title + icon actions */}
+          <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium text-[var(--fg)]">Add Lyrics</p>
-            <div className="flex items-center gap-2">
-              {!searchOpen && (
+            {!searchOpen && (
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setSearchOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-accent-400 hover:text-accent-300 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20"
+                  title="Find lyrics online"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-accent-400 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20"
                 >
-                  <Search className="w-3.5 h-3.5" />
-                  Find Lyrics
+                  <Search className="w-4 h-4" />
                 </button>
-              )}
-              {!searchOpen && (
                 <button
                   onClick={() => triggerOcr('add')}
                   disabled={ocrLoading}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
+                  title="Scan image for lyrics"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
                 >
                   {ocrLoading && ocrTarget === 'add'
-                    ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                    : <Camera className="w-3.5 h-3.5" />}
-                  Scan Image
+                    ? <span className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
+                    : <Camera className="w-4 h-4" />}
                 </button>
-              )}
-              {!searchOpen && (
-                <div className="flex gap-1 p-0.5 bg-[var(--bg-input)] rounded-lg border border-[var(--border)]">
-                  <button
-                    onClick={() => { setPasteMode(true); setShowPreview(false) }}
-                    className={cn(
-                      'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
-                      pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
-                    )}
-                  >
-                    <ClipboardPaste className="w-3.5 h-3.5 inline mr-1" />
-                    Paste
-                  </button>
-                  <button
-                    onClick={() => setPasteMode(false)}
-                    className={cn(
-                      'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
-                      !pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
-                    )}
-                  >
-                    Manual
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+
+          {/* Input mode toggle (below header, full width) */}
+          {!searchOpen && (
+            <div className="flex gap-1 p-0.5 bg-[var(--bg-input)] rounded-lg border border-[var(--border)]">
+              <button
+                onClick={() => { setPasteMode(true); setShowPreview(false) }}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
+                  pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
+                )}
+              >
+                <ClipboardPaste className="w-3.5 h-3.5" />
+                Paste
+              </button>
+              <button
+                onClick={() => setPasteMode(false)}
+                className={cn(
+                  'flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
+                  !pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
+                )}
+              >
+                Manual
+              </button>
+            </div>
+          )}
 
           {searchOpen ? (
             <LyricsSearch
