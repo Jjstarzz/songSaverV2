@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera } from 'lucide-react'
 import { SongLyrics, LANGUAGE_NAMES } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { Select, Textarea } from '@/components/ui/Input'
@@ -22,6 +22,24 @@ const SUPPORTED_LANGUAGES = Object.entries(LANGUAGE_NAMES).map(([value, label]) 
   value,
   label,
 }))
+
+function resizeImage(file: File, maxSize = 1024): Promise<{ base64: string; mediaType: 'image/jpeg' }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve({ base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' })
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
 
 /** Renders raw lyrics text with [Section] labels styled as headers. */
 function LyricsDisplay({ text }: { text: string }) {
@@ -54,6 +72,9 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
   const [newLang, setNewLang] = useState('en')
   const [saving, setSaving] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrTarget, setOcrTarget] = useState<'add' | 'edit'>('add')
+  const imgInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (lyrics.length > 0 && !activeLang) {
@@ -140,12 +161,51 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
     setEditText('')
   }
 
+  const triggerOcr = (target: 'add' | 'edit') => {
+    setOcrTarget(target)
+    imgInputRef.current?.click()
+  }
+
+  const handleOcrImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setOcrLoading(true)
+    try {
+      const { base64, mediaType } = await resizeImage(file)
+      const res = await fetch('/api/ocr-lyrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'OCR failed')
+      if (ocrTarget === 'add') {
+        setPasteText(data.lyrics)
+        setPasteMode(true)
+      } else {
+        setEditText(data.lyrics)
+      }
+      toast.success('Lyrics extracted from image')
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to extract lyrics')
+    }
+    setOcrLoading(false)
+  }
+
   const availableNewLangs = SUPPORTED_LANGUAGES.filter(
     (l) => !lyrics.some((ly) => ly.language === l.value)
   )
 
   return (
     <div className="space-y-4">
+      <input
+        ref={imgInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleOcrImage}
+      />
       {/* Language switcher */}
       {lyrics.length > 0 && (
         <div className="flex items-center gap-2">
@@ -188,6 +248,18 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                 >
                   <Search className="w-3.5 h-3.5" />
                   Find Lyrics
+                </button>
+              )}
+              {!searchOpen && (
+                <button
+                  onClick={() => triggerOcr('add')}
+                  disabled={ocrLoading}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
+                >
+                  {ocrLoading && ocrTarget === 'add'
+                    ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                    : <Camera className="w-3.5 h-3.5" />}
+                  Scan Image
                 </button>
               )}
               {!searchOpen && (
@@ -317,6 +389,16 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                       </Button>
                     ) : (
                       <>
+                        <Button
+                          variant="ghost" size="icon-sm"
+                          onClick={() => triggerOcr('edit')}
+                          disabled={ocrLoading || saving}
+                          title="Scan image to replace lyrics"
+                        >
+                          {ocrLoading && ocrTarget === 'edit'
+                            ? <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3.5 h-3.5" />}
+                        </Button>
                         <Button variant="ghost" size="icon-sm" onClick={cancelEdit} disabled={saving}>
                           <X className="w-3.5 h-3.5" />
                         </Button>
