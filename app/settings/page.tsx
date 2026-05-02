@@ -7,7 +7,7 @@ import Link from 'next/link'
 import {
   User, Mail, Shield, Users, LogOut, ChevronRight,
   Globe, Bell, Moon, Sun, Smartphone, Info, ExternalLink,
-  Trash2, Copy, Check, Download, Crown,
+  Trash2, Copy, Check, Download, Upload, Crown,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -69,6 +69,7 @@ export default function SettingsPage() {
   const [linkEmail, setLinkEmail] = useState('')
   const [linking, setLinking] = useState(false)
   const [linkSent, setLinkSent] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [activeSection, setActiveSection] = useState<'account' | 'app' | 'team' | 'owner'>('account') // Section type defined below in TABS
 
   useEffect(() => { setMounted(true) }, [])
@@ -125,6 +126,74 @@ export default function SettingsPage() {
   const signOut = async () => {
     await supabase.auth.signOut()
     window.location.reload()
+  }
+
+  const exportData = async () => {
+    if (!user) return
+    setExporting(true)
+    try {
+      const [songsRes, servicesRes] = await Promise.all([
+        supabase
+          .from('songs')
+          .select('*, song_lyrics(*)')
+          .eq('created_by', user.id)
+          .order('title'),
+        supabase
+          .from('services')
+          .select('*, service_songs(order_index, songs(id, title, artist))')
+          .eq('created_by', user.id)
+          .order('date', { ascending: false }),
+      ])
+
+      if (songsRes.error) throw songsRes.error
+      if (servicesRes.error) throw servicesRes.error
+
+      const payload = {
+        exported_at: new Date().toISOString(),
+        version: '1',
+        songs: (songsRes.data ?? []).map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          artist: s.artist,
+          original_language: s.original_language,
+          created_at: s.created_at,
+          lyrics: (s.song_lyrics ?? []).map((l: any) => ({
+            language: l.language,
+            lyrics: l.lyrics,
+            is_default: l.is_default,
+          })),
+        })),
+        services: (servicesRes.data ?? []).map((s: any) => ({
+          id: s.id,
+          date: s.date,
+          theme: s.theme,
+          type: s.type,
+          status: s.status,
+          notes: s.notes,
+          is_public: s.is_public,
+          setlist: (s.service_songs ?? [])
+            .sort((a: any, b: any) => a.order_index - b.order_index)
+            .map((ss: any) => ({
+              order_index: ss.order_index,
+              song_id: ss.songs?.id ?? null,
+              song_title: ss.songs?.title ?? null,
+              song_artist: ss.songs?.artist ?? null,
+            })),
+        })),
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `songsaver-export-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${payload.songs.length} songs and ${payload.services.length} services`)
+    } catch {
+      toast.error('Export failed')
+    }
+    setExporting(false)
   }
 
   type Section = 'account' | 'app' | 'team' | 'owner'
@@ -355,13 +424,20 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Import */}
+          {/* Import / Export */}
           <div className="glass-card divide-y divide-white/[0.06]">
             <div className="px-4">
-              <SettingRow icon={Download} label="Import Songs" description="Bulk import songs from a preset library">
+              <SettingRow icon={Upload} label="Import Songs" description="Bulk import songs from a preset library">
                 <Link href="/import" className="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium">
                   Open →
                 </Link>
+              </SettingRow>
+            </div>
+            <div className="px-4">
+              <SettingRow icon={Download} label="Export All Data" description="Download your songs, lyrics and services as JSON">
+                <Button variant="outline" size="sm" onClick={exportData} loading={exporting}>
+                  Export
+                </Button>
               </SettingRow>
             </div>
           </div>
