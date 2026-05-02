@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Youtube, Music, Globe, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { Plus, X, Youtube, Music, Globe, ChevronDown, ChevronUp, Search, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { MUSICAL_KEYS, LANGUAGE_NAMES, Song } from '@/types/database'
@@ -16,6 +16,24 @@ import { LyricsSearch } from './LyricsSearch'
 const PRESET_TAGS = ['Praise', 'Worship', 'Fast', 'Slow', 'Thanksgiving', 'Easter', 'Christmas', 'Advent', 'Communion', 'Offering', 'Opening', 'Closing']
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '12/8']
 const LANG_OPTIONS = Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({ value, label }))
+
+function resizeImage(file: File, maxSize = 1024): Promise<{ base64: string; mediaType: 'image/jpeg' }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve({ base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' })
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
 
 interface LyricEntry {
   language: string
@@ -55,6 +73,34 @@ export function SongForm({ song }: SongFormProps) {
   ])
   const [showLyricsSection, setShowLyricsSection] = useState(true)
   const [searchIdx, setSearchIdx] = useState<number | null>(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrIdx, setOcrIdx] = useState<number | null>(null)
+  const imgInputRef = useRef<HTMLInputElement>(null)
+
+  const triggerOcr = (idx: number) => { setOcrIdx(idx); imgInputRef.current?.click() }
+
+  const handleOcrImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || ocrIdx === null) return
+    e.target.value = ''
+    setOcrLoading(true)
+    try {
+      const { base64, mediaType } = await resizeImage(file)
+      const res = await fetch('/api/ocr-lyrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'OCR failed')
+      updateLyric(ocrIdx, 'lyrics', data.lyrics)
+      toast.success('Lyrics extracted from image')
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to extract lyrics')
+    }
+    setOcrLoading(false)
+    setOcrIdx(null)
+  }
 
   const keyOptions = [
     { value: '', label: '— Select key —' },
@@ -163,6 +209,7 @@ export function SongForm({ song }: SongFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-10">
+      <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleOcrImage} />
 
       {/* ── Basic Info ── */}
       <section className="space-y-4">
@@ -261,14 +308,27 @@ export function SongForm({ song }: SongFormProps) {
                         )}
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setSearchIdx(searchIdx === idx ? null : idx)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-accent-400 hover:text-accent-300 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20 shrink-0 mt-5"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                      Find Lyrics
-                    </button>
+                    <div className="flex gap-1.5 mt-5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setSearchIdx(searchIdx === idx ? null : idx)}
+                        title="Find lyrics online"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-accent-400 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20"
+                      >
+                        <Search className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => triggerOcr(idx)}
+                        disabled={ocrLoading}
+                        title="Scan image for lyrics"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
+                      >
+                        {ocrLoading && ocrIdx === idx
+                          ? <span className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
+                          : <Camera className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
 
                   {searchIdx === idx ? (
