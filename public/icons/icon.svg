@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient: deep dark purple to near-black -->
+    <radialGradient id="bg" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#2d1060"/>
+      <stop offset="100%" stop-color="#08050f"/>
+    </radialGradient>
+    <!-- Icon gradient: bright purple to violet -->
+    <linearGradient id="icon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <!-- Subtle glow filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Subtle inner glow ring -->
+  <rect width="512" height="512" rx="112" fill="none" stroke="#7c3aed" stroke-width="2" opacity="0.3"/>
+
+  <!-- Music note group, centred -->
+  <g filter="url(#glow)" transform="translate(256,256)">
+    <!-- Note head (filled oval) -->
+    <ellipse cx="-52" cy="80" rx="46" ry="34" fill="url(#icon)" transform="rotate(-15,-52,80)"/>
+
+    <!-- Note stem -->
+    <rect x="-10" y="-112" width="18" height="194" rx="9" fill="url(#icon)"/>
+
+    <!-- Flag / beam — top right -->
+    <path d="M8,-112 Q120,-60 100,28" stroke="url(#icon)" stroke-width="18" fill="none" stroke-linecap="round"/>
+
+    <!-- Bookmark shape at bottom of stem: V-notch -->
+    <path d="M-10,82 L-10,140 L8,118 L26,140 L26,82 Z" fill="url(#icon)"/>
+  </g>
+</svg>
