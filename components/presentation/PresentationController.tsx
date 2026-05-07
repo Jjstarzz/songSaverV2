@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, EyeOff, ExternalLink,
-  Copy, Check, Monitor, Tv2, List, QrCode,
+  Copy, Check, Monitor, Tv2, List, QrCode, BookOpen, Search,
 } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import type { RealtimeChannel } from '@supabase/supabase-js'
@@ -50,6 +50,10 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     return ''
   })
   const [holdingInputVal, setHoldingInputVal] = useState('')
+  const [showScripturePanel, setShowScripturePanel] = useState(false)
+  const [scriptureQuery, setScriptureQuery] = useState('')
+  const [scriptureResults, setScriptureResults] = useState<{ reference: string; text: string }[]>([])
+  const [scriptureSearching, setScriptureSearching] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
@@ -136,6 +140,26 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
       const s = slides[currentIdx]
       broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
     }
+  }
+
+  const searchScripture = async () => {
+    if (!scriptureQuery.trim()) return
+    setScriptureSearching(true)
+    setScriptureResults([])
+    try {
+      const res = await fetch(`/api/bible?op=search&q=${encodeURIComponent(scriptureQuery.trim())}`)
+      const data = await res.json()
+      setScriptureResults(data.verses ?? [])
+    } catch {
+      // silently fail
+    }
+    setScriptureSearching(false)
+  }
+
+  const sendVerse = (reference: string, text: string) => {
+    setCurrentIdx(null)
+    setBlank(false)
+    broadcast({ blank: false, section: reference, lines: text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
   }
 
   const displayUrl = typeof window !== 'undefined' && code
@@ -561,6 +585,85 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Scripture panel — collapsible */}
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => setShowScripturePanel(v => !v)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BookOpen style={{ width: 12, height: 12 }} /> Scripture
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showScripturePanel ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+            </button>
+
+            {showScripturePanel && (
+              <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Search input */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. John 3:16 or peace"
+                    value={scriptureQuery}
+                    onChange={e => setScriptureQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && searchScripture()}
+                    style={{
+                      flex: 1, padding: '8px 10px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                      color: '#fff', fontSize: '0.75rem', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={searchScripture}
+                    disabled={scriptureSearching}
+                    style={{
+                      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                      background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)',
+                      color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {scriptureSearching
+                      ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                      : <Search style={{ width: 15, height: 15 }} />}
+                  </button>
+                </div>
+
+                {/* Results */}
+                {scriptureResults.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                    {scriptureResults.map((v, i) => (
+                      <button
+                        key={i}
+                        onClick={() => sendVerse(v.reference, v.text)}
+                        style={{
+                          textAlign: 'left', padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                          display: 'flex', flexDirection: 'column', gap: 3,
+                        }}
+                      >
+                        <span style={{ color: '#a78bfa', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                          {v.reference}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', lineHeight: 1.45, fontWeight: 300 }}>
+                          {v.text.length > 160 ? v.text.slice(0, 160) + '…' : v.text}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!scriptureSearching && scriptureResults.length === 0 && scriptureQuery && (
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>
+                    No results — try a reference like "Psalm 23:1"
+                  </p>
                 )}
               </div>
             )}
