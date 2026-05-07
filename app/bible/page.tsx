@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, BookOpen, Send, Copy, Check, ChevronLeft } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Search, BookOpen, Send, Copy, Check } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toaster'
 import { useSupabase } from '@/hooks/useSupabase'
-import { BIBLE_BOOKS, OT_BOOKS, NT_BOOKS } from '@/lib/bibleData'
+import { BIBLE_BOOKS } from '@/lib/bibleData'
 import { cn } from '@/lib/utils'
 
 interface Verse {
@@ -15,12 +15,21 @@ interface Verse {
 }
 
 type Tab = 'search' | 'browse'
-type BrowseStep = 'book' | 'chapter' | 'verse'
+
+const RECENT_KEY = 'bible-recent'
+const MAX_RECENT = 8
+
+function loadRecent(): Verse[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
+}
+function saveRecent(verse: Verse) {
+  const list = loadRecent().filter(v => v.reference !== verse.reference)
+  localStorage.setItem(RECENT_KEY, JSON.stringify([verse, ...list].slice(0, MAX_RECENT)))
+}
 
 export default function BiblePage() {
   const supabase = useSupabase()
 
-  // Shared
   const [tab, setTab] = useState<Tab>('search')
   const [copied, setCopied] = useState<string | null>(null)
   const [selected, setSelected] = useState<Verse | null>(null)
@@ -32,13 +41,34 @@ export default function BiblePage() {
   const [searchError, setSearchError] = useState('')
 
   // Browse tab
-  const [browseStep, setBrowseStep] = useState<BrowseStep>('book')
   const [browseBook, setBrowseBook] = useState<(typeof BIBLE_BOOKS)[0] | null>(null)
   const [browseChapter, setBrowseChapter] = useState<number | null>(null)
   const [browseVerses, setBrowseVerses] = useState<{ id: string; reference: string }[]>([])
   const [loadingVerses, setLoadingVerses] = useState(false)
   const [browsePassage, setBrowsePassage] = useState<Verse | null>(null)
   const [loadingPassage, setLoadingPassage] = useState(false)
+  const [recent, setRecent] = useState<Verse[]>([])
+
+  // Column scroll refs
+  const bookColRef = useRef<HTMLDivElement>(null)
+  const chColRef = useRef<HTMLDivElement>(null)
+  const vsColRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setRecent(loadRecent()) }, [])
+
+  // Auto-scroll selected items into view within their column
+  const scrollTo = (colRef: React.RefObject<HTMLDivElement | null>, id: string) => {
+    const col = colRef.current
+    const el = col?.querySelector<HTMLElement>(`[data-id="${id}"]`)
+    if (!col || !el) return
+    const elTop = el.offsetTop - col.offsetTop
+    const center = elTop - col.clientHeight / 2 + el.clientHeight / 2
+    col.scrollTo({ top: center, behavior: 'smooth' })
+  }
+
+  useEffect(() => { if (browseBook) scrollTo(bookColRef, browseBook.id) }, [browseBook])
+  useEffect(() => { if (browseChapter) scrollTo(chColRef, String(browseChapter)) }, [browseChapter])
+  useEffect(() => { if (selected) scrollTo(vsColRef, selected.reference) }, [selected])
 
   // Search
   const search = async () => {
@@ -59,38 +89,38 @@ export default function BiblePage() {
     setSearching(false)
   }
 
-  // Browse: pick book
-  const pickBook = (book: (typeof BIBLE_BOOKS)[0]) => {
-    setBrowseBook(book)
-    setBrowseChapter(null)
-    setBrowseVerses([])
-    setBrowsePassage(null)
-    setSelected(null)
-    setBrowseStep('chapter')
-  }
-
-  // Browse: pick chapter → fetch verse list
-  const pickChapter = async (ch: number) => {
-    if (!browseBook) return
-    setBrowseChapter(ch)
-    setBrowsePassage(null)
-    setSelected(null)
-    setBrowseStep('verse')
+  const fetchVerses = useCallback(async (bookId: string, ch: number) => {
     setLoadingVerses(true)
     setBrowseVerses([])
     try {
-      const chapterId = `${browseBook.id}.${ch}`
-      const res = await fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(chapterId)}`)
+      const res = await fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${bookId}.${ch}`)}`)
       const data = await res.json()
       setBrowseVerses(data.verses ?? [])
     } catch {
       toast.error('Failed to load verses')
     }
     setLoadingVerses(false)
+  }, [])
+
+  const pickBook = (book: (typeof BIBLE_BOOKS)[0]) => {
+    if (browseBook?.id === book.id) return
+    setBrowseBook(book)
+    setBrowseChapter(1)
+    setBrowsePassage(null)
+    setSelected(null)
+    fetchVerses(book.id, 1)
   }
 
-  // Browse: pick verse → fetch passage text
-  const pickVerse = async (verseId: string) => {
+  const pickChapter = (ch: number) => {
+    if (!browseBook || browseChapter === ch) return
+    setBrowseChapter(ch)
+    setBrowsePassage(null)
+    setSelected(null)
+    fetchVerses(browseBook.id, ch)
+  }
+
+  const pickVerse = async (verseId: string, verseRef: string) => {
+    if (selected?.reference === verseRef) return
     setLoadingPassage(true)
     setBrowsePassage(null)
     setSelected(null)
@@ -101,6 +131,8 @@ export default function BiblePage() {
         const verse: Verse = { reference: data.reference, text: data.text }
         setBrowsePassage(verse)
         setSelected(verse)
+        saveRecent(verse)
+        setRecent(loadRecent())
       }
     } catch {
       toast.error('Failed to load verse')
@@ -108,12 +140,6 @@ export default function BiblePage() {
     setLoadingPassage(false)
   }
 
-  const browseBack = () => {
-    if (browseStep === 'verse') { setBrowseStep('chapter'); setBrowsePassage(null); setSelected(null) }
-    else if (browseStep === 'chapter') { setBrowseStep('book'); setBrowseBook(null) }
-  }
-
-  // Shared actions
   const copyVerse = async (verse: Verse) => {
     await navigator.clipboard.writeText(`${verse.text} — ${verse.reference}`)
     setCopied(verse.reference)
@@ -137,16 +163,14 @@ export default function BiblePage() {
     toast.success(`Sent "${verse.reference}" to screen`)
   }
 
-  const hasSelected = selected !== null
-
   return (
     <div className="pb-24">
       <PageHeader
         title="Scripture"
         subtitle="Search and browse Bible verses"
         action={
-          hasSelected ? (
-            <Button size="sm" onClick={() => presentVerse(selected!)} className="gap-1.5">
+          selected ? (
+            <Button size="sm" onClick={() => presentVerse(selected)} className="gap-1.5">
               <Send className="w-3.5 h-3.5" />
               Present
             </Button>
@@ -197,7 +221,9 @@ export default function BiblePage() {
               </div>
             )}
 
-            {selected && tab === 'search' && <VerseCard verse={selected} onClose={() => setSelected(null)} onCopy={copyVerse} onPresent={presentVerse} copied={copied} />}
+            {selected && tab === 'search' && (
+              <VerseCard verse={selected} onClose={() => { setSelected(null) }} onCopy={copyVerse} onPresent={presentVerse} copied={copied} />
+            )}
 
             {results.length > 0 && (
               <div className="space-y-2">
@@ -247,111 +273,130 @@ export default function BiblePage() {
 
         {/* ── BROWSE TAB ── */}
         {tab === 'browse' && (
-          <>
-            {/* Breadcrumb / back */}
-            {browseStep !== 'book' && (
-              <div className="flex items-center gap-2">
-                <button onClick={browseBack} className="flex items-center gap-1 text-sm text-white/50 hover:text-white/80 transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                  Back
-                </button>
-                <span className="text-white/20">·</span>
-                <span className="text-sm text-white/70">
-                  {browseBook?.name}{browseChapter != null && browseStep === 'verse' ? ` · Chapter ${browseChapter}` : ''}
-                </span>
-              </div>
-            )}
+          <div className="space-y-4">
+            {/* Three-column picker */}
+            <div className="rounded-2xl overflow-hidden border border-white/[0.07] bg-white/[0.03]" style={{ height: 240 }}>
+              <div className="flex h-full divide-x divide-white/[0.07]">
 
-            {/* Book picker */}
-            {browseStep === 'book' && (
-              <div className="space-y-4">
-                {[{ label: 'Old Testament', books: OT_BOOKS }, { label: 'New Testament', books: NT_BOOKS }].map(({ label, books }) => (
-                  <div key={label} className="space-y-2">
-                    <p className="section-label">{label}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {books.map(book => (
-                        <button
-                          key={book.id}
-                          onClick={() => pickBook(book)}
-                          className="text-left glass-card px-3 py-2.5 rounded-xl hover:bg-white/[0.09] transition-colors"
-                        >
-                          <p className="text-sm text-white/85 font-medium">{book.name}</p>
-                          <p className="text-[11px] text-white/35">{book.chapters} ch</p>
-                        </button>
-                      ))}
-                    </div>
+                {/* Book column */}
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="px-3 py-2 border-b border-white/[0.07] bg-white/[0.04] shrink-0">
+                    <p className="text-[10px] font-bold tracking-widest text-white/35 uppercase">Book</p>
                   </div>
-                ))}
+                  <div ref={bookColRef} className="overflow-y-auto flex-1">
+                    {BIBLE_BOOKS.map(book => (
+                      <button
+                        key={book.id}
+                        data-id={book.id}
+                        onClick={() => pickBook(book)}
+                        className={cn(
+                          'w-full text-left px-3 py-[7px] text-sm transition-colors',
+                          browseBook?.id === book.id
+                            ? 'bg-accent-500/20 text-accent-300 font-semibold'
+                            : 'text-white/55 hover:text-white/85 hover:bg-white/[0.05]'
+                        )}
+                      >
+                        {book.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chapter column */}
+                <div className="flex flex-col w-14 shrink-0">
+                  <div className="px-1 py-2 border-b border-white/[0.07] bg-white/[0.04] shrink-0 text-center">
+                    <p className="text-[10px] font-bold tracking-widest text-white/35 uppercase">Ch</p>
+                  </div>
+                  <div ref={chColRef} className="overflow-y-auto flex-1">
+                    {browseBook
+                      ? Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
+                          <button
+                            key={ch}
+                            data-id={String(ch)}
+                            onClick={() => pickChapter(ch)}
+                            className={cn(
+                              'w-full text-center py-[7px] text-sm transition-colors',
+                              browseChapter === ch
+                                ? 'bg-accent-500/20 text-accent-300 font-semibold'
+                                : 'text-white/55 hover:text-white/85 hover:bg-white/[0.05]'
+                            )}
+                          >
+                            {ch}
+                          </button>
+                        ))
+                      : <p className="text-center text-white/20 text-xs py-4">—</p>
+                    }
+                  </div>
+                </div>
+
+                {/* Verse column */}
+                <div className="flex flex-col w-14 shrink-0">
+                  <div className="px-1 py-2 border-b border-white/[0.07] bg-white/[0.04] shrink-0 text-center">
+                    <p className="text-[10px] font-bold tracking-widest text-white/35 uppercase">Vs</p>
+                  </div>
+                  <div ref={vsColRef} className="overflow-y-auto flex-1">
+                    {loadingVerses
+                      ? <p className="text-center text-white/20 text-xs py-4">…</p>
+                      : browseVerses.length > 0
+                        ? browseVerses.map(v => {
+                            const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
+                            return (
+                              <button
+                                key={v.id}
+                                data-id={v.reference}
+                                onClick={() => pickVerse(v.id, v.reference)}
+                                className={cn(
+                                  'w-full text-center py-[7px] text-sm transition-colors',
+                                  selected?.reference === v.reference
+                                    ? 'bg-accent-500/20 text-accent-300 font-semibold'
+                                    : 'text-white/55 hover:text-white/85 hover:bg-white/[0.05]'
+                                )}
+                              >
+                                {num}
+                              </button>
+                            )
+                          })
+                        : <p className="text-center text-white/20 text-xs py-4">—</p>
+                    }
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Passage display */}
+            {loadingPassage && (
+              <div className="glass-card p-6 text-center">
+                <p className="text-sm text-white/40">Loading…</p>
               </div>
             )}
+            {browsePassage && !loadingPassage && (
+              <VerseCard verse={browsePassage} onCopy={copyVerse} onPresent={presentVerse} copied={copied} />
+            )}
 
-            {/* Chapter picker */}
-            {browseStep === 'chapter' && browseBook && (
+            {/* Recent */}
+            {recent.length > 0 && (
               <div className="space-y-2">
-                <p className="section-label">Chapter</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
+                <p className="section-label">Recent</p>
+                <div className="flex flex-wrap gap-2">
+                  {recent.map((v, i) => (
                     <button
-                      key={ch}
-                      onClick={() => pickChapter(ch)}
+                      key={i}
+                      onClick={() => { setBrowsePassage(v); setSelected(v) }}
                       className={cn(
-                        'aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all',
-                        'bg-white/[0.07] hover:bg-white/[0.13] text-white/70 hover:text-white'
+                        'px-3 py-1.5 rounded-full text-xs border transition-colors',
+                        selected?.reference === v.reference
+                          ? 'border-accent-500/50 text-accent-300 bg-accent-500/10'
+                          : 'border-white/10 text-white/45 hover:text-white/70 hover:border-white/20'
                       )}
                     >
-                      {ch}
+                      {v.reference}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Verse picker */}
-            {browseStep === 'verse' && (
-              <div className="space-y-3">
-                {/* Verse list */}
-                {loadingVerses && (
-                  <div className="glass-card p-6 text-center">
-                    <p className="text-sm text-white/40">Loading verses…</p>
-                  </div>
-                )}
-                {!loadingVerses && browseVerses.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="section-label">Verse</p>
-                    <div className="grid grid-cols-5 gap-2">
-                      {browseVerses.map(v => {
-                        const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
-                        return (
-                          <button
-                            key={v.id}
-                            onClick={() => pickVerse(v.id)}
-                            className={cn(
-                              'aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all',
-                              selected?.reference === v.reference
-                                ? 'bg-accent-500/30 text-accent-300 border border-accent-500/50'
-                                : 'bg-white/[0.07] hover:bg-white/[0.13] text-white/70 hover:text-white'
-                            )}
-                          >
-                            {num}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Passage display */}
-                {loadingPassage && (
-                  <div className="glass-card p-6 text-center">
-                    <p className="text-sm text-white/40">Loading…</p>
-                  </div>
-                )}
-                {browsePassage && !loadingPassage && (
-                  <VerseCard verse={browsePassage} onCopy={copyVerse} onPresent={presentVerse} copied={copied} />
-                )}
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>
