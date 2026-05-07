@@ -26,7 +26,8 @@
       "Bash(npx tsc *)",
       "Bash(node -e \"require\\('react-qr-code'\\); console.log\\('ok'\\)\")",
       "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s 'https://api.scripture.api.bible/v1/bibles/78a9f6124f344018-01/search?query=Psalm+23:1&limit=4' -H 'api-key: KLdT4jbfTTJoWlI1GGtjL')"
     ]
   }
 }

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         { headers }
       )
       const data = await res.json()
-      // Normalise to a simple list of { reference, text }
+      if (!res.ok) return NextResponse.json({ error: data.message ?? 'API error' }, { status: res.status })
       const verses = (data?.data?.verses ?? []).map((v: any) => ({
         reference: v.reference,
         text: v.text?.replace(/<[^>]+>/g, '').trim(),

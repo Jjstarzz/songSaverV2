@@ -142,16 +142,19 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     }
   }
 
+  const [scriptureError, setScriptureError] = useState('')
   const searchScripture = async () => {
     if (!scriptureQuery.trim()) return
     setScriptureSearching(true)
     setScriptureResults([])
+    setScriptureError('')
     try {
       const res = await fetch(`/api/bible?op=search&q=${encodeURIComponent(scriptureQuery.trim())}`)
       const data = await res.json()
-      setScriptureResults(data.verses ?? [])
+      if (!res.ok) { setScriptureError(data.error ?? 'Search failed'); }
+      else setScriptureResults(data.verses ?? [])
     } catch {
-      // silently fail
+      setScriptureError('Could not reach Bible API')
     }
     setScriptureSearching(false)
   }
@@ -660,7 +663,10 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   </div>
                 )}
 
-                {!scriptureSearching && scriptureResults.length === 0 && scriptureQuery && (
+                {scriptureError && (
+                  <p style={{ color: '#f87171', fontSize: '0.7rem', textAlign: 'center', padding: '4px 0' }}>{scriptureError}</p>
+                )}
+                {!scriptureSearching && !scriptureError && scriptureResults.length === 0 && scriptureQuery && (
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>
                     {'No results — try a reference like "Psalm 23:1"'}
                   </p>

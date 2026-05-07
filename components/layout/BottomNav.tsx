@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Music2, CalendarDays, Mic2, Settings2 } from 'lucide-react'
+import { Home, Music2, CalendarDays, Mic2, Settings2, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/',          label: 'Home',      icon: Home,        exact: true },
   { href: '/songs',     label: 'Songs',     icon: Music2 },
   { href: '/services',  label: 'Services',  icon: CalendarDays },
+  { href: '/bible',     label: 'Scripture', icon: BookOpen },
   { href: '/rehearsal', label: 'Rehearsal', icon: Mic2 },
   { href: '/settings',  label: 'Settings',  icon: Settings2 },
 ]
