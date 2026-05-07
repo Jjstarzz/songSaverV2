@@ -69,13 +69,13 @@ export function Metronome() {
   }, [])
 
   // Restart when BPM changes while running
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (running) {
       stop()
       setTimeout(start, 50)
     }
-  }, [bpm]) // intentionally only bpm — we want to restart only when BPM changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bpm]) // intentionally only bpm — restart only when BPM changes
 
   const adjustBpm = (delta: number) => {
     setBpm((prev) => Math.max(MIN_BPM, Math.min(MAX_BPM, prev + delta)))

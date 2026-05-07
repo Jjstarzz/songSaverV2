@@ -662,7 +662,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
 
                 {!scriptureSearching && scriptureResults.length === 0 && scriptureQuery && (
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>
-                    No results — try a reference like "Psalm 23:1"
+                    {'No results — try a reference like "Psalm 23:1"'}
                   </p>
                 )}
               </div>
