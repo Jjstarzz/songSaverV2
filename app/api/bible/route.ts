@@ -42,6 +42,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ text, reference })
     }
 
+    if (op === 'verses') {
+      const chapter = searchParams.get('chapter') ?? ''
+      const res = await fetch(
+        `${BASE}/bibles/${BIBLE_ID}/chapters/${encodeURIComponent(chapter)}/verses`,
+        { headers }
+      )
+      const data = await res.json()
+      if (!res.ok) return NextResponse.json({ error: data.message ?? 'API error' }, { status: res.status })
+      const verses = (data?.data ?? []).map((v: any) => ({ id: v.id, reference: v.reference }))
+      return NextResponse.json({ verses })
+    }
+
     return NextResponse.json({ error: 'Unknown op' }, { status: 400 })
   } catch {
     return NextResponse.json({ error: 'Bible API error' }, { status: 500 })
