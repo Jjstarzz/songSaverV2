@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_KEY = process.env.BIBLE_API_KEY ?? ''
 const BIBLE_ID = process.env.BIBLE_ID ?? ''
-const BASE = 'https://api.scripture.api.bible/v1'
+const BASE = 'https://rest.api.bible/v1'
 
 const headers = { 'api-key': API_KEY }
 
