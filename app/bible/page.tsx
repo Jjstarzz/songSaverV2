@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toaster'
 import { useSupabase } from '@/hooks/useSupabase'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
+import { ScriptureController } from '@/components/presentation/ScriptureController'
 import { cn } from '@/lib/utils'
 
 interface Verse {
@@ -168,14 +169,7 @@ export default function BiblePage() {
       <PageHeader
         title="Scripture"
         subtitle="Search and browse Bible verses"
-        action={
-          selected ? (
-            <Button size="sm" onClick={() => presentVerse(selected)} className="gap-1.5">
-              <Send className="w-3.5 h-3.5" />
-              Present
-            </Button>
-          ) : undefined
-        }
+        action={<ScriptureController />}
       />
 
       <div className="px-4 space-y-4">
