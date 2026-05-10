@@ -112,6 +112,18 @@ export const VIDEO_BACKGROUNDS: VideoBackground[] = [
     url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/v1777447384/12530-239934669_rrmykv.mp4',
     swatch: 'linear-gradient(135deg, #1a0a2e, #2e1a0a, #0a1a2e)',
   },
+  {
+    id: 'misty',
+    label: 'Misty Colors',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1778401571/Misty_colors_3_geo_HD_fkbcri.mp4',
+    swatch: 'linear-gradient(135deg, #6b4fa0, #a07060, #4a6080)',
+  },
+  {
+    id: 'kaleidoscope',
+    label: 'Kaleidoscope',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1778401221/kaleidoscope_mirror_gold_HD_objsbu.mp4',
+    swatch: 'linear-gradient(135deg, #b8860b, #d4a017, #8b6914)',
+  },
 ]
 
 export const VIDEO_BG_IDS = new Set(VIDEO_BACKGROUNDS.map(b => b.id))
