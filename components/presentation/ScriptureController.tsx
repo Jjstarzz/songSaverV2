@@ -457,7 +457,7 @@ export function ScriptureController() {
               <div style={{ display: 'flex', height: 230, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
 
                 {/* Book column */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
+                <div style={{ flex: 2, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
                   <div style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>BOOK</p>
                   </div>
@@ -472,7 +472,7 @@ export function ScriptureController() {
                 </div>
 
                 {/* Chapter column */}
-                <div style={{ width: 72, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
                   <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Chapter</p>
                   </div>
@@ -490,7 +490,7 @@ export function ScriptureController() {
                 </div>
 
                 {/* Verse column */}
-                <div style={{ width: 72, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Verse</p>
                   </div>
