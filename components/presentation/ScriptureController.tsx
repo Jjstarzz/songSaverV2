@@ -464,7 +464,7 @@ export function ScriptureController() {
                   <div ref={bookColRef} style={{ flex: 1, overflowY: 'auto' }}>
                     {BIBLE_BOOKS.map(book => (
                       <button key={book.id} data-id={book.id} onClick={() => pickBook(book)}
-                        style={{ width: '100%', textAlign: 'left', padding: '6px 10px', fontSize: '0.78rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.55)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        style={{ width: '100%', textAlign: 'left', padding: '10px 10px', fontSize: '0.82rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {book.name}
                       </button>
                     ))}
@@ -472,15 +472,15 @@ export function ScriptureController() {
                 </div>
 
                 {/* Chapter column */}
-                <div style={{ width: 52, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                <div style={{ width: 72, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
                   <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>CH</p>
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Chapter</p>
                   </div>
                   <div ref={chColRef} style={{ flex: 1, overflowY: 'auto' }}>
                     {browseBook
                       ? Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
                           <button key={ch} data-id={String(ch)} onClick={() => pickChapter(ch)}
-                            style={{ width: '100%', textAlign: 'center', padding: '6px 0', fontSize: '0.78rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.55)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                            style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                             {ch}
                           </button>
                         ))
@@ -490,9 +490,9 @@ export function ScriptureController() {
                 </div>
 
                 {/* Verse column */}
-                <div style={{ width: 52, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                <div style={{ width: 72, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
                   <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>VS</p>
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Verse</p>
                   </div>
                   <div ref={vsColRef} style={{ flex: 1, overflowY: 'auto' }}>
                     {loadingVerses
@@ -501,7 +501,7 @@ export function ScriptureController() {
                           const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
                           return (
                             <button key={v.id} data-id={v.reference} onClick={() => pickVerse(idx)}
-                              style={{ width: '100%', textAlign: 'center', padding: '6px 0', fontSize: '0.78rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.55)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                              style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                               {num}
                             </button>
                           )

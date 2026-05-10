@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseReference } from '@/lib/bibleRef'
 
 const API_KEY = process.env.BIBLE_API_KEY ?? ''
 const BIBLE_ID = process.env.BIBLE_ID ?? ''
 const BASE = 'https://rest.api.bible/v1'
 
 const headers = { 'api-key': API_KEY }
+
+const cleanText = (raw: string) => raw.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -17,8 +20,26 @@ export async function GET(req: NextRequest) {
   try {
     if (op === 'search') {
       const q = searchParams.get('q') ?? ''
+
+      // Try parsing as a reference first (e.g. "Psalm 23", "John 3:16")
+      const refId = parseReference(q)
+      if (refId) {
+        const res = await fetch(
+          `${BASE}/bibles/${BIBLE_ID}/passages/${encodeURIComponent(refId)}?content-type=text&include-verse-numbers=false&include-titles=false`,
+          { headers }
+        )
+        const data = await res.json()
+        if (res.ok && data?.data?.content) {
+          return NextResponse.json({
+            verses: [{ reference: data.data.reference, text: cleanText(data.data.content) }],
+          })
+        }
+        // Fall through to keyword search if passage not found
+      }
+
+      // Keyword search
       const res = await fetch(
-        `${BASE}/bibles/${BIBLE_ID}/search?query=${encodeURIComponent(q)}&limit=8`,
+        `${BASE}/bibles/${BIBLE_ID}/search?query=${encodeURIComponent(q)}&limit=10`,
         { headers }
       )
       const data = await res.json()
@@ -37,7 +58,7 @@ export async function GET(req: NextRequest) {
         { headers }
       )
       const data = await res.json()
-      const text = data?.data?.content?.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+      const text = data?.data?.content ? cleanText(data.data.content) : ''
       const reference = data?.data?.reference
       return NextResponse.json({ text, reference })
     }
