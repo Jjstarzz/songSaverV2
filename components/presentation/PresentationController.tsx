@@ -43,6 +43,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [showQr, setShowQr] = useState(false)
   const [showFontControls, setShowFontControls] = useState(false)
   const [showBackgroundControls, setShowBackgroundControls] = useState(false)
+  const [showJoin, setShowJoin] = useState(false)
+  const [joinInput, setJoinInput] = useState('')
   const [songIdx, setSongIdx] = useState(0)
   const [textColor, setTextColor] = useState('#ffffff')
   const [holdingImageUrl, setHoldingImageUrl] = useState<string>(() => {
@@ -177,6 +179,21 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
 
   const openDisplay = () => {
     window.open(displayUrl, 'songsaver-present', 'width=1280,height=720,menubar=no,toolbar=no')
+  }
+
+  const joinSession = () => {
+    const trimmed = joinInput.trim().toUpperCase()
+    if (!trimmed) return
+    if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null }
+    sessionStorage.setItem('songsaver-present-code', trimmed)
+    setCode(trimmed)
+    const ch = supabase.channel(`present-${trimmed}`, { config: { broadcast: { ack: false } } })
+    ch.subscribe()
+    channelRef.current = ch
+    setBlank(true)
+    setCurrentIdx(null)
+    setShowJoin(false)
+    setJoinInput('')
   }
 
   // Current slide details for inline display
@@ -471,6 +488,33 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
               <Tv2 style={{ width: 14, height: 14 }} />
               {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
             </button>
+
+            {/* Join session */}
+            <button
+              onClick={() => setShowJoin(v => !v)}
+              style={{ marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '4px 0', display: 'block', width: '100%', textAlign: 'center' }}
+            >
+              {showJoin ? '✕ Cancel' : '+ Join an existing session'}
+            </button>
+            {showJoin && (
+              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  value={joinInput}
+                  onChange={e => setJoinInput(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && joinSession()}
+                  placeholder="Enter session code"
+                  maxLength={8}
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                />
+                <button
+                  onClick={joinSession}
+                  style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
+                >
+                  Join
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Background picker — collapsible */}
