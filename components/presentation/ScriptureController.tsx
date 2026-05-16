@@ -383,6 +383,30 @@ export function ScriptureController() {
             )}
           </div>
 
+          {/* Stage display URL */}
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor URL</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''}
+              </code>
+              <button
+                onClick={() => { if (typeof window !== 'undefined' && code) navigator.clipboard.writeText(`${window.location.origin}/stage?code=${code}`) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
+                title="Copy stage URL"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { if (typeof window !== 'undefined' && code) window.open(`${window.location.origin}/stage?code=${code}`, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}
+                title="Open stage monitor"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
           {/* Background — collapsible */}
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <button onClick={() => setShowBg(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}>

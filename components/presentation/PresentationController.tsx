@@ -41,6 +41,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [blank, setBlank] = useState(true)
   const [copied, setCopied] = useState(false)
   const [showQr, setShowQr] = useState(false)
+  const [notesOpenIdx, setNotesOpenIdx] = useState<number | null>(null)
+  const [notesDraft, setNotesDraft] = useState('')
   const [showFontControls, setShowFontControls] = useState(false)
   const [showBackgroundControls, setShowBackgroundControls] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
@@ -113,11 +115,26 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
   }
 
+  // Notes stored in localStorage, keyed by song title + slide label
+  const getNote = (label: string) => {
+    try { return JSON.parse(localStorage.getItem('slide-notes') ?? '{}')[`${activeTitle}||${label}`] ?? '' }
+    catch { return '' }
+  }
+  const saveNote = (label: string, value: string) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('slide-notes') ?? '{}')
+      all[`${activeTitle}||${label}`] = value
+      localStorage.setItem('slide-notes', JSON.stringify(all))
+    } catch {}
+  }
+
   const showSlide = (idx: number) => {
     setCurrentIdx(idx)
     setBlank(false)
     const s = slides[idx]
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    const next = slides[idx + 1] ?? null
+    const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext })
   }
 
   const showBlank = () => {
@@ -517,6 +534,30 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
             )}
           </div>
 
+          {/* Stage display URL */}
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor URL</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''}
+              </code>
+              <button
+                onClick={() => { if (typeof window !== 'undefined' && code) navigator.clipboard.writeText(`${window.location.origin}/stage?code=${code}`) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
+                title="Copy stage URL"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { if (typeof window !== 'undefined' && code) window.open(`${window.location.origin}/stage?code=${code}`, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no') }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}
+                title="Open stage monitor"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
           {/* Background picker — collapsible */}
           <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <button
@@ -872,57 +913,67 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
 
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Sections — tap to display</p>
 
-            {/* Now Playing preview */}
-            {currentIdx !== null && !blank && (
-              <div style={{
-                padding: '10px 14px', borderRadius: 12, marginBottom: 8,
-                background: 'rgba(124,58,237,0.15)',
-                border: '1px solid rgba(139,92,246,0.35)',
-              }}>
-                <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>
-                  Now on screen
-                </p>
-                {slides[currentIdx].label && (
-                  <p style={{ color: '#c4b5fd', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>
-                    {slides[currentIdx].label}
-                  </p>
-                )}
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 300, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
-                  {slides[currentIdx].content.trim()}
-                </p>
-              </div>
-            )}
-
             {slides.length === 0 ? (
               <div className="text-center py-12">
                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>No lyrics added to this song yet</p>
               </div>
             ) : (
-              slides.map((slide, i) => {
-                const previewLines = slide.content.split('\n').filter((l) => l.trim()).slice(0, 2).join('\n')
-                const isActive = currentIdx === i && !blank
-                return (
-                  <button
-                    key={i}
-                    onClick={() => showSlide(i)}
-                    style={{
-                      width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: 16,
-                      border: `1px solid ${isActive ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                      background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.06)',
-                      display: 'block', cursor: 'pointer',
-                    }}
-                  >
-                    {slide.label && (
-                      <p style={{ color: '#a78bfa', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>
-                        {slide.label}
-                      </p>
-                    )}
-                    <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', fontWeight: 300, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-line' }}>
-                      {previewLines || slide.content.slice(0, 80)}
-                    </p>
-                  </button>
-                )
-              })
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {slides.map((slide, i) => {
+                  const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
+                  const isActive = currentIdx === i && !blank
+                  const hasNote = !!getNote(slide.label)
+                  const notesOpen = notesOpenIdx === i
+                  return (
+                    <div key={i}>
+                      <button
+                        onClick={() => showSlide(i)}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '10px 10px 10px 12px', borderRadius: 12,
+                          border: `1px solid ${isActive ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                          background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)',
+                          display: 'block', cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: slide.label ? 4 : 0 }}>
+                          {slide.label && (
+                            <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1 }}>
+                              {slide.label}
+                            </p>
+                          )}
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (notesOpen) { setNotesOpenIdx(null) }
+                              else { setNotesOpenIdx(i); setNotesDraft(getNote(slide.label)) }
+                            }}
+                            title="Notes"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.18)', fontSize: '0.65rem', flexShrink: 0, lineHeight: 1 }}
+                          >
+                            ✎
+                          </button>
+                        </div>
+                        <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)', fontSize: '0.75rem', fontWeight: 300, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                          {previewLines || slide.content.slice(0, 80)}
+                        </p>
+                      </button>
+                      {notesOpen && (
+                        <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: '0 0 10px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none' }}>
+                          <textarea
+                            value={notesDraft}
+                            onChange={e => setNotesDraft(e.target.value)}
+                            onBlur={() => saveNote(slide.label, notesDraft)}
+                            placeholder="Notes (only visible here)…"
+                            rows={2}
+                            autoFocus
+                            style={{ width: '100%', padding: '5px 7px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', fontSize: '0.7rem', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
 
