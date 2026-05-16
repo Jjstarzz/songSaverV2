@@ -57,10 +57,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [scriptureResults, setScriptureResults] = useState<{ reference: string; text: string }[]>([])
   const [scriptureSearching, setScriptureSearching] = useState(false)
   const [showTranslation, setShowTranslation] = useState(false)
-  const [translationText, setTranslationText] = useState<string>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem(`songsaver-translation||${title}`) ?? ''
-    return ''
-  })
+  const [translationText, setTranslationText] = useState('')
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
@@ -100,6 +97,12 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
       channelRef.current = null
     }
   }, [open, supabase])
+
+  // Reload translation text whenever the active song changes
+  useEffect(() => {
+    const saved = localStorage.getItem(`songsaver-translation||${activeTitle}`) ?? ''
+    setTranslationText(saved)
+  }, [activeTitle])
 
   // Arrow key navigation when controller is open
   useEffect(() => {
