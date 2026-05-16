@@ -532,6 +532,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {slides.map((slide, i) => {
                       const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
+                      const translationPreview = translationSlides[i]?.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n') ?? ''
                       const isActive = currentIdx === i && !blank
                       const hasNote = !!getNote(slide.label)
                       const notesOpen = notesOpenIdx === i
@@ -564,9 +565,14 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                                 ✎
                               </button>
                             </div>
-                            <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)', fontSize: '0.75rem', fontWeight: 300, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                            <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
                               {previewLines || slide.content.slice(0, 80)}
                             </p>
+                            {translationPreview && (
+                              <p style={{ marginTop: 5, color: isActive ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 300, lineHeight: 1.4, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                                {translationPreview}
+                              </p>
+                            )}
                           </button>
                           {notesOpen && (
                             <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: '0 0 10px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none' }}>
