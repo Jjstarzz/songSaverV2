@@ -143,13 +143,13 @@ export function PresentDisplay() {
                   style={{
                     fontSize,
                     fontFamily,
-                    fontWeight: 300,
-                    lineHeight: 1.55,
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                     letterSpacing: '0.01em',
                     color: slide.textColor ?? '#ffffff',
                     textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
                     maxWidth: '90%',
-                    marginBottom: hasDual ? '1.8vw' : 0,
+                    marginBottom: hasDual ? '1.2vw' : 0,
                   }}
                 >
                   {slide.lines}
@@ -157,25 +157,21 @@ export function PresentDisplay() {
 
                 {/* Translation / transliteration */}
                 {hasDual && (
-                  <>
-                    <div style={{ width: '50%', height: 1, background: 'rgba(255,255,255,0.12)', marginBottom: '1.4vw', flexShrink: 0 }} />
-                    <p
-                      className="text-center whitespace-pre-line"
-                      style={{
-                        fontSize: translationSize,
-                        fontFamily,
-                        fontWeight: 300,
-                        lineHeight: 1.6,
-                        letterSpacing: '0.01em',
-                        color: slide.textColor ? slide.textColor + 'cc' : 'rgba(255,255,255,0.72)',
-                        textShadow: '0 2px 20px rgba(0,0,0,0.8)',
-                        maxWidth: '90%',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      {slide.translationLines}
-                    </p>
-                  </>
+                  <p
+                    className="text-center whitespace-pre-line"
+                    style={{
+                      fontSize: translationSize,
+                      fontFamily,
+                      fontWeight: 300,
+                      lineHeight: 1.55,
+                      letterSpacing: '0.01em',
+                      color: slide.textColor ? slide.textColor + 'b3' : 'rgba(255,255,255,0.7)',
+                      textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+                      maxWidth: '90%',
+                    }}
+                  >
+                    {slide.translationLines}
+                  </p>
                 )}
 
                 {slide.title && (
