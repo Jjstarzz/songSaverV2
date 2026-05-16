@@ -43,8 +43,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [showQr, setShowQr] = useState(false)
   const [notesOpenIdx, setNotesOpenIdx] = useState<number | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
-  const [showFontControls, setShowFontControls] = useState(false)
-  const [showBackgroundControls, setShowBackgroundControls] = useState(false)
+  const [controllerTab, setControllerTab] = useState<'slides' | 'settings' | 'scripture'>('slides')
   const [showJoin, setShowJoin] = useState(false)
   const [joinInput, setJoinInput] = useState('')
   const [songIdx, setSongIdx] = useState(0)
@@ -54,7 +53,6 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     return ''
   })
   const [holdingInputVal, setHoldingInputVal] = useState('')
-  const [showScripturePanel, setShowScripturePanel] = useState(false)
   const [scriptureQuery, setScriptureQuery] = useState('')
   const [scriptureResults, setScriptureResults] = useState<{ reference: string; text: string }[]>([])
   const [scriptureSearching, setScriptureSearching] = useState(false)
@@ -430,6 +428,16 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   ) : null
 
   // ── Full-screen controller overlay — z-[100] ──
+  const TAB_STYLE = (active: boolean) => ({
+    flex: 1, padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer',
+    color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+    fontSize: '0.72rem', fontWeight: active ? 700 : 500,
+    borderBottom: `2px solid ${active ? '#7c3aed' : 'transparent'}`,
+    transition: 'all 0.15s', letterSpacing: '0.05em',
+  })
+
+  const stageUrl = typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''
+
   return (
     <>
       {inlineDisplay}
@@ -439,263 +447,370 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', paddingTop: 'max(1rem, env(safe-area-inset-top))', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>Now Presenting</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>Now Presenting</p>
               <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTitle}</p>
             </div>
+            {/* Live dot */}
+            {!blank && currentIdx !== null && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 20, padding: '3px 8px', marginRight: 8, flexShrink: 0 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
+                <span style={{ color: '#fca5a5', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em' }}>LIVE</span>
+              </span>
+            )}
             <button
               onClick={() => setOpen(false)}
-              style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 12 }}
+              style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Display URL */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Projector screen URL</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
-              <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="Show QR code">
-                <QrCode className="w-4 h-4" />
-              </button>
-              <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </button>
-              <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* QR code panel */}
-            {showQr && displayUrl && (
-              <div style={{
-                marginTop: 12, padding: 16, borderRadius: 16,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-              }}>
-                {/* White card behind QR so it scans cleanly on dark background */}
-                <div style={{ background: '#ffffff', borderRadius: 12, padding: 12, display: 'inline-block' }}>
-                  <QRCode
-                    value={displayUrl}
-                    size={180}
-                    bgColor="#ffffff"
-                    fgColor="#09090b"
-                    level="M"
-                  />
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', textAlign: 'center', letterSpacing: '0.05em' }}>
-                  Scan to open on the projector screen
-                </p>
-              </div>
-            )}
-
-            {/* Present on this screen button */}
-            <button
-              onClick={() => setInlineOpen((v) => !v)}
-              style={{
-                marginTop: 10, width: '100%', padding: '10px 16px', borderRadius: 12,
-                background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.45)' : 'rgba(255,255,255,0.1)'}`,
-                color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.6)',
-                cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              <Tv2 style={{ width: 14, height: 14 }} />
-              {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
-            </button>
-
-            {/* Join session */}
-            <button
-              onClick={() => setShowJoin(v => !v)}
-              style={{ marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '4px 0', display: 'block', width: '100%', textAlign: 'center' }}
-            >
-              {showJoin ? '✕ Cancel' : '+ Join an existing session'}
-            </button>
-            {showJoin && (
-              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={e => setJoinInput(e.target.value.toUpperCase())}
-                  onKeyDown={e => e.key === 'Enter' && joinSession()}
-                  placeholder="Enter session code"
-                  maxLength={8}
-                  style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-                />
-                <button
-                  onClick={joinSession}
-                  style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
-                >
-                  Join
-                </button>
-              </div>
-            )}
+          {/* Tab bar */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingTop: 2 }}>
+            <button style={TAB_STYLE(controllerTab === 'slides')} onClick={() => setControllerTab('slides')}>Slides</button>
+            <button style={TAB_STYLE(controllerTab === 'settings')} onClick={() => setControllerTab('settings')}>Settings</button>
+            <button style={TAB_STYLE(controllerTab === 'scripture')} onClick={() => setControllerTab('scripture')}>Scripture</button>
           </div>
 
-          {/* Stage display URL */}
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor URL</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''}
-              </code>
-              <button
-                onClick={() => { if (typeof window !== 'undefined' && code) navigator.clipboard.writeText(`${window.location.origin}/stage?code=${code}`) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
-                title="Copy stage URL"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => { if (typeof window !== 'undefined' && code) window.open(`${window.location.origin}/stage?code=${code}`, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}
-                title="Open stage monitor"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto" style={{ background: '#09090b' }}>
 
-          {/* Background picker — collapsible */}
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button
-              onClick={() => setShowBackgroundControls(v => !v)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                Background
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showBackgroundControls ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-            </button>
+            {/* ── SLIDES TAB ── */}
+            {controllerTab === 'slides' && (
+              <div style={{ padding: '12px 16px' }}>
 
-            {showBackgroundControls && (
-              <div style={{ padding: '0 16px 12px' }}>
-                {/* Static row */}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-2 mb-3">
-                  {STATIC_BACKGROUNDS.map((bg) => (
+                {/* Song navigation (playlist mode only) */}
+                {playlist && playlist.length > 1 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+                    padding: '8px 12px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  }}>
                     <button
-                      key={bg.id}
-                      onClick={() => changeBackground(bg.id)}
-                      className="flex flex-col items-center gap-1"
+                      onClick={() => goToSong(songIdx - 1)}
+                      disabled={songIdx === 0}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: songIdx === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
                     >
-                      <span
-                        className={cn(
-                          'w-9 h-9 rounded-full border-2 transition-all duration-150 block',
-                          background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20'
-                        )}
-                        style={{ background: bg.swatch }}
-                      />
-                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      <ChevronLeft style={{ width: 16, height: 16 }} />
                     </button>
-                  ))}
-                </div>
-
-                {/* Video row */}
-                <div className="flex items-center gap-2 mb-2">
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Video</p>
-                  <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.1em' }}>MP4</span>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-2">
-                  {VIDEO_BACKGROUNDS.map((bg) => (
+                    <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>
+                        Song {songIdx + 1} of {playlist.length}
+                      </p>
+                      <p style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {activeTitle}
+                      </p>
+                    </div>
                     <button
-                      key={bg.id}
-                      onClick={() => changeBackground(bg.id)}
-                      className="flex flex-col items-center gap-1"
+                      onClick={() => goToSong(songIdx + 1)}
+                      disabled={songIdx === playlist.length - 1}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: songIdx === playlist.length - 1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
                     >
-                      <span
-                        className={cn(
-                          'w-9 h-9 rounded-full border-2 transition-all duration-150 block',
-                          background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20'
-                        )}
-                        style={{ background: bg.swatch }}
-                      />
-                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      <ChevronRight style={{ width: 16, height: 16 }} />
                     </button>
-                  ))}
-                </div>
+                  </div>
+                )}
 
-                {/* Holding slide image */}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 14, marginBottom: 6 }}>Holding Slide Image</p>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', marginBottom: 8 }}>
-                  Shown when screen is blanked. Paste an image URL.
-                </p>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    defaultValue={holdingImageUrl}
-                    onChange={e => setHoldingInputVal(e.target.value)}
-                    style={{
-                      flex: 1, padding: '7px 10px', borderRadius: 10,
-                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-                      color: '#fff', fontSize: '0.72rem', outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      const url = holdingInputVal.trim()
-                      setHoldingImageUrl(url)
-                      localStorage.setItem('songsaver-holding-image', url)
-                    }}
-                    style={{
-                      padding: '7px 12px', borderRadius: 10, flexShrink: 0,
-                      background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)',
-                      color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600,
-                    }}
-                  >
-                    Set
-                  </button>
-                  {holdingImageUrl && (
-                    <button
-                      onClick={() => {
-                        setHoldingImageUrl('')
-                        setHoldingInputVal('')
-                        localStorage.removeItem('songsaver-holding-image')
-                      }}
-                      style={{
-                        padding: '7px 10px', borderRadius: 10, flexShrink: 0,
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem',
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-                {holdingImageUrl && (
-                  <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56, position: 'relative' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Tap a slide to display it</p>
+
+                {slides.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>No lyrics added yet</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {slides.map((slide, i) => {
+                      const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
+                      const isActive = currentIdx === i && !blank
+                      const hasNote = !!getNote(slide.label)
+                      const notesOpen = notesOpenIdx === i
+                      return (
+                        <div key={i}>
+                          <button
+                            onClick={() => showSlide(i)}
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '10px 10px 10px 12px', borderRadius: 12,
+                              border: `1px solid ${isActive ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                              background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)',
+                              display: 'block', cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: slide.label ? 4 : 0 }}>
+                              {slide.label && (
+                                <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1 }}>
+                                  {slide.label}
+                                </p>
+                              )}
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (notesOpen) { setNotesOpenIdx(null) }
+                                  else { setNotesOpenIdx(i); setNotesDraft(getNote(slide.label)) }
+                                }}
+                                title="Notes"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.18)', fontSize: '0.65rem', flexShrink: 0, lineHeight: 1 }}
+                              >
+                                ✎
+                              </button>
+                            </div>
+                            <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)', fontSize: '0.75rem', fontWeight: 300, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                              {previewLines || slide.content.slice(0, 80)}
+                            </p>
+                          </button>
+                          {notesOpen && (
+                            <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: '0 0 10px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none' }}>
+                              <textarea
+                                value={notesDraft}
+                                onChange={e => setNotesDraft(e.target.value)}
+                                onBlur={() => saveNote(slide.label, notesDraft)}
+                                placeholder="Notes (only visible here)…"
+                                rows={2}
+                                autoFocus
+                                style={{ width: '100%', padding: '5px 7px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', fontSize: '0.7rem', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
             )}
-          </div>
 
-          {/* Scripture panel — collapsible */}
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button
-              onClick={() => setShowScripturePanel(v => !v)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <BookOpen style={{ width: 12, height: 12 }} /> Scripture
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showScripturePanel ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-            </button>
+            {/* ── SETTINGS TAB ── */}
+            {controllerTab === 'settings' && (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {showScripturePanel && (
-              <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Search input */}
+                {/* Projector URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
+                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="QR code">
+                      <QrCode className="w-4 h-4" />
+                    </button>
+                    <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {showQr && displayUrl && (
+                    <div style={{ marginTop: 10, padding: 16, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                      <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
+                        <QRCode value={displayUrl} size={160} bgColor="#ffffff" fgColor="#09090b" level="M" />
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', textAlign: 'center' }}>Scan to open the projector screen</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setInlineOpen(v => !v)}
+                    style={{
+                      marginTop: 8, width: '100%', padding: '9px 16px', borderRadius: 10,
+                      background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                      color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.55)',
+                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    <Tv2 style={{ width: 14, height: 14 }} />
+                    {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
+                  </button>
+                  <button
+                    onClick={() => setShowJoin(v => !v)}
+                    style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', padding: '3px 0', display: 'block', width: '100%', textAlign: 'center' }}
+                  >
+                    {showJoin ? '✕ Cancel' : '+ Join an existing session'}
+                  </button>
+                  {showJoin && (
+                    <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={joinInput}
+                        onChange={e => setJoinInput(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && joinSession()}
+                        placeholder="Enter session code"
+                        maxLength={8}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                      />
+                      <button onClick={joinSession} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                        Join
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage monitor URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stageUrl}</code>
+                    <button onClick={() => stageUrl && navigator.clipboard.writeText(stageUrl)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => stageUrl && window.open(stageUrl, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Background picker */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Background</p>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Static</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
+                    {STATIC_BACKGROUNDS.map((bg) => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Video</p>
+                    <span style={{ fontSize: '0.52rem', color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2">
+                    {VIDEO_BACKGROUNDS.map((bg) => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Font & size */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Text Size</p>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    {(['sm', 'md', 'lg', 'xl'] as const).map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setFontSizeKey(key)
+                          if (currentIdx !== null && !blank) {
+                            const s = slides[currentIdx]
+                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
+                          }
+                        }}
+                        style={{
+                          flex: 1, padding: '7px 0', borderRadius: 10,
+                          border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                          background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                          color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                          cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
+                          fontWeight: 600, transition: 'all 0.15s',
+                        }}
+                      >
+                        {key.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Font Style</p>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    {FONT_OPTIONS.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => {
+                          setFontFamily(f.id)
+                          if (currentIdx !== null && !blank) {
+                            const s = slides[currentIdx]
+                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
+                          }
+                        }}
+                        style={{
+                          flex: 1, padding: '7px 0', borderRadius: 10,
+                          border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                          background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                          color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                          cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
+                          fontWeight: 500, transition: 'all 0.15s',
+                        }}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Text Colour</p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {[
+                      { color: '#ffffff', label: 'White' },
+                      { color: '#fef9c3', label: 'Cream' },
+                      { color: '#fde68a', label: 'Yellow' },
+                      { color: '#bfdbfe', label: 'Blue' },
+                      { color: '#fbcfe8', label: 'Pink' },
+                      { color: '#bbf7d0', label: 'Mint' },
+                    ].map(({ color, label }) => (
+                      <button
+                        key={color}
+                        title={label}
+                        onClick={() => {
+                          setTextColor(color)
+                          if (currentIdx !== null && !blank) {
+                            const s = slides[currentIdx]
+                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor: color })
+                          }
+                        }}
+                        style={{
+                          width: 28, height: 28, borderRadius: '50%', background: color,
+                          border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)',
+                          cursor: 'pointer', flexShrink: 0,
+                          transform: textColor === color ? 'scale(1.15)' : 'scale(1)',
+                          transition: 'all 0.15s',
+                          boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Holding slide image */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Holding Slide Image</p>
+                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 8 }}>Shown when screen is blanked. Paste an image URL.</p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      defaultValue={holdingImageUrl}
+                      onChange={e => setHoldingInputVal(e.target.value)}
+                      style={{ flex: 1, padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', outline: 'none' }}
+                    />
+                    <button
+                      onClick={() => { const url = holdingInputVal.trim(); setHoldingImageUrl(url); localStorage.setItem('songsaver-holding-image', url) }}
+                      style={{ padding: '7px 12px', borderRadius: 10, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}
+                    >
+                      Set
+                    </button>
+                    {holdingImageUrl && (
+                      <button
+                        onClick={() => { setHoldingImageUrl(''); setHoldingInputVal(''); localStorage.removeItem('songsaver-holding-image') }}
+                        style={{ padding: '7px 10px', borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem' }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  {holdingImageUrl && (
+                    <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── SCRIPTURE TAB ── */}
+            {controllerTab === 'scripture' && (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>Search by reference (John 3:16) or keyword</p>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
                     type="text"
@@ -703,45 +818,31 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                     value={scriptureQuery}
                     onChange={e => setScriptureQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && searchScripture()}
-                    style={{
-                      flex: 1, padding: '8px 10px', borderRadius: 10,
-                      background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-                      color: '#fff', fontSize: '0.75rem', outline: 'none',
-                    }}
+                    autoFocus
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
                   />
                   <button
                     onClick={searchScripture}
                     disabled={scriptureSearching}
-                    style={{
-                      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                      background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)',
-                      color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
+                    style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {scriptureSearching
                       ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                      : <Search style={{ width: 15, height: 15 }} />}
+                      : <Search style={{ width: 16, height: 16 }} />}
                   </button>
                 </div>
 
-                {/* Results */}
                 {scriptureResults.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {scriptureResults.map((v, i) => (
                       <button
                         key={i}
                         onClick={() => sendVerse(v.reference, v.text)}
-                        style={{
-                          textAlign: 'left', padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
-                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                          display: 'flex', flexDirection: 'column', gap: 3,
-                        }}
+                        style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}
                       >
-                        <span style={{ color: '#a78bfa', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                          {v.reference}
-                        </span>
-                        <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', lineHeight: 1.45, fontWeight: 300 }}>
-                          {v.text.length > 160 ? v.text.slice(0, 160) + '…' : v.text}
+                        <span style={{ color: '#a78bfa', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{v.reference}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 300 }}>
+                          {v.text.length > 200 ? v.text.slice(0, 200) + '…' : v.text}
                         </span>
                       </button>
                     ))}
@@ -749,230 +850,11 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                 )}
 
                 {scriptureError && (
-                  <p style={{ color: '#f87171', fontSize: '0.7rem', textAlign: 'center', padding: '4px 0' }}>{scriptureError}</p>
+                  <p style={{ color: '#f87171', fontSize: '0.72rem', textAlign: 'center' }}>{scriptureError}</p>
                 )}
                 {!scriptureSearching && !scriptureError && scriptureResults.length === 0 && scriptureQuery && (
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>
-                    {'No results — try a reference like "Psalm 23:1"'}
-                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', textAlign: 'center', padding: '12px 0' }}>No results</p>
                 )}
-              </div>
-            )}
-          </div>
-
-          {/* Font controls — collapsible */}
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button
-              onClick={() => setShowFontControls(v => !v)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                Font &amp; Size
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: showFontControls ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-            </button>
-
-            {showFontControls && (
-              <div style={{ padding: '0 16px 12px' }}>
-                {/* Size row */}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Size</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  {(['sm', 'md', 'lg', 'xl'] as const).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setFontSizeKey(key)
-                        if (currentIdx !== null && !blank) {
-                          const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
-                        }
-                      }}
-                      style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10,
-                        border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                        background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                        color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
-                        cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
-                        fontWeight: 600, transition: 'all 0.15s',
-                      }}
-                    >
-                      {key.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Font family row */}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  {FONT_OPTIONS.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => {
-                        setFontFamily(f.id)
-                        if (currentIdx !== null && !blank) {
-                          const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
-                        }
-                      }}
-                      style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10,
-                        border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                        background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                        color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
-                        cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
-                        fontWeight: 500, transition: 'all 0.15s',
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Text colour row */}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Colour</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {[
-                    { color: '#ffffff', label: 'White' },
-                    { color: '#fef9c3', label: 'Cream' },
-                    { color: '#fde68a', label: 'Yellow' },
-                    { color: '#bfdbfe', label: 'Blue' },
-                    { color: '#fbcfe8', label: 'Pink' },
-                    { color: '#bbf7d0', label: 'Mint' },
-                  ].map(({ color, label }) => (
-                    <button
-                      key={color}
-                      title={label}
-                      onClick={() => {
-                        setTextColor(color)
-                        if (currentIdx !== null && !blank) {
-                          const s = slides[currentIdx]
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor: color })
-                        }
-                      }}
-                      style={{
-                        width: 28, height: 28, borderRadius: '50%',
-                        background: color,
-                        border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)',
-                        cursor: 'pointer', flexShrink: 0,
-                        transform: textColor === color ? 'scale(1.15)' : 'scale(1)',
-                        transition: 'all 0.15s',
-                        boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sections list */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: '#09090b' }}>
-
-            {/* Song navigation (playlist mode only) */}
-            {playlist && playlist.length > 1 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
-                padding: '8px 12px', borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              }}>
-                <button
-                  onClick={() => goToSong(songIdx - 1)}
-                  disabled={songIdx === 0}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
-                    color: songIdx === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
-                    display: 'flex', alignItems: 'center',
-                  }}
-                >
-                  <ChevronLeft style={{ width: 16, height: 16 }} />
-                </button>
-                <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>
-                    Song {songIdx + 1} of {playlist.length}
-                  </p>
-                  <p style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {activeTitle}
-                  </p>
-                </div>
-                <button
-                  onClick={() => goToSong(songIdx + 1)}
-                  disabled={songIdx === playlist.length - 1}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
-                    color: songIdx === playlist.length - 1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
-                    display: 'flex', alignItems: 'center',
-                  }}
-                >
-                  <ChevronRight style={{ width: 16, height: 16 }} />
-                </button>
-              </div>
-            )}
-
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Sections — tap to display</p>
-
-            {slides.length === 0 ? (
-              <div className="text-center py-12">
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>No lyrics added to this song yet</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {slides.map((slide, i) => {
-                  const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
-                  const isActive = currentIdx === i && !blank
-                  const hasNote = !!getNote(slide.label)
-                  const notesOpen = notesOpenIdx === i
-                  return (
-                    <div key={i}>
-                      <button
-                        onClick={() => showSlide(i)}
-                        style={{
-                          width: '100%', textAlign: 'left', padding: '10px 10px 10px 12px', borderRadius: 12,
-                          border: `1px solid ${isActive ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                          background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)',
-                          display: 'block', cursor: 'pointer',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: slide.label ? 4 : 0 }}>
-                          {slide.label && (
-                            <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1 }}>
-                              {slide.label}
-                            </p>
-                          )}
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              if (notesOpen) { setNotesOpenIdx(null) }
-                              else { setNotesOpenIdx(i); setNotesDraft(getNote(slide.label)) }
-                            }}
-                            title="Notes"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.18)', fontSize: '0.65rem', flexShrink: 0, lineHeight: 1 }}
-                          >
-                            ✎
-                          </button>
-                        </div>
-                        <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)', fontSize: '0.75rem', fontWeight: 300, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                          {previewLines || slide.content.slice(0, 80)}
-                        </p>
-                      </button>
-                      {notesOpen && (
-                        <div style={{ marginTop: 3, padding: '6px 8px', borderRadius: '0 0 10px 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none' }}>
-                          <textarea
-                            value={notesDraft}
-                            onChange={e => setNotesDraft(e.target.value)}
-                            onBlur={() => saveNote(slide.label, notesDraft)}
-                            placeholder="Notes (only visible here)…"
-                            rows={2}
-                            autoFocus
-                            style={{ width: '100%', padding: '5px 7px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', fontSize: '0.7rem', outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
               </div>
             )}
           </div>
@@ -1011,6 +893,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
               Next <ChevronRight className="w-5 h-5" />
             </button>
           </div>
+
+          <style>{`@keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
         </div>,
         document.body
       )}
