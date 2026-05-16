@@ -56,12 +56,22 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [scriptureQuery, setScriptureQuery] = useState('')
   const [scriptureResults, setScriptureResults] = useState<{ reference: string; text: string }[]>([])
   const [scriptureSearching, setScriptureSearching] = useState(false)
+  const [showTranslation, setShowTranslation] = useState(false)
+  const [translationText, setTranslationText] = useState<string>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem(`songsaver-translation||${title}`) ?? ''
+    return ''
+  })
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
   const activeLyricsText = playlist ? (playlist[songIdx]?.lyricsText ?? '') : lyricsText
 
   const slides: Slide[] = parseLyrics(activeLyricsText).map(s => ({
+    label: s.label ?? '',
+    content: s.content,
+  }))
+
+  const translationSlides: Slide[] = parseLyrics(translationText).map(s => ({
     label: s.label ?? '',
     content: s.content,
   }))
@@ -132,7 +142,8 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     const s = slides[idx]
     const next = slides[idx + 1] ?? null
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext })
+    const translationLines = showTranslation ? (translationSlides[idx]?.content ?? '') : ''
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines })
   }
 
   const showBlank = () => {
@@ -768,6 +779,51 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                       />
                     ))}
                   </div>
+                </div>
+
+                {/* Translation */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Translation / Transliteration</p>
+                    <button
+                      onClick={() => {
+                        const next = !showTranslation
+                        setShowTranslation(next)
+                        if (currentIdx !== null && !blank) {
+                          const s = slides[currentIdx]
+                          const tl = next ? (translationSlides[currentIdx]?.content ?? '') : ''
+                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, translationLines: tl })
+                        }
+                      }}
+                      style={{
+                        padding: '4px 12px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer',
+                        background: showTranslation ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.07)',
+                        border: `1px solid ${showTranslation ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                        color: showTranslation ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {showTranslation ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', marginBottom: 8 }}>
+                    Paste translation lyrics below (must have the same sections as the main lyrics). Toggle to show both on screen.
+                  </p>
+                  <textarea
+                    value={translationText}
+                    onChange={e => {
+                      setTranslationText(e.target.value)
+                      localStorage.setItem(`songsaver-translation||${activeTitle}`, e.target.value)
+                    }}
+                    placeholder={'[Verse 1]\nTranslation line 1\nTranslation line 2\n\n[Chorus]\n...'}
+                    rows={7}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 12, boxSizing: 'border-box',
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', outline: 'none',
+                      resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
+                    }}
+                  />
                 </div>
 
                 {/* Holding slide image */}

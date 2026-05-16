@@ -19,6 +19,7 @@ interface SlideState {
   fontFamily?: string
   textColor?: string
   holdingImageUrl?: string
+  translationLines?: string
 }
 
 const INITIAL: SlideState = {
@@ -62,14 +63,17 @@ export function PresentDisplay() {
   const bgStyle = (isLive || isVideo) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
   const bgClass = isLive ? `live-${bgId}` : ''
 
-  // Typography
+  // Typography — scale down slightly when showing both languages
+  const hasDual = !!(slide.translationLines && slide.translationLines.trim())
   const lines = slide.lines ? slide.lines.split('\n').filter(Boolean) : []
   const baseVw =
     lines.length <= 2 ? 5.5 :
     lines.length <= 4 ? 4.5 :
     lines.length <= 6 ? 3.8 : 3.2
+  const dualScale = hasDual ? 0.78 : 1
   const multiplier = SIZE_MULTIPLIERS[slide.fontSizeKey ?? 'md'] ?? 1
-  const fontSize = `${(baseVw * multiplier).toFixed(2)}vw`
+  const fontSize = `${(baseVw * multiplier * dualScale).toFixed(2)}vw`
+  const translationSize = `${(baseVw * multiplier * dualScale * 0.62).toFixed(2)}vw`
   const fontFamily = FONT_FAMILY_MAP[slide.fontFamily ?? 'sans'] ?? FONT_FAMILY_MAP.sans
 
   if (!code) {
@@ -82,7 +86,6 @@ export function PresentDisplay() {
 
   return (
     <>
-      {/* Inject animations + load Playfair Display for the Elegant option */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');
         ${ANIMATION_CSS}
@@ -134,6 +137,7 @@ export function PresentDisplay() {
                   </p>
                 )}
 
+                {/* Main text */}
                 <p
                   className="text-center whitespace-pre-line"
                   style={{
@@ -145,10 +149,34 @@ export function PresentDisplay() {
                     color: slide.textColor ?? '#ffffff',
                     textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
                     maxWidth: '90%',
+                    marginBottom: hasDual ? '1.8vw' : 0,
                   }}
                 >
                   {slide.lines}
                 </p>
+
+                {/* Translation / transliteration */}
+                {hasDual && (
+                  <>
+                    <div style={{ width: '50%', height: 1, background: 'rgba(255,255,255,0.12)', marginBottom: '1.4vw', flexShrink: 0 }} />
+                    <p
+                      className="text-center whitespace-pre-line"
+                      style={{
+                        fontSize: translationSize,
+                        fontFamily,
+                        fontWeight: 300,
+                        lineHeight: 1.6,
+                        letterSpacing: '0.01em',
+                        color: slide.textColor ? slide.textColor + 'cc' : 'rgba(255,255,255,0.72)',
+                        textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+                        maxWidth: '90%',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {slide.translationLines}
+                    </p>
+                  </>
+                )}
 
                 {slide.title && (
                   <p
