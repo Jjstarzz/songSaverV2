@@ -115,7 +115,11 @@ export function SongDetailClient({ id }: Props) {
             {(() => {
               const defaultLyric = song.song_lyrics?.find(l => l.is_default) ?? song.song_lyrics?.[0]
               return defaultLyric ? (
-                <PresentationController title={song.title} lyricsText={defaultLyric.lyrics} />
+                <PresentationController
+                  title={song.title}
+                  lyricsText={defaultLyric.lyrics}
+                  availableLyrics={(song.song_lyrics ?? []).map(l => ({ id: l.id, language: l.language, lyrics: l.lyrics }))}
+                />
               ) : null
             })()}
             {canEdit && (

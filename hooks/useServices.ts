@@ -52,7 +52,7 @@ export function useService(id: string) {
     setLoading(true)
     const { data, error } = await supabase
       .from('services')
-      .select('*, service_songs(*, songs(*, song_lyrics(lyrics, is_default)))')
+      .select('*, service_songs(*, songs(*, song_lyrics(id, language, lyrics, is_default)))')
       .eq('id', id)
       .order('order_index', { referencedTable: 'service_songs', ascending: true })
       .single()

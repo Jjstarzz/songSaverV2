@@ -86,9 +86,13 @@ export function ServiceDetailClient({ id }: Props) {
   const servicePlaylist = setlistItems
     .filter((ss: any) => ss.songs)
     .map((ss: any) => {
-      const songLyrics: { lyrics: string; is_default: boolean }[] = ss.songs.song_lyrics ?? []
+      const songLyrics: { id: string; language: string; lyrics: string; is_default: boolean }[] = ss.songs.song_lyrics ?? []
       const defaultLyric = songLyrics.find((l) => l.is_default) ?? songLyrics[0]
-      return { title: ss.songs.title as string, lyricsText: defaultLyric?.lyrics ?? '' }
+      return {
+        title: ss.songs.title as string,
+        lyricsText: defaultLyric?.lyrics ?? '',
+        availableLyrics: songLyrics.map(l => ({ id: l.id, language: l.language, lyrics: l.lyrics })),
+      }
     })
     .filter((item) => item.lyricsText)
 

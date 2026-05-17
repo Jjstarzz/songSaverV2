@@ -11,16 +11,24 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
+import { LANGUAGE_NAMES } from '@/types/database'
 import {
   STATIC_BACKGROUNDS, VIDEO_BACKGROUNDS,
   LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
   FONT_OPTIONS, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
+interface LyricsEntry {
+  id: string
+  language: string
+  lyrics: string
+}
+
 interface Props {
   title: string
   lyricsText: string
-  playlist?: { title: string; lyricsText: string }[]
+  availableLyrics?: LyricsEntry[]
+  playlist?: { title: string; lyricsText: string; availableLyrics?: LyricsEntry[] }[]
 }
 
 interface Slide {
@@ -28,7 +36,7 @@ interface Slide {
   content: string
 }
 
-export function PresentationController({ title, lyricsText, playlist }: Props) {
+export function PresentationController({ title, lyricsText, availableLyrics, playlist }: Props) {
   const supabase = useSupabase()
   const [open, setOpen] = useState(false)
   const [inlineOpen, setInlineOpen] = useState(false)
@@ -56,27 +64,39 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
   const [scriptureQuery, setScriptureQuery] = useState('')
   const [scriptureResults, setScriptureResults] = useState<{ reference: string; text: string }[]>([])
   const [scriptureSearching, setScriptureSearching] = useState(false)
-  const [showTranslation, setShowTranslation] = useState(false)
-  const [translationText, setTranslationText] = useState('')
+  // primaryLangId / secondaryLangId are song_lyrics IDs; null = default / none
+  const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
+  const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
-  const activeLyricsText = playlist ? (playlist[songIdx]?.lyricsText ?? '') : lyricsText
+  const activeAvailableLyrics = playlist ? (playlist[songIdx]?.availableLyrics ?? availableLyrics ?? []) : (availableLyrics ?? [])
 
-  const slides: Slide[] = parseLyrics(activeLyricsText).map(s => ({
+  // Reset language selections when song changes
+  useEffect(() => {
+    setPrimaryLangId(null)
+    setSecondaryLangId(null)
+  }, [activeTitle])
+
+  const defaultLyricsText = playlist ? (playlist[songIdx]?.lyricsText ?? '') : lyricsText
+  const primaryLyrics = primaryLangId
+    ? (activeAvailableLyrics.find(l => l.id === primaryLangId)?.lyrics ?? defaultLyricsText)
+    : defaultLyricsText
+  const secondaryLyrics = secondaryLangId
+    ? (activeAvailableLyrics.find(l => l.id === secondaryLangId)?.lyrics ?? '')
+    : ''
+
+  const slides: Slide[] = parseLyrics(primaryLyrics).map(s => ({
     label: s.label ?? '',
     content: s.content,
   }))
 
-  // Build per-slide translation strings, robust to formatting differences.
-  // First tries section-by-section (if counts match), then falls back to
-  // distributing lines proportionally by original line count.
+  // Build per-slide secondary (translation) strings, robust to formatting differences.
   const translationPerSlide: string[] = (() => {
-    if (!translationText.trim() || slides.length === 0) return slides.map(() => '')
-    const parsed = parseLyrics(translationText)
+    if (!secondaryLyrics.trim() || slides.length === 0) return slides.map(() => '')
+    const parsed = parseLyrics(secondaryLyrics)
     if (parsed.length === slides.length) return parsed.map(s => s.content)
-    // Fallback: line-by-line proportional
-    const tLines = translationText.split('\n').filter(l => l.trim())
+    const tLines = secondaryLyrics.split('\n').filter(l => l.trim())
     if (tLines.length === 0) return slides.map(() => '')
     let offset = 0
     return slides.map(s => {
@@ -112,11 +132,6 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     }
   }, [open, supabase])
 
-  // Reload translation text whenever the active song changes
-  useEffect(() => {
-    const saved = localStorage.getItem(`songsaver-translation||${activeTitle}`) ?? ''
-    setTranslationText(saved)
-  }, [activeTitle])
 
   // Arrow key navigation when controller is open
   useEffect(() => {
@@ -159,7 +174,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     const s = slides[idx]
     const next = slides[idx + 1] ?? null
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
-    const translationLines = showTranslation ? (translationPerSlide[idx] ?? '') : ''
+    const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
     broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines })
   }
 
@@ -804,50 +819,78 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   </div>
                 </div>
 
-                {/* Translation */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Translation / Transliteration</p>
-                    <button
-                      onClick={() => {
-                        const next = !showTranslation
-                        setShowTranslation(next)
-                        if (currentIdx !== null && !blank) {
-                          const s = slides[currentIdx]
-                          const tl = next ? (translationPerSlide[currentIdx] ?? '') : ''
-                          broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, translationLines: tl })
-                        }
-                      }}
-                      style={{
-                        padding: '4px 12px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer',
-                        background: showTranslation ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.07)',
-                        border: `1px solid ${showTranslation ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                        color: showTranslation ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {showTranslation ? 'On' : 'Off'}
-                    </button>
+                {/* Language selection */}
+                {activeAvailableLyrics.length > 1 && (
+                  <div>
+                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Languages</p>
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', marginBottom: 12 }}>
+                      Choose which two languages to display simultaneously.
+                    </p>
+
+                    {/* Primary */}
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Primary (top)</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                      {activeAvailableLyrics.map(l => {
+                        const isSelected = primaryLangId === l.id || (!primaryLangId && activeAvailableLyrics[0]?.id === l.id)
+                        return (
+                          <button
+                            key={l.id}
+                            onClick={() => {
+                              setPrimaryLangId(l.id)
+                              if (secondaryLangId === l.id) setSecondaryLangId(null)
+                            }}
+                            style={{
+                              padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                              background: isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${isSelected ? 'rgba(139,92,246,0.55)' : 'rgba(255,255,255,0.12)'}`,
+                              color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {LANGUAGE_NAMES[l.language] ?? l.language}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Secondary */}
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Secondary (below, optional)</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <button
+                        onClick={() => setSecondaryLangId(null)}
+                        style={{
+                          padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                          background: !secondaryLangId ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${!secondaryLangId ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                          color: !secondaryLangId ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        None
+                      </button>
+                      {activeAvailableLyrics
+                        .filter(l => l.id !== (primaryLangId ?? activeAvailableLyrics[0]?.id))
+                        .map(l => {
+                          const isSelected = secondaryLangId === l.id
+                          return (
+                            <button
+                              key={l.id}
+                              onClick={() => setSecondaryLangId(isSelected ? null : l.id)}
+                              style={{
+                                padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                                background: isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)',
+                                border: `1px solid ${isSelected ? 'rgba(139,92,246,0.55)' : 'rgba(255,255,255,0.12)'}`,
+                                color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              {LANGUAGE_NAMES[l.language] ?? l.language}
+                            </button>
+                          )
+                        })}
+                    </div>
                   </div>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', marginBottom: 8 }}>
-                    Paste translation lyrics below (must have the same sections as the main lyrics). Toggle to show both on screen.
-                  </p>
-                  <textarea
-                    value={translationText}
-                    onChange={e => {
-                      setTranslationText(e.target.value)
-                      localStorage.setItem(`songsaver-translation||${activeTitle}`, e.target.value)
-                    }}
-                    placeholder={'[Verse 1]\nTranslation line 1\nTranslation line 2\n\n[Chorus]\n...'}
-                    rows={7}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: 12, boxSizing: 'border-box',
-                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', outline: 'none',
-                      resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
-                    }}
-                  />
-                </div>
+                )}
 
                 {/* Holding slide image */}
                 <div>
