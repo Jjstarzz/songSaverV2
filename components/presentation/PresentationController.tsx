@@ -68,10 +68,24 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     content: s.content,
   }))
 
-  const translationSlides: Slide[] = parseLyrics(translationText).map(s => ({
-    label: s.label ?? '',
-    content: s.content,
-  }))
+  // Build per-slide translation strings, robust to formatting differences.
+  // First tries section-by-section (if counts match), then falls back to
+  // distributing lines proportionally by original line count.
+  const translationPerSlide: string[] = (() => {
+    if (!translationText.trim() || slides.length === 0) return slides.map(() => '')
+    const parsed = parseLyrics(translationText)
+    if (parsed.length === slides.length) return parsed.map(s => s.content)
+    // Fallback: line-by-line proportional
+    const tLines = translationText.split('\n').filter(l => l.trim())
+    if (tLines.length === 0) return slides.map(() => '')
+    let offset = 0
+    return slides.map(s => {
+      const n = s.content.split('\n').filter(l => l.trim()).length
+      const chunk = tLines.slice(offset, offset + n)
+      offset += n
+      return chunk.join('\n')
+    })
+  })()
 
   // Create channel when controller is opened.
   // Reuse the same code for the whole browser session so the projector
@@ -145,7 +159,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
     const s = slides[idx]
     const next = slides[idx + 1] ?? null
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
-    const translationLines = showTranslation ? (translationSlides[idx]?.content ?? '') : ''
+    const translationLines = showTranslation ? (translationPerSlide[idx] ?? '') : ''
     broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines })
   }
 
@@ -535,7 +549,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {slides.map((slide, i) => {
                       const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
-                      const translationPreview = translationSlides[i]?.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n') ?? ''
+                      const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
                       const isActive = currentIdx === i && !blank
                       const hasNote = !!getNote(slide.label)
                       const notesOpen = notesOpenIdx === i
@@ -800,7 +814,7 @@ export function PresentationController({ title, lyricsText, playlist }: Props) {
                         setShowTranslation(next)
                         if (currentIdx !== null && !blank) {
                           const s = slides[currentIdx]
-                          const tl = next ? (translationSlides[currentIdx]?.content ?? '') : ''
+                          const tl = next ? (translationPerSlide[currentIdx] ?? '') : ''
                           broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, translationLines: tl })
                         }
                       }}
