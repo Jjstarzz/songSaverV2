@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { Music2, Heart, ChevronRight, UserRound, Calendar } from 'lucide-react'
 import { SongWithLanguages, LANGUAGE_NAMES, formatKey } from '@/types/database'
@@ -13,7 +14,7 @@ interface SongCardProps {
   userKey?: string
 }
 
-export function SongCard({ song, compact, userKey }: SongCardProps) {
+export const SongCard = memo(function SongCard({ song, compact, userKey }: SongCardProps) {
   const { isFavorite, toggle } = useFavorites()
   const { user } = useAuth()
   const fav = isFavorite(song.id)
@@ -154,4 +155,4 @@ export function SongCard({ song, compact, userKey }: SongCardProps) {
       )}
     </div>
   )
-}
+})

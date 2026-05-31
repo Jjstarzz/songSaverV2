@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, EyeOff, ExternalLink,
-  Copy, Check, Monitor, Tv2, List, QrCode, BookOpen, Search,
+  Copy, Check, Monitor, Tv2, List, QrCode, Search,
 } from 'lucide-react'
-import QRCode from 'react-qr-code'
+import dynamic from 'next/dynamic'
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false })
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
@@ -86,13 +87,12 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     ? (activeAvailableLyrics.find(l => l.id === secondaryLangId)?.lyrics ?? '')
     : ''
 
-  const slides: Slide[] = parseLyrics(primaryLyrics).map(s => ({
-    label: s.label ?? '',
-    content: s.content,
-  }))
+  const slides: Slide[] = useMemo(() =>
+    parseLyrics(primaryLyrics).map(s => ({ label: s.label ?? '', content: s.content })),
+    [primaryLyrics]
+  )
 
-  // Build per-slide secondary (translation) strings, robust to formatting differences.
-  const translationPerSlide: string[] = (() => {
+  const translationPerSlide: string[] = useMemo(() => {
     if (!secondaryLyrics.trim() || slides.length === 0) return slides.map(() => '')
     const parsed = parseLyrics(secondaryLyrics)
     if (parsed.length === slides.length) return parsed.map(s => s.content)
@@ -105,7 +105,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       offset += n
       return chunk.join('\n')
     })
-  })()
+  }, [secondaryLyrics, slides])
 
   // Create channel when controller is opened.
   // Reuse the same code for the whole browser session so the projector

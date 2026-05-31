@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera } from 'lucide-react'
 import { SongLyrics, LANGUAGE_NAMES } from '@/types/database'
 import { Button } from '@/components/ui/Button'
@@ -42,8 +42,8 @@ function resizeImage(file: File, maxSize = 1024): Promise<{ base64: string; medi
 }
 
 /** Renders raw lyrics text with [Section] labels styled as headers. */
-function LyricsDisplay({ text }: { text: string }) {
-  const sections = parseLyrics(text)
+const LyricsDisplay = memo(function LyricsDisplay({ text }: { text: string }) {
+  const sections = useMemo(() => parseLyrics(text), [text])
   return (
     <div className="space-y-5">
       {sections.map((section, i) => (
@@ -58,7 +58,7 @@ function LyricsDisplay({ text }: { text: string }) {
       ))}
     </div>
   )
-}
+})
 
 export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: LyricsViewerProps) {
   const supabase = useSupabase()

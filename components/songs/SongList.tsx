@@ -28,7 +28,7 @@ interface SongListProps {
 }
 
 export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
-  const { isFavorite } = useFavorites()
+  const { favorites } = useFavorites()
   const { user } = useAuth()
 
   const [query, setQuery] = useState('')
@@ -98,14 +98,14 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
       if (bpmMin && song.bpm != null && song.bpm < Number(bpmMin)) return false
       if (bpmMax && song.bpm != null && song.bpm > Number(bpmMax)) return false
 
-      if (showFavs && !isFavorite(song.id)) return false
+      if (showFavs && !favorites.has(song.id)) return false
       if (showMine && song.created_by !== user?.id) return false
 
       return true
     })
 
     // Sort
-    result = [...result].sort((a, b) => {
+    result.sort((a, b) => {
       switch (sortBy) {
         case 'title':   return a.title.localeCompare(b.title)
         case 'artist':  return (a.artist ?? '').localeCompare(b.artist ?? '')
@@ -116,7 +116,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     })
 
     return result
-  }, [songs, query, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, isFavorite, user?.id, userKeys])
+  }, [songs, query, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, favorites, user?.id, userKeys])
 
   const clearFilters = () => {
     setQuery('')
