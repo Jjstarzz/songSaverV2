@@ -883,10 +883,15 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                   </div>
                 </div>
 
-                {/* Language selection */}
-                {activeAvailableLyrics.length > 1 && (
-                  <div>
-                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Languages</p>
+                {/* Language selection — always visible */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Languages</p>
+                  {activeAvailableLyrics.length < 2 ? (
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', lineHeight: 1.5, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                      This song only has one language entry. To display two languages simultaneously, go to the song and add a second language in the lyrics editor.
+                    </p>
+                  ) : (
+                    <>
                     <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', marginBottom: 12 }}>
                       Choose which two languages to display simultaneously.
                     </p>
@@ -953,8 +958,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                           )
                         })}
                     </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
 
                 {/* Holding slide image */}
                 <div>
