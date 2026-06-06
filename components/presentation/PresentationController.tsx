@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, EyeOff, ExternalLink,
@@ -13,6 +13,7 @@ import { parseLyrics } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
 import { LANGUAGE_NAMES } from '@/types/database'
+import { BIBLE_BOOKS } from '@/lib/bibleData'
 import {
   STATIC_BACKGROUNDS, VIDEO_BACKGROUNDS,
   LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
@@ -69,6 +70,21 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
+  // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
+  const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
+
+  // Browse state for Scripture tab
+  interface VerseRef { id: string; reference: string }
+  const [scriptureTab, setScriptureTab] = useState<'browse' | 'search'>('search')
+  const [browseBook, setBrowseBook] = useState<typeof BIBLE_BOOKS[0] | null>(null)
+  const [browseChapter, setBrowseChapter] = useState<number | null>(null)
+  const [browseVerses, setBrowseVerses] = useState<VerseRef[]>([])
+  const [loadingVerses, setLoadingVerses] = useState(false)
+  const [browseVerseIdx, setBrowseVerseIdx] = useState<number | null>(null)
+  const [loadingPassage, setLoadingPassage] = useState(false)
+  const bookColRef = useRef<HTMLDivElement>(null)
+  const chColRef   = useRef<HTMLDivElement>(null)
+  const vsColRef   = useRef<HTMLDivElement>(null)
 
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
   const activeAvailableLyrics = playlist ? (playlist[songIdx]?.availableLyrics ?? availableLyrics ?? []) : (availableLyrics ?? [])
@@ -175,6 +191,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const next = slides[idx + 1] ?? null
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
     const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
+    lastContentRef.current = { section: s.label, lines: s.content, title: activeTitle }
     broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines })
   }
 
@@ -196,9 +213,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
   const changeBackground = (bg: string) => {
     setBackground(bg)
-    if (currentIdx !== null && !blank) {
-      const s = slides[currentIdx]
-      broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    if (!blank && lastContentRef.current) {
+      const { section, lines, title } = lastContentRef.current
+      broadcast({ blank: false, section, lines, title, background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
     }
   }
 
@@ -222,6 +239,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const sendVerse = (reference: string, text: string) => {
     setCurrentIdx(null)
     setBlank(false)
+    lastContentRef.current = { section: reference, lines: text, title: '' }
     broadcast({ blank: false, section: reference, lines: text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
   }
 
@@ -781,9 +799,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={key}
                         onClick={() => {
                           setFontSizeKey(key)
-                          if (currentIdx !== null && !blank) {
-                            const s = slides[currentIdx]
-                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
+                          if (!blank && lastContentRef.current) {
+                            const { section, lines, title } = lastContentRef.current
+                            broadcast({ blank: false, section, lines, title, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
                           }
                         }}
                         style={{
@@ -807,9 +825,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={f.id}
                         onClick={() => {
                           setFontFamily(f.id)
-                          if (currentIdx !== null && !blank) {
-                            const s = slides[currentIdx]
-                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
+                          if (!blank && lastContentRef.current) {
+                            const { section, lines, title } = lastContentRef.current
+                            broadcast({ blank: false, section, lines, title, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
                           }
                         }}
                         style={{
@@ -841,9 +859,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         title={label}
                         onClick={() => {
                           setTextColor(color)
-                          if (currentIdx !== null && !blank) {
-                            const s = slides[currentIdx]
-                            broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor: color })
+                          if (!blank && lastContentRef.current) {
+                            const { section, lines, title } = lastContentRef.current
+                            broadcast({ blank: false, section, lines, title, background, fontSizeKey, fontFamily, textColor: color, holdingImageUrl })
                           }
                         }}
                         style={{
@@ -971,52 +989,134 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
             {/* ── SCRIPTURE TAB ── */}
             {controllerTab === 'scripture' && (
-              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem' }}>Search by reference (John 3:16) or keyword</p>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    type="text"
-                    placeholder="e.g. John 3:16 or peace"
-                    value={scriptureQuery}
-                    onChange={e => setScriptureQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && searchScripture()}
-                    autoFocus
-                    style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
-                  />
-                  <button
-                    onClick={searchScripture}
-                    disabled={scriptureSearching}
-                    style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {scriptureSearching
-                      ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                      : <Search style={{ width: 16, height: 16 }} />}
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Browse / Search toggle */}
+                <div style={{ display: 'flex', gap: 6, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                  {(['browse', 'search'] as const).map(t => (
+                    <button key={t} onClick={() => setScriptureTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1px solid ${scriptureTab === t ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`, background: scriptureTab === t ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)', color: scriptureTab === t ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, textTransform: 'capitalize' }}>
+                      {t === 'browse' ? 'Browse' : 'Search'}
+                    </button>
+                  ))}
                 </div>
 
-                {scriptureResults.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {scriptureResults.map((v, i) => (
-                      <button
-                        key={i}
-                        onClick={() => sendVerse(v.reference, v.text)}
-                        style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}
-                      >
-                        <span style={{ color: '#a78bfa', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{v.reference}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 300 }}>
-                          {v.text.length > 200 ? v.text.slice(0, 200) + '…' : v.text}
-                        </span>
-                      </button>
-                    ))}
+                {/* Browse: three-column picker */}
+                {scriptureTab === 'browse' && (
+                  <div style={{ display: 'flex', flex: 1, minHeight: 260, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    {/* Book */}
+                    <div style={{ flex: 2, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
+                      <div style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Book</p>
+                      </div>
+                      <div ref={bookColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {BIBLE_BOOKS.map(book => (
+                          <button key={book.id} data-id={book.id}
+                            onClick={() => {
+                              if (browseBook?.id === book.id) return
+                              setBrowseBook(book); setBrowseChapter(1); setBrowseVerseIdx(null)
+                              setLoadingVerses(true); setBrowseVerses([])
+                              fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${book.id}.1`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
+                            }}
+                            style={{ width: '100%', textAlign: 'left', padding: '10px', fontSize: '0.82rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {book.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Chapter */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
+                      <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Ch</p>
+                      </div>
+                      <div ref={chColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {browseBook
+                          ? Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
+                              <button key={ch} data-id={String(ch)}
+                                onClick={() => {
+                                  if (!browseBook || browseChapter === ch) return
+                                  setBrowseChapter(ch); setBrowseVerseIdx(null)
+                                  setLoadingVerses(true); setBrowseVerses([])
+                                  fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${browseBook.id}.${ch}`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
+                                }}
+                                style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                {ch}
+                              </button>
+                            ))
+                          : <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>—</p>
+                        }
+                      </div>
+                    </div>
+                    {/* Verse */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Vs</p>
+                      </div>
+                      <div ref={vsColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {loadingVerses
+                          ? <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>…</p>
+                          : browseVerses.map((v, idx) => {
+                              const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
+                              return (
+                                <button key={v.id} data-id={v.reference}
+                                  onClick={async () => {
+                                    setBrowseVerseIdx(idx); setLoadingPassage(true)
+                                    try {
+                                      const r = await fetch(`/api/bible?op=passage&id=${encodeURIComponent(v.id)}`)
+                                      const d = await r.json()
+                                      if (d.text && d.reference) sendVerse(d.reference, d.text)
+                                    } finally { setLoadingPassage(false) }
+                                  }}
+                                  style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                  {num}
+                                </button>
+                              )
+                            })
+                        }
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {scriptureError && (
-                  <p style={{ color: '#f87171', fontSize: '0.72rem', textAlign: 'center' }}>{scriptureError}</p>
+                {/* Search */}
+                {scriptureTab === 'search' && (
+                  <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        placeholder="e.g. John 3:16 or peace"
+                        value={scriptureQuery}
+                        onChange={e => setScriptureQuery(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && searchScripture()}
+                        autoFocus
+                        style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                      />
+                      <button onClick={searchScripture} disabled={scriptureSearching}
+                        style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {scriptureSearching
+                          ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                          : <Search style={{ width: 16, height: 16 }} />}
+                      </button>
+                    </div>
+                    {scriptureResults.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {scriptureResults.map((v, i) => (
+                          <button key={i} onClick={() => sendVerse(v.reference, v.text)}
+                            style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <span style={{ color: '#a78bfa', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{v.reference}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 300 }}>
+                              {v.text.length > 200 ? v.text.slice(0, 200) + '…' : v.text}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {scriptureError && <p style={{ color: '#f87171', fontSize: '0.72rem', textAlign: 'center' }}>{scriptureError}</p>}
+                    {!scriptureSearching && !scriptureError && scriptureResults.length === 0 && scriptureQuery && (
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', textAlign: 'center', padding: '12px 0' }}>No results</p>
+                    )}
+                  </div>
                 )}
-                {!scriptureSearching && !scriptureError && scriptureResults.length === 0 && scriptureQuery && (
-                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', textAlign: 'center', padding: '12px 0' }}>No results</p>
-                )}
+
+                {loadingPassage && <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', textAlign: 'center', padding: '8px 0' }}>Loading verse…</p>}
               </div>
             )}
           </div>
