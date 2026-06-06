@@ -44,9 +44,10 @@ export function ScriptureController() {
   )
   const [holdingInputVal, setHoldingInputVal] = useState('')
 
-  // Collapsible panels
-  const [showBg,   setShowBg]   = useState(false)
-  const [showFont, setShowFont] = useState(false)
+  // Controller tabs
+  const [controllerTab, setControllerTab] = useState<'verses' | 'settings'>('verses')
+
+  // Collapsible panels (join only)
   const [showJoin, setShowJoin] = useState(false)
   const [joinInput, setJoinInput] = useState('')
 
@@ -305,6 +306,15 @@ export function ScriptureController() {
     document.body
   ) : null
 
+  // ── Tab style helper (matches PresentationController) ──
+  const TAB_STYLE = (active: boolean) => ({
+    flex: 1, padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer',
+    color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+    fontSize: '0.72rem', fontWeight: active ? 700 : 500,
+    borderBottom: `2px solid ${active ? '#7c3aed' : 'transparent'}`,
+    transition: 'all 0.15s', letterSpacing: '0.05em',
+  })
+
   // ── Full controller overlay ──
   return (
     <>
@@ -325,276 +335,72 @@ export function ScriptureController() {
             </button>
           </div>
 
-          {/* URL */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen URL</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
-              <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
-                <QrCode className="w-4 h-4" />
-              </button>
-              <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </button>
-              <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-
-            {showQr && displayUrl && (
-              <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div style={{ background: '#ffffff', borderRadius: 12, padding: 12 }}>
-                  <QRCode value={displayUrl} size={180} bgColor="#ffffff" fgColor="#09090b" level="M" />
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', textAlign: 'center' }}>Scan to open on the projector screen</p>
-              </div>
-            )}
-
-            <button onClick={() => setInlineOpen(v => !v)} style={{ marginTop: 10, width: '100%', padding: '10px 16px', borderRadius: 12, background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.45)' : 'rgba(255,255,255,0.1)'}`, color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Tv2 style={{ width: 14, height: 14 }} />
-              {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
-            </button>
-
-            {/* Join session */}
-            <button
-              onClick={() => setShowJoin(v => !v)}
-              style={{ marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '4px 0', display: 'block', width: '100%', textAlign: 'center' }}
-            >
-              {showJoin ? '✕ Cancel' : '+ Join an existing session'}
-            </button>
-            {showJoin && (
-              <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={e => setJoinInput(e.target.value.toUpperCase())}
-                  onKeyDown={e => e.key === 'Enter' && joinSession()}
-                  placeholder="Enter session code"
-                  maxLength={8}
-                  style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-                />
-                <button
-                  onClick={joinSession}
-                  style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
-                >
-                  Join
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Stage display URL */}
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor URL</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''}
-              </code>
-              <button
-                onClick={() => { if (typeof window !== 'undefined' && code) navigator.clipboard.writeText(`${window.location.origin}/stage?code=${code}`) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
-                title="Copy stage URL"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => { if (typeof window !== 'undefined' && code) window.open(`${window.location.origin}/stage?code=${code}`, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}
-                title="Open stage monitor"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Background — collapsible */}
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button onClick={() => setShowBg(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Background</span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showBg ? 'rotate(180deg)' : 'none' }}>▾</span>
-            </button>
-            {showBg && (
-              <div style={{ padding: '0 16px 12px' }}>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Static</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-2 mb-3">
-                  {STATIC_BACKGROUNDS.map(bg => (
-                    <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                      <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
-                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Video</p>
-                  <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-2 mb-3">
-                  {VIDEO_BACKGROUNDS.map(bg => (
-                    <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                      <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
-                      <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 14, marginBottom: 6 }}>Holding Slide Image</p>
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', marginBottom: 8 }}>Shown when screen is blanked. Paste an image URL.</p>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input type="url" placeholder="https://..." defaultValue={holdingImageUrl} onChange={e => setHoldingInputVal(e.target.value)}
-                    style={{ flex: 1, padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', outline: 'none' }} />
-                  <button onClick={() => { const u = holdingInputVal.trim(); setHoldingImageUrl(u); localStorage.setItem('songsaver-holding-image', u) }}
-                    style={{ padding: '7px 12px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>Set</button>
-                  {holdingImageUrl && (
-                    <button onClick={() => { setHoldingImageUrl(''); setHoldingInputVal(''); localStorage.removeItem('songsaver-holding-image') }}
-                      style={{ padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem' }}>✕</button>
-                  )}
-                </div>
-                {holdingImageUrl && (
-                  <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {/* Preview panel */}
+          {(() => {
+            const previewIsLiveBg  = LIVE_BG_IDS.has(background)
+            const previewIsVideoBg = VIDEO_BG_IDS.has(background)
+            const previewBgStyle: Record<string, string> = previewIsLiveBg || previewIsVideoBg
+              ? (previewIsVideoBg
+                  ? { background: VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch ?? '#000' }
+                  : {})
+              : { background: BG_STATIC[background] ?? BG_STATIC.dark }
+            const previewBgClass = previewIsLiveBg ? `live-${background}` : ''
+            const previewLines = activeVerse?.text.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
+            return (
+              <div style={{ padding: '0 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Preview</p>
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div
+                    className={previewBgClass}
+                    style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, ...previewBgStyle }}
+                  >
+                    {blank ? (
+                      holdingImageUrl
+                        ? <img src={holdingImageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', letterSpacing: '0.2em' }}>BLANK</span>
+                    ) : activeVerse ? (
+                      <>
+                        <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{activeVerse.reference}</span>
+                        <p style={{ color: '#fff', fontSize: '0.65rem', textAlign: 'center', lineHeight: 1.45, whiteSpace: 'pre-line', padding: '0 8%' }}>{previewLines}</p>
+                      </>
+                    ) : (
+                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem' }}>Nothing on screen</span>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Font & Size — collapsible */}
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <button onClick={() => setShowFont(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Font &amp; Size</span>
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', display: 'inline-block', transition: 'transform 0.2s', transform: showFont ? 'rotate(180deg)' : 'none' }}>▾</span>
-            </button>
-            {showFont && (
-              <div style={{ padding: '0 16px 12px' }}>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Size</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  {(['sm', 'md', 'lg', 'xl'] as const).map(key => (
-                    <button key={key} onClick={() => {
-                      setFontSizeKey(key)
-                      if (activeVerse && !blank)
-                        broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
-                    }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem', fontWeight: 600 }}>
-                      {key.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Font Style</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  {FONT_OPTIONS.map(f => (
-                    <button key={f.id} onClick={() => {
-                      setFontFamily(f.id)
-                      if (activeVerse && !blank)
-                        broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
-                    }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family, fontWeight: 500 }}>
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8 }}>Text Colour</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {[
-                    { color: '#ffffff', label: 'White' }, { color: '#fef9c3', label: 'Cream' },
-                    { color: '#fde68a', label: 'Yellow' }, { color: '#bfdbfe', label: 'Blue' },
-                    { color: '#fbcfe8', label: 'Pink' },   { color: '#bbf7d0', label: 'Mint' },
-                  ].map(({ color, label }) => (
-                    <button key={color} title={label} onClick={() => {
-                      setTextColor(color)
-                      if (activeVerse && !blank)
-                        broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily, textColor: color, holdingImageUrl })
-                    }} style={{ width: 28, height: 28, borderRadius: '50%', background: color, border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', transform: textColor === color ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.15s', boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none' }} />
-                  ))}
                 </div>
               </div>
-            )}
+            )
+          })()}
+
+          {/* Tab bar */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingTop: 2 }}>
+            <button style={TAB_STYLE(controllerTab === 'verses')} onClick={() => setControllerTab('verses')}>Verses</button>
+            <button style={TAB_STYLE(controllerTab === 'settings')} onClick={() => setControllerTab('settings')}>Settings</button>
           </div>
 
-          {/* Bible picker — scrollable body */}
+          {/* Tab content */}
           <div className="flex-1 overflow-y-auto" style={{ background: '#09090b' }}>
 
-            {/* Tab switcher */}
-            <div style={{ display: 'flex', gap: 6, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              {(['browse', 'search'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1px solid ${tab === t ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`, background: tab === t ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)', color: tab === t ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, textTransform: 'capitalize' }}>
-                  {t === 'browse' ? 'Browse' : 'Search'}
-                </button>
-              ))}
-            </div>
-
-            {/* Browse: three-column picker */}
-            {tab === 'browse' && (
-              <div style={{ display: 'flex', height: 230, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-
-                {/* Book column */}
-                <div style={{ flex: 2, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
-                  <div style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>BOOK</p>
+            {/* ── VERSES TAB ── */}
+            {controllerTab === 'verses' && (
+              <>
+                {/* Search bar */}
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="text" placeholder="e.g. John 3:16 or peace" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.85rem', outline: 'none' }} />
+                    <button onClick={doSearch} disabled={searching} style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {searching
+                        ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                        : <Search style={{ width: 16, height: 16 }} />}
+                    </button>
                   </div>
-                  <div ref={bookColRef} style={{ flex: 1, overflowY: 'auto' }}>
-                    {BIBLE_BOOKS.map(book => (
-                      <button key={book.id} data-id={book.id} onClick={() => pickBook(book)}
-                        style={{ width: '100%', textAlign: 'left', padding: '10px 10px', fontSize: '0.82rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {book.name}
-                      </button>
-                    ))}
-                  </div>
+                  {searchError && <p style={{ color: '#f87171', fontSize: '0.7rem', textAlign: 'center', marginTop: 8 }}>{searchError}</p>}
                 </div>
 
-                {/* Chapter column */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
-                  <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Chapter</p>
-                  </div>
-                  <div ref={chColRef} style={{ flex: 1, overflowY: 'auto' }}>
-                    {browseBook
-                      ? Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
-                          <button key={ch} data-id={String(ch)} onClick={() => pickChapter(ch)}
-                            style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
-                            {ch}
-                          </button>
-                        ))
-                      : <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>—</p>
-                    }
-                  </div>
-                </div>
-
-                {/* Verse column */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Verse</p>
-                  </div>
-                  <div ref={vsColRef} style={{ flex: 1, overflowY: 'auto' }}>
-                    {loadingVerses
-                      ? <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>…</p>
-                      : browseVerses.map((v, idx) => {
-                          const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
-                          return (
-                            <button key={v.id} data-id={v.reference} onClick={() => pickVerse(idx)}
-                              style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
-                              {num}
-                            </button>
-                          )
-                        })
-                    }
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Search */}
-            {tab === 'search' && (
-              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input type="text" placeholder="e.g. John 3:16 or peace" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()}
-                    style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.75rem', outline: 'none' }} />
-                  <button onClick={doSearch} disabled={searching} style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {searching
-                      ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                      : <Search style={{ width: 15, height: 15 }} />}
-                  </button>
-                </div>
-                {searchError && <p style={{ color: '#f87171', fontSize: '0.7rem', textAlign: 'center' }}>{searchError}</p>}
-                {results.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {/* Search results */}
+                {results.length > 0 ? (
+                  <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {results.map((v, i) => (
                       <button key={i} onClick={() => { setSearchIdx(i); sendVerse(v) }}
                         style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 12, cursor: 'pointer', background: searchIdx === i ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${searchIdx === i ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -603,23 +409,247 @@ export function ScriptureController() {
                       </button>
                     ))}
                   </div>
+                ) : (
+                  /* Three-column Book/Chapter/Verse picker — fills remaining space */
+                  <div style={{ display: 'flex', flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: 0, height: '100%' }}>
+
+                    {/* Book column */}
+                    <div style={{ flex: 2, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
+                      <div style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>BOOK</p>
+                      </div>
+                      <div ref={bookColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {BIBLE_BOOKS.map(book => (
+                          <button key={book.id} data-id={book.id} onClick={() => pickBook(book)}
+                            style={{ width: '100%', textAlign: 'left', padding: '10px 10px', fontSize: '0.82rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {book.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chapter column */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', minWidth: 0 }}>
+                      <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Chapter</p>
+                      </div>
+                      <div ref={chColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {browseBook
+                          ? Array.from({ length: browseBook.chapters }, (_, i) => i + 1).map(ch => (
+                              <button key={ch} data-id={String(ch)} onClick={() => pickChapter(ch)}
+                                style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                {ch}
+                              </button>
+                            ))
+                          : <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>—</p>
+                        }
+                      </div>
+                    </div>
+
+                    {/* Verse column */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <div style={{ padding: '6px 4px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', flexShrink: 0 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Verse</p>
+                      </div>
+                      <div ref={vsColRef} style={{ flex: 1, overflowY: 'auto' }}>
+                        {loadingVerses
+                          ? <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', textAlign: 'center', padding: '8px 0' }}>…</p>
+                          : browseVerses.map((v, idx) => {
+                              const num = v.reference.split(':')[1] ?? v.id.split('.').pop()
+                              return (
+                                <button key={v.id} data-id={v.reference} onClick={() => pickVerse(idx)}
+                                  style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                  {num}
+                                </button>
+                              )
+                            })
+                        }
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </div>
+
+                {/* Loading passage */}
+                {loadingPassage && (
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', textAlign: 'center', padding: '12px 0' }}>Loading verse…</p>
+                )}
+              </>
             )}
 
-            {/* Loading passage */}
-            {loadingPassage && (
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', textAlign: 'center', padding: '12px 0' }}>Loading verse…</p>
-            )}
+            {/* ── SETTINGS TAB ── */}
+            {controllerTab === 'settings' && (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* Now on screen */}
-            {activeVerse && !blank && (
-              <div style={{ margin: '12px 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(139,92,246,0.35)' }}>
-                <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>Now on screen</p>
-                <p style={{ color: '#c4b5fd', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>{activeVerse.reference}</p>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: 300, lineHeight: 1.55 }}>
-                  {activeVerse.text.length > 200 ? activeVerse.text.slice(0, 200) + '…' : activeVerse.text}
-                </p>
+                {/* Projector URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen URL</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
+                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+                      <QrCode className="w-4 h-4" />
+                    </button>
+                    <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {showQr && displayUrl && (
+                    <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                      <div style={{ background: '#ffffff', borderRadius: 12, padding: 12 }}>
+                        <QRCode value={displayUrl} size={180} bgColor="#ffffff" fgColor="#09090b" level="M" />
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', textAlign: 'center' }}>Scan to open on the projector screen</p>
+                    </div>
+                  )}
+
+                  <button onClick={() => setInlineOpen(v => !v)} style={{ marginTop: 10, width: '100%', padding: '10px 16px', borderRadius: 12, background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.45)' : 'rgba(255,255,255,0.1)'}`, color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Tv2 style={{ width: 14, height: 14 }} />
+                    {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowJoin(v => !v)}
+                    style={{ marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', padding: '4px 0', display: 'block', width: '100%', textAlign: 'center' }}
+                  >
+                    {showJoin ? '✕ Cancel' : '+ Join an existing session'}
+                  </button>
+                  {showJoin && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={joinInput}
+                        onChange={e => setJoinInput(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && joinSession()}
+                        placeholder="Enter session code"
+                        maxLength={8}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                      />
+                      <button
+                        onClick={joinSession}
+                        style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
+                      >
+                        Join
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage display URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor URL</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {typeof window !== 'undefined' && code ? `${window.location.origin}/stage?code=${code}` : ''}
+                    </code>
+                    <button
+                      onClick={() => { if (typeof window !== 'undefined' && code) navigator.clipboard.writeText(`${window.location.origin}/stage?code=${code}`) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
+                      title="Copy stage URL"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { if (typeof window !== 'undefined' && code) window.open(`${window.location.origin}/stage?code=${code}`, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}
+                      title="Open stage monitor"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Background — always visible */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Background</p>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Static</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
+                    {STATIC_BACKGROUNDS.map(bg => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Video</p>
+                    <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2">
+                    {VIDEO_BACKGROUNDS.map(bg => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Font & Size — always visible */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Text Size</p>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    {(['sm', 'md', 'lg', 'xl'] as const).map(key => (
+                      <button key={key} onClick={() => {
+                        setFontSizeKey(key)
+                        if (activeVerse && !blank)
+                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
+                      }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem', fontWeight: 600 }}>
+                        {key.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Font Style</p>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    {FONT_OPTIONS.map(f => (
+                      <button key={f.id} onClick={() => {
+                        setFontFamily(f.id)
+                        if (activeVerse && !blank)
+                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
+                      }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family, fontWeight: 500 }}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Text Colour</p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {[
+                      { color: '#ffffff', label: 'White' }, { color: '#fef9c3', label: 'Cream' },
+                      { color: '#fde68a', label: 'Yellow' }, { color: '#bfdbfe', label: 'Blue' },
+                      { color: '#fbcfe8', label: 'Pink' },   { color: '#bbf7d0', label: 'Mint' },
+                    ].map(({ color, label }) => (
+                      <button key={color} title={label} onClick={() => {
+                        setTextColor(color)
+                        if (activeVerse && !blank)
+                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily, textColor: color, holdingImageUrl })
+                      }} style={{ width: 28, height: 28, borderRadius: '50%', background: color, border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', transform: textColor === color ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.15s', boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none' }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Holding slide image */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Holding Slide Image</p>
+                  <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', marginBottom: 8 }}>Shown when screen is blanked. Paste an image URL.</p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="url" placeholder="https://..." defaultValue={holdingImageUrl} onChange={e => setHoldingInputVal(e.target.value)}
+                      style={{ flex: 1, padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', outline: 'none' }} />
+                    <button onClick={() => { const u = holdingInputVal.trim(); setHoldingImageUrl(u); localStorage.setItem('songsaver-holding-image', u) }}
+                      style={{ padding: '7px 12px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>Set</button>
+                    {holdingImageUrl && (
+                      <button onClick={() => { setHoldingImageUrl(''); setHoldingInputVal(''); localStorage.removeItem('songsaver-holding-image') }}
+                        style={{ padding: '7px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.72rem' }}>✕</button>
+                    )}
+                  </div>
+                  {holdingImageUrl && (
+                    <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

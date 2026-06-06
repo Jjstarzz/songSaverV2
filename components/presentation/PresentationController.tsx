@@ -508,6 +508,46 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             </button>
           </div>
 
+          {/* Preview panel */}
+          {(() => {
+            const previewIsLiveBg  = LIVE_BG_IDS.has(background)
+            const previewIsVideoBg = VIDEO_BG_IDS.has(background)
+            const previewBgStyle: Record<string, string> = previewIsLiveBg || previewIsVideoBg
+              ? (previewIsVideoBg
+                  ? { background: VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch ?? '#000' }
+                  : {})
+              : { background: BG_STATIC[background] ?? BG_STATIC.dark }
+            const previewBgClass = previewIsLiveBg ? `live-${background}` : ''
+            const previewSlide = currentIdx !== null ? slides[currentIdx] : null
+            const previewLines = previewSlide?.content.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
+            return (
+              <div style={{ padding: '0 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Preview</p>
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div
+                    className={previewBgClass}
+                    style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, ...previewBgStyle }}
+                  >
+                    {blank ? (
+                      holdingImageUrl
+                        ? <img src={holdingImageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', letterSpacing: '0.2em' }}>BLANK</span>
+                    ) : previewSlide ? (
+                      <>
+                        {previewSlide.label && (
+                          <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{previewSlide.label}</span>
+                        )}
+                        <p style={{ color: '#fff', fontSize: '0.65rem', textAlign: 'center', lineHeight: 1.45, whiteSpace: 'pre-line', padding: '0 8%' }}>{previewLines}</p>
+                      </>
+                    ) : (
+                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem' }}>Nothing on screen</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Tab bar */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingTop: 2 }}>
             <button style={TAB_STYLE(controllerTab === 'slides')} onClick={() => setControllerTab('slides')}>Slides</button>
