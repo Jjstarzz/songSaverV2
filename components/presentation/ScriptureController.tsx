@@ -12,7 +12,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
 import { cn } from '@/lib/utils'
 import {
-  STATIC_BACKGROUNDS, VIDEO_BACKGROUNDS,
+  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS,
   LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
   FONT_OPTIONS,
 } from '@/lib/presentationBackgrounds'
@@ -345,34 +345,26 @@ export function ScriptureController() {
 
           {/* Preview panel */}
           {(() => {
-            const previewIsLiveBg  = LIVE_BG_IDS.has(background)
-            const previewIsVideoBg = VIDEO_BG_IDS.has(background)
-            const previewBgStyle: Record<string, string> = previewIsLiveBg || previewIsVideoBg
-              ? (previewIsVideoBg
-                  ? { background: VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch ?? '#000' }
-                  : {})
-              : { background: BG_STATIC[background] ?? BG_STATIC.dark }
-            const previewBgClass = previewIsLiveBg ? `live-${background}` : ''
+            const liveSwatch = LIVE_BACKGROUNDS.find(b => b.id === background)?.swatch
+            const videoSwatch = VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch
+            const previewBg = liveSwatch ?? videoSwatch ?? BG_STATIC[background] ?? BG_STATIC.dark
             const previewLines = activeVerse?.text.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
+            const previewFontFamily = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
             return (
-              <div style={{ padding: '0 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Preview</p>
-                <div style={{ position: 'relative', width: '100%', height: 140, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div
-                    className={previewBgClass}
-                    style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, ...previewBgStyle }}
-                  >
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ position: 'relative', width: '100%', height: 130, overflow: 'hidden', background: previewBg }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
                     {blank ? (
                       holdingImageUrl
                         ? <img src={holdingImageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', letterSpacing: '0.2em' }}>BLANK</span>
+                        : <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Screen blank</span>
                     ) : activeVerse ? (
                       <>
-                        <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{activeVerse.reference}</span>
-                        <p style={{ color: '#fff', fontSize: '0.65rem', textAlign: 'center', lineHeight: 1.45, whiteSpace: 'pre-line', padding: '0 8%' }}>{previewLines}</p>
+                        <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>{activeVerse.reference}</span>
+                        <p style={{ color: textColor, fontSize: `${(0.62 * (fontSizeKey === 'sm' ? 0.72 : fontSizeKey === 'lg' ? 1.3 : fontSizeKey === 'xl' ? 1.65 : 1)).toFixed(2)}rem`, fontFamily: previewFontFamily, textAlign: 'center', lineHeight: 1.45, whiteSpace: 'pre-line', padding: '0 8%', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>{previewLines}</p>
                       </>
                     ) : (
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem' }}>Nothing on screen</span>
+                      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>Tap a verse to begin</span>
                     )}
                   </div>
                 </div>
@@ -575,6 +567,15 @@ export function ScriptureController() {
                   <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Static</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
                     {STATIC_BACKGROUNDS.map(bg => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>Animated</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
+                    {LIVE_BACKGROUNDS.map(bg => (
                       <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
                         <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
                         <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
