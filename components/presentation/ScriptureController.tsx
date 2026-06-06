@@ -116,10 +116,18 @@ export function ScriptureController() {
 
   const revealCurrent = () => { if (activeVerse) sendVerse(activeVerse) }
 
+  const rebroadcast = (overrides: Record<string, unknown> = {}) => {
+    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, ...overrides }
+    if (!blank && activeVerse) {
+      broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', ...base })
+    } else {
+      broadcast({ blank: true, section: '', lines: '', title: '', ...base })
+    }
+  }
+
   const changeBackground = (bg: string) => {
     setBackground(bg)
-    if (activeVerse && !blank)
-      broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    rebroadcast({ background: bg })
   }
 
   // ── Browse ──
@@ -592,11 +600,8 @@ export function ScriptureController() {
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Text Size</p>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                     {(['sm', 'md', 'lg', 'xl'] as const).map(key => (
-                      <button key={key} onClick={() => {
-                        setFontSizeKey(key)
-                        if (activeVerse && !blank)
-                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
-                      }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem', fontWeight: 600 }}>
+                      <button key={key} onClick={() => { setFontSizeKey(key); rebroadcast({ fontSizeKey: key }) }}
+                        style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem', fontWeight: 600 }}>
                         {key.toUpperCase()}
                       </button>
                     ))}
@@ -604,11 +609,8 @@ export function ScriptureController() {
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Font Style</p>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                     {FONT_OPTIONS.map(f => (
-                      <button key={f.id} onClick={() => {
-                        setFontFamily(f.id)
-                        if (activeVerse && !blank)
-                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
-                      }} style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family, fontWeight: 500 }}>
+                      <button key={f.id} onClick={() => { setFontFamily(f.id); rebroadcast({ fontFamily: f.id }) }}
+                        style={{ flex: 1, padding: '7px 0', borderRadius: 10, border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`, background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)', color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family, fontWeight: 500 }}>
                         {f.label}
                       </button>
                     ))}
@@ -620,11 +622,8 @@ export function ScriptureController() {
                       { color: '#fde68a', label: 'Yellow' }, { color: '#bfdbfe', label: 'Blue' },
                       { color: '#fbcfe8', label: 'Pink' },   { color: '#bbf7d0', label: 'Mint' },
                     ].map(({ color, label }) => (
-                      <button key={color} title={label} onClick={() => {
-                        setTextColor(color)
-                        if (activeVerse && !blank)
-                          broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', background, fontSizeKey, fontFamily, textColor: color, holdingImageUrl })
-                      }} style={{ width: 28, height: 28, borderRadius: '50%', background: color, border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', transform: textColor === color ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.15s', boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none' }} />
+                      <button key={color} title={label} onClick={() => { setTextColor(color); rebroadcast({ textColor: color }) }}
+                        style={{ width: 28, height: 28, borderRadius: '50%', background: color, border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', transform: textColor === color ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.15s', boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none' }} />
                     ))}
                   </div>
                 </div>

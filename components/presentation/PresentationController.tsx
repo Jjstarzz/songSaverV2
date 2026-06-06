@@ -211,12 +211,24 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     if (currentIdx !== null) showSlide(currentIdx)
   }
 
-  const changeBackground = (bg: string) => {
-    setBackground(bg)
+  // Always pushes current state to the projector, optionally overriding specific fields.
+  // Used by every settings control so changes apply whether a slide is live or screen is blank.
+  const rebroadcast = (overrides: Record<string, unknown> = {}) => {
+    const base = {
+      background, fontSizeKey, fontFamily, textColor, holdingImageUrl,
+      ...overrides,
+    }
     if (!blank && lastContentRef.current) {
       const { section, lines, title } = lastContentRef.current
-      broadcast({ blank: false, section, lines, title, background: bg, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+      broadcast({ blank: false, section, lines, title, ...base })
+    } else {
+      broadcast({ blank: true, section: '', lines: '', title: activeTitle, ...base })
     }
+  }
+
+  const changeBackground = (bg: string) => {
+    setBackground(bg)
+    rebroadcast({ background: bg })
   }
 
   const [scriptureError, setScriptureError] = useState('')
@@ -804,10 +816,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={key}
                         onClick={() => {
                           setFontSizeKey(key)
-                          if (!blank && lastContentRef.current) {
-                            const { section, lines, title } = lastContentRef.current
-                            broadcast({ blank: false, section, lines, title, background, fontSizeKey: key, fontFamily, textColor, holdingImageUrl })
-                          }
+                          rebroadcast({ fontSizeKey: key })
                         }}
                         style={{
                           flex: 1, padding: '7px 0', borderRadius: 10,
@@ -830,10 +839,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={f.id}
                         onClick={() => {
                           setFontFamily(f.id)
-                          if (!blank && lastContentRef.current) {
-                            const { section, lines, title } = lastContentRef.current
-                            broadcast({ blank: false, section, lines, title, background, fontSizeKey, fontFamily: f.id, textColor, holdingImageUrl })
-                          }
+                          rebroadcast({ fontFamily: f.id })
                         }}
                         style={{
                           flex: 1, padding: '7px 0', borderRadius: 10,
@@ -864,10 +870,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         title={label}
                         onClick={() => {
                           setTextColor(color)
-                          if (!blank && lastContentRef.current) {
-                            const { section, lines, title } = lastContentRef.current
-                            broadcast({ blank: false, section, lines, title, background, fontSizeKey, fontFamily, textColor: color, holdingImageUrl })
-                          }
+                          rebroadcast({ textColor: color })
                         }}
                         style={{
                           width: 28, height: 28, borderRadius: '50%', background: color,
