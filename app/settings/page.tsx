@@ -386,25 +386,27 @@ export default function SettingsPage() {
           <div className="glass-card divide-y divide-white/[0.06]">
             <div className="px-4">
               <SettingRow
-                icon={mounted && theme === 'light' ? Sun : Moon}
+                icon={mounted && theme === 'light' ? Sun : mounted && theme === 'cream' ? Sun : Moon}
                 label="Theme"
-                description={mounted ? (theme === 'light' ? 'Light mode — tap to switch to dark' : 'Dark mode — tap to switch to light') : 'Dark mode — tap to switch to light'}
+                description="Choose your preferred appearance"
               >
-                <button
-                  onClick={() => mounted && setTheme(theme === 'light' ? 'dark' : 'light')}
-                  className={cn(
-                    'relative w-12 h-6 rounded-full shrink-0 border-0 outline-none focus:outline-none focus:ring-0',
-                    mounted ? 'transition-colors duration-200' : '',
-                    mounted && theme === 'light' ? 'bg-accent-600' : 'bg-white/20'
-                  )}
-                  aria-label="Toggle theme"
-                >
-                  <span className={cn(
-                    'absolute top-0.5 w-5 h-5 rounded-full shadow-sm pointer-events-none',
-                    mounted && theme === 'light' ? 'bg-white translate-x-6' : 'bg-white translate-x-0.5',
-                    mounted ? 'transition-transform duration-200' : ''
-                  )} />
-                </button>
+                <div className="flex rounded-xl overflow-hidden border border-white/10 shrink-0">
+                  {(['dark', 'cream', 'light'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => mounted && setTheme(t)}
+                      className={cn(
+                        'px-3 py-1.5 text-xs font-medium transition-colors duration-150 border-0 outline-none',
+                        mounted && theme === t
+                          ? 'bg-accent-600 text-white'
+                          : 'text-white/50 hover:text-white/70'
+                      )}
+                      aria-label={`${t} theme`}
+                    >
+                      {t === 'dark' ? 'Dark' : t === 'cream' ? 'Cream' : 'Light'}
+                    </button>
+                  ))}
+                </div>
               </SettingRow>
               <SettingRow icon={Globe} label="Language" description="App interface language">
                 <span className="text-xs text-white/40 italic">English</span>

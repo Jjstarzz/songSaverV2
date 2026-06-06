@@ -21,6 +21,21 @@
   color-scheme: dark;
 }
 
+html.cream {
+  --bg:           #f5f0e8;
+  --bg-surface:   #ede8de;
+  --bg-elevated:  #faf7f2;
+  --bg-card:      rgba(255,255,255,0.60);
+  --bg-card-hover:rgba(255,255,255,0.85);
+  --bg-input:     rgba(44,40,32,0.05);
+  --fg:           #2c2820;
+  --fg-muted:     rgba(44,40,32,0.58);
+  --fg-subtle:    rgba(44,40,32,0.36);
+  --border:       rgba(44,40,32,0.10);
+  --border-focus: rgba(124,92,252,0.50);
+  color-scheme: light;
+}
+
 html.light {
   --bg:           #f8f7f4;
   --bg-surface:   #edecea;
@@ -188,48 +203,50 @@ html.light {
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* Override hard-coded dark Tailwind classes in light mode */
+/* Override hard-coded dark Tailwind classes in light/cream mode */
 
 /* text-white (no opacity modifier) */
-html.light .text-white { color: var(--fg) !important; }
+html.light .text-white,
+html.cream .text-white { color: var(--fg) !important; }
 
 /* text-white with opacity modifiers */
-html.light .text-white\/90,
-html.light .text-white\/80,
-html.light .text-white\/70 { color: rgba(17,17,24,0.75) !important; }
+html.light .text-white\/90, html.light .text-white\/80, html.light .text-white\/70,
+html.cream .text-white\/90, html.cream .text-white\/80, html.cream .text-white\/70 { color: rgba(44,40,32,0.80) !important; }
 
-html.light .text-white\/60,
-html.light .text-white\/50 { color: var(--fg-muted) !important; }
+html.light .text-white\/60, html.light .text-white\/50,
+html.cream .text-white\/60, html.cream .text-white\/50 { color: var(--fg-muted) !important; }
 
-html.light .text-white\/40,
-html.light .text-white\/30,
-html.light .text-white\/20 { color: var(--fg-subtle) !important; }
+html.light .text-white\/40, html.light .text-white\/30, html.light .text-white\/20,
+html.cream .text-white\/40, html.cream .text-white\/30, html.cream .text-white\/20 { color: var(--fg-subtle) !important; }
 
-/* bg-white with opacity → light input/surface tones */
-html.light .bg-white\/\[0\.04\],
-html.light .bg-white\/\[0\.05\],
-html.light .bg-white\/\[0\.06\],
-html.light .bg-white\/\[0\.07\],
-html.light .bg-white\/\[0\.08\] { background-color: var(--bg-input) !important; }
+/* bg-white with opacity → input/surface tones */
+html.light .bg-white\/\[0\.04\], html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\], html.light .bg-white\/\[0\.07\], html.light .bg-white\/\[0\.08\],
+html.cream .bg-white\/\[0\.04\], html.cream .bg-white\/\[0\.05\],
+html.cream .bg-white\/\[0\.06\], html.cream .bg-white\/\[0\.07\], html.cream .bg-white\/\[0\.08\] { background-color: var(--bg-input) !important; }
 
-html.light .bg-white\/10 { background-color: rgba(0,0,0,0.05) !important; }
-html.light .bg-white\/20 { background-color: rgba(0,0,0,0.08) !important; }
+html.light .bg-white\/10, html.cream .bg-white\/10 { background-color: rgba(44,40,32,0.05) !important; }
+html.light .bg-white\/20, html.cream .bg-white\/20 { background-color: rgba(44,40,32,0.08) !important; }
 
-/* border-white with opacity → light border */
-html.light .border-white\/\[0\.06\],
-html.light .border-white\/\[0\.08\],
-html.light .border-white\/10,
-html.light .border-white\/20 { border-color: var(--border) !important; }
+/* border-white with opacity → themed border */
+html.light .border-white\/\[0\.06\], html.light .border-white\/\[0\.08\],
+html.light .border-white\/10,      html.light .border-white\/20,
+html.cream .border-white\/\[0\.06\], html.cream .border-white\/\[0\.08\],
+html.cream .border-white\/10,       html.cream .border-white\/20 { border-color: var(--border) !important; }
 
 /* divide utility */
-html.light .divide-white\/\[0\.06\] > * + * { border-color: var(--border) !important; }
+html.light .divide-white\/\[0\.06\] > * + *,
+html.cream .divide-white\/\[0\.06\] > * + * { border-color: var(--border) !important; }
 
 /* Keep accent/semantic colours untouched */
-html.light .text-accent-400,
-html.light .text-accent-300,
-html.light .text-emerald-400,
-html.light .text-red-400,
-html.light .text-amber-400 { color: revert !important; }
+html.light .text-accent-400, html.light .text-accent-300,
+html.light .text-emerald-400, html.light .text-red-400, html.light .text-amber-400,
+html.cream .text-accent-400, html.cream .text-accent-300,
+html.cream .text-emerald-400, html.cream .text-red-400, html.cream .text-amber-400 { color: revert !important; }
+
+/* Cream: bottom nav + sticky header */
+html.cream .bottom-nav { background: rgba(237,232,222,0.9) !important; border-top-color: var(--border); }
+html.cream .sticky-header-bg { background: rgba(245,240,232,0.92) !important; }
 
 /* ─────────────────────────────────────────────
    Animations
