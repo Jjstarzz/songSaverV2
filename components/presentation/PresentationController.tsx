@@ -523,7 +523,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             return (
               <div style={{ padding: '0 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Preview</p>
-                <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ position: 'relative', width: '100%', height: 140, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
                   <div
                     className={previewBgClass}
                     style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, ...previewBgStyle }}
