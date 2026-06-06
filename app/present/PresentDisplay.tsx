@@ -70,10 +70,9 @@ export function PresentDisplay() {
     lines.length <= 2 ? 5.5 :
     lines.length <= 4 ? 4.5 :
     lines.length <= 6 ? 3.8 : 3.2
-  const dualScale = hasDual ? 0.78 : 1
+  const dualScale = hasDual ? 0.72 : 1
   const multiplier = SIZE_MULTIPLIERS[slide.fontSizeKey ?? 'md'] ?? 1
   const fontSize = `${(baseVw * multiplier * dualScale).toFixed(2)}vw`
-  const translationSize = `${(baseVw * multiplier * dualScale * 0.62).toFixed(2)}vw`
   const fontFamily = FONT_FAMILY_MAP[slide.fontFamily ?? 'sans'] ?? FONT_FAMILY_MAP.sans
 
   if (!code) {
@@ -160,12 +159,12 @@ export function PresentDisplay() {
                   <p
                     className="text-center whitespace-pre-line"
                     style={{
-                      fontSize: translationSize,
+                      fontSize,
                       fontFamily,
-                      fontWeight: 300,
-                      lineHeight: 1.55,
+                      fontWeight: 400,
+                      lineHeight: 1.5,
                       letterSpacing: '0.01em',
-                      color: slide.textColor ? slide.textColor + 'b3' : 'rgba(255,255,255,0.7)',
+                      color: slide.textColor ? slide.textColor + 'cc' : 'rgba(255,255,255,0.8)',
                       textShadow: '0 2px 20px rgba(0,0,0,0.8)',
                       maxWidth: '90%',
                     }}
