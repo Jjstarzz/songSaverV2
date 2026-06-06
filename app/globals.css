@@ -22,16 +22,16 @@
 }
 
 html.cream {
-  --bg:           #f5f0e8;
-  --bg-surface:   #ede8de;
-  --bg-elevated:  #faf7f2;
-  --bg-card:      rgba(255,255,255,0.60);
-  --bg-card-hover:rgba(255,255,255,0.85);
-  --bg-input:     rgba(44,40,32,0.05);
+  --bg:           #e8e2d6;
+  --bg-surface:   #dfd8cb;
+  --bg-elevated:  #ede8de;
+  --bg-card:      rgba(255,255,255,0.38);
+  --bg-card-hover:rgba(255,255,255,0.55);
+  --bg-input:     rgba(44,40,32,0.07);
   --fg:           #2c2820;
   --fg-muted:     rgba(44,40,32,0.58);
   --fg-subtle:    rgba(44,40,32,0.36);
-  --border:       rgba(44,40,32,0.10);
+  --border:       rgba(44,40,32,0.12);
   --border-focus: rgba(124,92,252,0.50);
   color-scheme: light;
 }
@@ -245,8 +245,8 @@ html.cream .text-accent-400, html.cream .text-accent-300,
 html.cream .text-emerald-400, html.cream .text-red-400, html.cream .text-amber-400 { color: revert !important; }
 
 /* Cream: bottom nav + sticky header */
-html.cream .bottom-nav { background: rgba(237,232,222,0.9) !important; border-top-color: var(--border); }
-html.cream .sticky-header-bg { background: rgba(245,240,232,0.92) !important; }
+html.cream .bottom-nav { background: rgba(220,214,202,0.92) !important; border-top-color: var(--border); }
+html.cream .sticky-header-bg { background: rgba(232,226,214,0.94) !important; }
 
 /* ─────────────────────────────────────────────
    Animations
