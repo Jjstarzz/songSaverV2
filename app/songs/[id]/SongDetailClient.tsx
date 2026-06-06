@@ -35,10 +35,10 @@ export function SongDetailClient({ id }: Props) {
   const supabase = useSupabase()
   const { user } = useAuth()
   const { song, loading, refetch } = useSong(id)
-  const { isOwner: isAppOwner } = useRole()
+  const { isAdmin } = useRole()
   const isOwner = !!user && !!song && song.created_by === user.id
-  const canEdit = isOwner
-  const canDelete = isOwner || isAppOwner
+  const canEdit = isOwner || isAdmin
+  const canDelete = isOwner || isAdmin
   const creatorName = useCreatorName(song?.created_by)
   const { track } = useRecentlyViewed()
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
@@ -247,7 +247,7 @@ export function SongDetailClient({ id }: Props) {
             songId={id}
             lyrics={song.song_lyrics ?? []}
             onUpdate={refetch}
-            isOwner={isOwner}
+            isOwner={isOwner || isAdmin}
           />
         </section>
 

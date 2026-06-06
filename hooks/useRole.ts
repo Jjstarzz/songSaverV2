@@ -44,6 +44,7 @@ export function useRole() {
   return {
     role,
     isOwner: role === 'owner',
+    isAdmin: role === 'admin' || role === 'owner',
     loading: authLoading || loading,
   }
 }
