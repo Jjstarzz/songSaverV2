@@ -530,18 +530,16 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           {(() => {
             const previewIsLiveBg  = LIVE_BG_IDS.has(background)
             const previewIsVideoBg = VIDEO_BG_IDS.has(background)
-            const previewBgStyle: Record<string, string> = previewIsLiveBg || previewIsVideoBg
-              ? (previewIsVideoBg
-                  ? { background: VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch ?? '#000' }
-                  : {})
+            const previewBgStyle: React.CSSProperties = previewIsLiveBg || previewIsVideoBg
+              ? (previewIsVideoBg ? { background: VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch ?? '#000' } : {})
               : { background: BG_STATIC[background] ?? BG_STATIC.dark }
             const previewBgClass = previewIsLiveBg ? `live-${background}` : ''
-            const previewSlide = currentIdx !== null ? slides[currentIdx] : null
-            const previewLines = previewSlide?.content.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
+            // Use lastContentRef so scripture verses show up too
+            const previewContent = !blank ? lastContentRef.current : null
+            const previewLines = previewContent?.lines.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
             return (
-              <div style={{ padding: '0 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Preview</p>
-                <div style={{ position: 'relative', width: '100%', height: 140, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ position: 'relative', width: '100%', height: 130, overflow: 'hidden' }}>
                   <div
                     className={previewBgClass}
                     style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4, ...previewBgStyle }}
@@ -549,18 +547,25 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     {blank ? (
                       holdingImageUrl
                         ? <img src={holdingImageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', letterSpacing: '0.2em' }}>BLANK</span>
-                    ) : previewSlide ? (
+                        : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Screen blank</span>
+                    ) : previewContent ? (
                       <>
-                        {previewSlide.label && (
-                          <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{previewSlide.label}</span>
+                        {previewContent.section && (
+                          <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>{previewContent.section}</span>
                         )}
-                        <p style={{ color: '#fff', fontSize: '0.65rem', textAlign: 'center', lineHeight: 1.45, whiteSpace: 'pre-line', padding: '0 8%' }}>{previewLines}</p>
+                        <p style={{ color: '#fff', fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.5, whiteSpace: 'pre-line', padding: '0 10%' }}>{previewLines}</p>
                       </>
                     ) : (
-                      <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem' }}>Nothing on screen</span>
+                      <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>Tap a slide to begin</span>
                     )}
                   </div>
+                  {/* Live indicator overlay */}
+                  {!blank && previewContent && (
+                    <span style={{ position: 'absolute', top: 6, right: 8, display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 20, padding: '2px 6px' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', animation: 'live-pulse 1.5s ease-in-out infinite' }} />
+                      <span style={{ color: '#fca5a5', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.1em' }}>LIVE</span>
+                    </span>
+                  )}
                 </div>
               </div>
             )
@@ -619,7 +624,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>No lyrics added yet</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                     {slides.map((slide, i) => {
                       const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
                       const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
@@ -1016,7 +1021,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                               setLoadingVerses(true); setBrowseVerses([])
                               fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${book.id}.1`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
                             }}
-                            style={{ width: '100%', textAlign: 'left', padding: '10px', fontSize: '0.82rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            style={{ width: '100%', textAlign: 'left', padding: '14px 10px', fontSize: '0.85rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {book.name}
                           </button>
                         ))}
@@ -1037,7 +1042,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                   setLoadingVerses(true); setBrowseVerses([])
                                   fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${browseBook.id}.${ch}`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
                                 }}
-                                style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                                 {ch}
                               </button>
                             ))
@@ -1065,7 +1070,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                       if (d.text && d.reference) sendVerse(d.reference, d.text)
                                     } finally { setLoadingPassage(false) }
                                   }}
-                                  style={{ width: '100%', textAlign: 'center', padding: '10px 0', fontSize: '0.88rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                  style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                                   {num}
                                 </button>
                               )
@@ -1156,7 +1161,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             </button>
           </div>
 
-          <style>{`@keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+          <style>{`@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}${ANIMATION_CSS}`}</style>
         </div>,
         document.body
       )}

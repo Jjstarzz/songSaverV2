@@ -669,6 +669,7 @@ export function ScriptureController() {
               Next <ChevronRight className="w-5 h-5" />
             </button>
           </div>
+          <style>{`@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}${ANIMATION_CSS}`}</style>
         </div>,
         document.body
       )}
