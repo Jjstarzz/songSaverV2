@@ -69,6 +69,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // primaryLangId / secondaryLangId are song_lyrics IDs; null = default / none
   const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
+  const [screensaverEnabled, setScreensaverEnabled] = useState(true)
+  const [screensaverInterval, setScreensaverInterval] = useState(8)
   const channelRef = useRef<RealtimeChannel | null>(null)
   // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
   const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
@@ -192,19 +194,19 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
     const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
     lastContentRef.current = { section: s.label, lines: s.content, title: activeTitle }
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval })
   }
 
   const goToSong = (idx: number) => {
     setSongIdx(idx)
     setCurrentIdx(null)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval })
   }
 
   const revealCurrent = () => {
@@ -215,7 +217,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // Used by every settings control so changes apply whether a slide is live or screen is blank.
   const rebroadcast = (overrides: Record<string, unknown> = {}) => {
     const base = {
-      background, fontSizeKey, fontFamily, textColor, holdingImageUrl,
+      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval,
       ...overrides,
     }
     if (!blank && lastContentRef.current) {
@@ -993,6 +995,47 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     <div style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden', height: 56 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Screensaver */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Screensaver</p>
+                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 12 }}>Scripture verses cycle on the projector when the screen is blank and no holding image is set.</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>Enable screensaver</span>
+                    <button
+                      onClick={() => {
+                        const next = !screensaverEnabled
+                        setScreensaverEnabled(next)
+                        rebroadcast({ screensaverEnabled: next })
+                      }}
+                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: screensaverEnabled ? 'rgba(124,58,237,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
+                    >
+                      <span style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', left: screensaverEnabled ? 22 : 2 }} />
+                    </button>
+                  </div>
+                  {screensaverEnabled && (
+                    <div>
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Verse duration</p>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {[5, 8, 12, 20].map(secs => (
+                          <button
+                            key={secs}
+                            onClick={() => { setScreensaverInterval(secs); rebroadcast({ screensaverInterval: secs }) }}
+                            style={{
+                              flex: 1, padding: '7px 4px', borderRadius: 10, fontSize: '0.72rem', cursor: 'pointer',
+                              background: screensaverInterval === secs ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${screensaverInterval === secs ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                              color: screensaverInterval === secs ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {secs}s
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

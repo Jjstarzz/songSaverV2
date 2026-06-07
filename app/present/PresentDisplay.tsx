@@ -35,6 +35,8 @@ interface SlideState {
   textColor?: string
   holdingImageUrl?: string
   translationLines?: string
+  screensaverEnabled?: boolean
+  screensaverInterval?: number
 }
 
 const INITIAL: SlideState = {
@@ -53,7 +55,8 @@ export function PresentDisplay() {
   const [ssVisible, setSsVisible] = useState(true)
   const ssTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const showScreensaver = connected && slide.blank && !slide.holdingImageUrl
+  const showScreensaver = connected && slide.blank && !slide.holdingImageUrl && slide.screensaverEnabled !== false
+  const ssIntervalMs = (slide.screensaverInterval ?? 8) * 1000
 
   useEffect(() => {
     if (!showScreensaver) {
@@ -68,9 +71,9 @@ export function PresentDisplay() {
         setSsIdx(i => (i + 1) % SCREENSAVER_VERSES.length)
         setSsVisible(true)
       }, 600)
-    }, 8000)
+    }, ssIntervalMs)
     return () => { if (ssTimerRef.current) clearInterval(ssTimerRef.current) }
-  }, [showScreensaver])
+  }, [showScreensaver, ssIntervalMs])
 
   useEffect(() => {
     if (!code) return
