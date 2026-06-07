@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { Tv2 } from 'lucide-react'
@@ -8,6 +8,21 @@ import {
   BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, ANIMATION_CSS,
   FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
+
+const SCREENSAVER_VERSES = [
+  { text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.', ref: 'John 3:16' },
+  { text: 'Be still, and know that I am God.', ref: 'Psalm 46:10' },
+  { text: 'I can do all things through Christ who strengthens me.', ref: 'Philippians 4:13' },
+  { text: 'Trust in the LORD with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.', ref: 'Proverbs 3:5–6' },
+  { text: 'Come to me, all you who are weary and burdened, and I will give you rest.', ref: 'Matthew 11:28' },
+  { text: 'The LORD is my shepherd; I shall not want.', ref: 'Psalm 23:1' },
+  { text: '"For I know the plans I have for you," declares the LORD, "plans to prosper you and not to harm you, plans to give you hope and a future."', ref: 'Jeremiah 29:11' },
+  { text: 'Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.', ref: 'Philippians 4:6' },
+  { text: 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.', ref: 'Romans 8:28' },
+  { text: 'This is the day the LORD has made; let us rejoice and be glad in it.', ref: 'Psalm 118:24' },
+  { text: 'Greater love has no one than this: to lay down one\'s life for one\'s friends.', ref: 'John 15:13' },
+  { text: 'The LORD your God is with you, the Mighty Warrior who saves. He will take great delight in you; in his love he will no longer rebuke you, but will rejoice over you with singing.', ref: 'Zephaniah 3:17' },
+]
 
 interface SlideState {
   blank: boolean
@@ -34,6 +49,28 @@ export function PresentDisplay() {
   const [slide, setSlide] = useState<SlideState>(INITIAL)
   const [connected, setConnected] = useState(false)
   const [fadeIn, setFadeIn] = useState(true)
+  const [ssIdx, setSsIdx] = useState(0)
+  const [ssVisible, setSsVisible] = useState(true)
+  const ssTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const showScreensaver = connected && slide.blank && !slide.holdingImageUrl
+
+  useEffect(() => {
+    if (!showScreensaver) {
+      if (ssTimerRef.current) { clearInterval(ssTimerRef.current); ssTimerRef.current = null }
+      setSsIdx(0)
+      setSsVisible(true)
+      return
+    }
+    ssTimerRef.current = setInterval(() => {
+      setSsVisible(false)
+      setTimeout(() => {
+        setSsIdx(i => (i + 1) % SCREENSAVER_VERSES.length)
+        setSsVisible(true)
+      }, 600)
+    }, 8000)
+    return () => { if (ssTimerRef.current) clearInterval(ssTimerRef.current) }
+  }, [showScreensaver])
 
   useEffect(() => {
     if (!code) return
@@ -124,6 +161,41 @@ export function PresentDisplay() {
                 alt=""
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
               />
+            )}
+            {showScreensaver && (
+              <div
+                className="flex flex-col items-center justify-center w-full h-full px-[10%]"
+                style={{ opacity: ssVisible ? 1 : 0, transition: 'opacity 0.6s ease-in-out' }}
+              >
+                <p
+                  className="text-center whitespace-pre-line"
+                  style={{
+                    fontSize: '3.2vw',
+                    fontFamily,
+                    fontWeight: 300,
+                    lineHeight: 1.65,
+                    letterSpacing: '0.01em',
+                    color: 'rgba(255,255,255,0.82)',
+                    textShadow: '0 2px 40px rgba(0,0,0,0.9)',
+                    maxWidth: '80%',
+                    marginBottom: '2.4vw',
+                  }}
+                >
+                  {SCREENSAVER_VERSES[ssIdx].text}
+                </p>
+                <p
+                  style={{
+                    fontSize: '1.1vw',
+                    fontFamily,
+                    fontWeight: 500,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,0.35)',
+                  }}
+                >
+                  — {SCREENSAVER_VERSES[ssIdx].ref}
+                </p>
+              </div>
             )}
             {!slide.blank && (
               <>
