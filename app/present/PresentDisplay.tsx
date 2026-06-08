@@ -108,13 +108,8 @@ export function PresentDisplay() {
   const h = rawTextColor.replace('#', '')
   const textIsDark = h.length === 6 &&
     (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) < 128
-  const mainShadow = textIsDark
-    ? '0 0 12px rgba(255,255,255,0.7), 0 0 40px rgba(255,255,255,0.4)'
-    : '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)'
-  const transShadow = textIsDark
-    ? '0 0 8px rgba(255,255,255,0.6), 0 0 24px rgba(255,255,255,0.3)'
-    : '0 2px 20px rgba(0,0,0,0.8)'
-  const textStroke = textIsDark ? '2px rgba(255,255,255,0.9)' : 'none'
+  const mainShadow = textIsDark ? 'none' : '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)'
+  const transShadow = textIsDark ? 'none' : '0 2px 20px rgba(0,0,0,0.8)'
 
   // Typography — scale down slightly when showing both languages
   const hasDual = !!(slide.translationLines && slide.translationLines.trim())
@@ -193,7 +188,7 @@ export function PresentDisplay() {
                     letterSpacing: '0.01em',
                     color: rawTextColor + 'cc',
                     textShadow: mainShadow,
-                    WebkitTextStroke: textStroke,
+
                     maxWidth: '80%',
                     marginBottom: '2.4vw',
                     overflowWrap: 'break-word',
@@ -237,7 +232,7 @@ export function PresentDisplay() {
                     letterSpacing: '0.01em',
                     color: rawTextColor,
                     textShadow: mainShadow,
-                    WebkitTextStroke: textStroke,
+
                     maxWidth: '88%',
                     overflowWrap: 'break-word',
                     marginBottom: hasDual ? '3.5vw' : 0,
@@ -258,7 +253,7 @@ export function PresentDisplay() {
                       letterSpacing: '0.01em',
                       color: rawTextColor + 'cc',
                       textShadow: transShadow,
-                      WebkitTextStroke: textStroke,
+  
                       maxWidth: '88%',
                       overflowWrap: 'break-word',
                     }}
