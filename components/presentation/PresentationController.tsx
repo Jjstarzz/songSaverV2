@@ -74,6 +74,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const channelRef = useRef<RealtimeChannel | null>(null)
   // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
   const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
+  const langInitRef = useRef(false)
 
   // Browse state for Scripture tab
   interface VerseRef { id: string; reference: string }
@@ -124,6 +125,23 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       return chunk.join('\n')
     })
   }, [secondaryLyrics, slides])
+
+  // Re-broadcast immediately when the language selection changes so the projector
+  // updates without the presenter needing to re-click the current slide.
+  useEffect(() => {
+    if (!langInitRef.current) { langInitRef.current = true; return }
+    const translationLines = secondaryLangId && currentIdx !== null
+      ? (translationPerSlide[currentIdx] ?? '')
+      : ''
+    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, translationLines }
+    if (!blank && lastContentRef.current) {
+      const { section, lines, title } = lastContentRef.current
+      broadcast({ blank: false, section, lines, title, ...base })
+    } else {
+      broadcast({ blank: true, section: '', lines: '', title: activeTitle, ...base })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryLangId, primaryLangId])
 
   // Create channel when controller is opened.
   // Reuse the same code for the whole browser session so the projector
@@ -216,8 +234,12 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // Always pushes current state to the projector, optionally overriding specific fields.
   // Used by every settings control so changes apply whether a slide is live or screen is blank.
   const rebroadcast = (overrides: Record<string, unknown> = {}) => {
+    const translationLines = secondaryLangId && currentIdx !== null
+      ? (translationPerSlide[currentIdx] ?? '')
+      : ''
     const base = {
       background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval,
+      translationLines,
       ...overrides,
     }
     if (!blank && lastContentRef.current) {
