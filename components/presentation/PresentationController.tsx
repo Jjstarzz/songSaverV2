@@ -884,6 +884,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                   <div style={{ display: 'flex', gap: 10 }}>
                     {[
                       { color: '#ffffff', label: 'White' },
+                      { color: '#111111', label: 'Black' },
                       { color: '#fef9c3', label: 'Cream' },
                       { color: '#fde68a', label: 'Yellow' },
                       { color: '#bfdbfe', label: 'Blue' },
