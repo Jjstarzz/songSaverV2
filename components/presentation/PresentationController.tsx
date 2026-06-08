@@ -44,9 +44,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [inlineOpen, setInlineOpen] = useState(false)
   const [showSections, setShowSections] = useState(false)
   const [code, setCode] = useState('')
-  const [background, setBackground] = useState('dark')
-  const [fontSizeKey, setFontSizeKey] = useState('md')
-  const [fontFamily, setFontFamily] = useState('sans')
+  const [background, setBackground] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('songsaver-bg') ?? 'dark') : 'dark')
+  const [fontSizeKey, setFontSizeKey] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('songsaver-font-size') ?? 'md') : 'md')
+  const [fontFamily, setFontFamily] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('songsaver-font-family') ?? 'sans') : 'sans')
   const [currentIdx, setCurrentIdx] = useState<number | null>(null)
   const [blank, setBlank] = useState(true)
   const [copied, setCopied] = useState(false)
@@ -57,7 +57,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [showJoin, setShowJoin] = useState(false)
   const [joinInput, setJoinInput] = useState('')
   const [songIdx, setSongIdx] = useState(0)
-  const [textColor, setTextColor] = useState('#ffffff')
+  const [textColor, setTextColor] = useState(() => typeof window !== 'undefined' ? (localStorage.getItem('songsaver-text-color') ?? '#ffffff') : '#ffffff')
   const [holdingImageUrl, setHoldingImageUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('songsaver-holding-image') ?? ''
     return ''
@@ -69,8 +69,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // primaryLangId / secondaryLangId are song_lyrics IDs; null = default / none
   const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
-  const [screensaverEnabled, setScreensaverEnabled] = useState(true)
-  const [screensaverInterval, setScreensaverInterval] = useState(8)
+  const [screensaverEnabled, setScreensaverEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-screensaver-on') !== 'false' : true)
+  const [screensaverInterval, setScreensaverInterval] = useState(() => typeof window !== 'undefined' ? (Number(localStorage.getItem('songsaver-screensaver-secs')) || 8) : 8)
   const channelRef = useRef<RealtimeChannel | null>(null)
   // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
   const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
@@ -252,6 +252,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
   const changeBackground = (bg: string) => {
     setBackground(bg)
+    localStorage.setItem('songsaver-bg', bg)
     rebroadcast({ background: bg })
   }
 
@@ -838,6 +839,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={key}
                         onClick={() => {
                           setFontSizeKey(key)
+                          localStorage.setItem('songsaver-font-size', key)
                           rebroadcast({ fontSizeKey: key })
                         }}
                         style={{
@@ -861,6 +863,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         key={f.id}
                         onClick={() => {
                           setFontFamily(f.id)
+                          localStorage.setItem('songsaver-font-family', f.id)
                           rebroadcast({ fontFamily: f.id })
                         }}
                         style={{
@@ -892,6 +895,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         title={label}
                         onClick={() => {
                           setTextColor(color)
+                          localStorage.setItem('songsaver-text-color', color)
                           rebroadcast({ textColor: color })
                         }}
                         style={{
@@ -1031,6 +1035,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                       onClick={() => {
                         const next = !screensaverEnabled
                         setScreensaverEnabled(next)
+                        localStorage.setItem('songsaver-screensaver-on', String(next))
                         rebroadcast({ screensaverEnabled: next })
                       }}
                       style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: screensaverEnabled ? 'rgba(124,58,237,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
@@ -1045,7 +1050,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         {[5, 8, 12, 20].map(secs => (
                           <button
                             key={secs}
-                            onClick={() => { setScreensaverInterval(secs); rebroadcast({ screensaverInterval: secs }) }}
+                            onClick={() => { setScreensaverInterval(secs); localStorage.setItem('songsaver-screensaver-secs', String(secs)); rebroadcast({ screensaverInterval: secs }) }}
                             style={{
                               flex: 1, padding: '7px 4px', borderRadius: 10, fontSize: '0.72rem', cursor: 'pointer',
                               background: screensaverInterval === secs ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
