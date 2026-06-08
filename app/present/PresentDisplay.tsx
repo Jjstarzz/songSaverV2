@@ -108,12 +108,8 @@ export function PresentDisplay() {
   const h = rawTextColor.replace('#', '')
   const textIsDark = h.length === 6 &&
     (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) < 128
-  const mainShadow = textIsDark
-    ? '-1px -1px 3px rgba(255,255,255,0.85), 1px -1px 3px rgba(255,255,255,0.85), -1px 1px 3px rgba(255,255,255,0.85), 1px 1px 3px rgba(255,255,255,0.85), 0 0 18px rgba(255,255,255,0.5)'
-    : '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)'
-  const transShadow = textIsDark
-    ? '-1px -1px 2px rgba(255,255,255,0.7), 1px -1px 2px rgba(255,255,255,0.7), -1px 1px 2px rgba(255,255,255,0.7), 1px 1px 2px rgba(255,255,255,0.7)'
-    : '0 2px 20px rgba(0,0,0,0.8)'
+  const mainShadow = textIsDark ? 'none' : '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)'
+  const transShadow = textIsDark ? 'none' : '0 2px 20px rgba(0,0,0,0.8)'
 
   // Typography — scale down slightly when showing both languages
   const hasDual = !!(slide.translationLines && slide.translationLines.trim())
