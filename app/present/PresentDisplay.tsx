@@ -103,6 +103,16 @@ export function PresentDisplay() {
   const bgStyle = (isLive || isVideo) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
   const bgClass = isLive ? `live-${bgId}` : ''
 
+  // Detect dark text so we can flip the text-shadow to a light glow
+  const rawTextColor = slide.textColor ?? '#ffffff'
+  const h = rawTextColor.replace('#', '')
+  const textIsDark = h.length === 6 &&
+    (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) < 128
+  const mainShadow = textIsDark
+    ? '0 1px 12px rgba(255,255,255,0.5)'
+    : '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)'
+  const transShadow = textIsDark ? '0 1px 8px rgba(255,255,255,0.35)' : '0 2px 20px rgba(0,0,0,0.8)'
+
   // Typography — scale down slightly when showing both languages
   const hasDual = !!(slide.translationLines && slide.translationLines.trim())
   const lines = slide.lines ? slide.lines.split('\n').filter(Boolean) : []
@@ -178,10 +188,11 @@ export function PresentDisplay() {
                     fontWeight: 300,
                     lineHeight: 1.65,
                     letterSpacing: '0.01em',
-                    color: 'rgba(255,255,255,0.82)',
-                    textShadow: '0 2px 40px rgba(0,0,0,0.9)',
+                    color: rawTextColor + 'cc',
+                    textShadow: mainShadow,
                     maxWidth: '80%',
                     marginBottom: '2.4vw',
+                    overflowWrap: 'break-word',
                   }}
                 >
                   {SCREENSAVER_VERSES[ssIdx].text}
@@ -193,7 +204,7 @@ export function PresentDisplay() {
                     fontWeight: 500,
                     letterSpacing: '0.18em',
                     textTransform: 'uppercase',
-                    color: 'rgba(255,255,255,0.35)',
+                    color: rawTextColor + '59',
                   }}
                 >
                   — {SCREENSAVER_VERSES[ssIdx].ref}
@@ -220,8 +231,8 @@ export function PresentDisplay() {
                     fontWeight: 400,
                     lineHeight: 1.85,
                     letterSpacing: '0.01em',
-                    color: slide.textColor ?? '#ffffff',
-                    textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)',
+                    color: rawTextColor,
+                    textShadow: mainShadow,
                     maxWidth: '88%',
                     overflowWrap: 'break-word',
                     marginBottom: hasDual ? '3.5vw' : 0,
@@ -240,8 +251,8 @@ export function PresentDisplay() {
                       fontWeight: 400,
                       lineHeight: 1.85,
                       letterSpacing: '0.01em',
-                      color: slide.textColor ? slide.textColor + 'cc' : 'rgba(255,255,255,0.8)',
-                      textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+                      color: rawTextColor + 'cc',
+                      textShadow: transShadow,
                       maxWidth: '88%',
                       overflowWrap: 'break-word',
                     }}
