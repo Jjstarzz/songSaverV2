@@ -124,6 +124,36 @@ export const VIDEO_BACKGROUNDS: VideoBackground[] = [
     url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1778401221/kaleidoscope_mirror_gold_HD_objsbu.mp4',
     swatch: 'linear-gradient(135deg, #b8860b, #d4a017, #8b6914)',
   },
+  {
+    id: 'new1',
+    label: 'Background 1',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1780946255/15522210_1920_1080_24fps_eee9ci.mp4',
+    swatch: 'linear-gradient(135deg, #0a0a14, #1a1020, #0d0818)',
+  },
+  {
+    id: 'new2',
+    label: 'Background 2',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1780946251/4153410-uhd_3840_2160_25fps_ga1jpj.mp4',
+    swatch: 'linear-gradient(135deg, #0a1020, #101828, #080e1a)',
+  },
+  {
+    id: 'new3',
+    label: 'Background 3',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1780946251/16074944_1080_1920_30fps_ia4cqy.mp4',
+    swatch: 'linear-gradient(135deg, #0a0a0a, #181818, #101010)',
+  },
+  {
+    id: 'new4',
+    label: 'Background 4',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1780946251/11939983_1920_1080_60fps_gcnj3z.mp4',
+    swatch: 'linear-gradient(135deg, #0a1418, #0d2030, #081018)',
+  },
+  {
+    id: 'new5',
+    label: 'Background 5',
+    url: 'https://res.cloudinary.com/do3irqqtz/video/upload/q_auto/f_auto/v1780946251/11387730-hd_1920_1080_30fps_sa7yaw.mp4',
+    swatch: 'linear-gradient(135deg, #100a1a, #1a1030, #0e0820)',
+  },
 ]
 
 export const VIDEO_BG_IDS = new Set(VIDEO_BACKGROUNDS.map(b => b.id))
