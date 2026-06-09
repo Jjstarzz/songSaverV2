@@ -106,6 +106,18 @@ export default function PrintPage() {
     load()
   }, [user, supabase, id])
 
+  // Hide bottom nav and app wrapper while on print page
+  useEffect(() => {
+    const nav = document.querySelector('.bottom-nav') as HTMLElement | null
+    const wrap = document.querySelector('body > div') as HTMLElement | null
+    if (nav) nav.style.display = 'none'
+    if (wrap) { wrap.style.maxWidth = 'none'; wrap.style.paddingBottom = '0' }
+    return () => {
+      if (nav) nav.style.display = ''
+      if (wrap) { wrap.style.maxWidth = ''; wrap.style.paddingBottom = '' }
+    }
+  }, [])
+
   // Auto-trigger print once content is ready
   useEffect(() => {
     if (ready) {
@@ -127,7 +139,7 @@ export default function PrintPage() {
     <>
       {/* ── Print + screen styles ───────────────── */}
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .page-wrap * { box-sizing: border-box; }
         body { background: #f0f0f0; font-family: Georgia, 'Times New Roman', serif; color: #111; }
 
         /* Screen wrapper */
@@ -168,8 +180,9 @@ export default function PrintPage() {
         @media print {
           @page { margin: 1.5cm 2cm; size: A4; }
           body { background: #fff !important; }
-          .no-print { display: none !important; }
+          .no-print, .bottom-nav, nav { display: none !important; }
           .page-wrap { padding: 0; max-width: 100%; margin: 0; }
+          body > div { max-width: none !important; padding-bottom: 0 !important; }
         }
 
         @media screen {
