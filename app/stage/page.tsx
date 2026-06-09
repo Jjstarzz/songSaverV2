@@ -9,6 +9,7 @@ interface SlideInfo {
   section: string
   lines: string
   title: string
+  translationLines?: string
 }
 
 interface StageState {
@@ -48,7 +49,7 @@ function StageDisplay() {
       setConnected(true)
       setState({
         blank: payload.blank ?? true,
-        current: { section: payload.section ?? '', lines: payload.lines ?? '', title: payload.title ?? '' },
+        current: { section: payload.section ?? '', lines: payload.lines ?? '', title: payload.title ?? '', translationLines: payload.translationLines ?? '' },
         upNext: payload.upNext ?? null,
       })
     }).subscribe()
@@ -106,6 +107,14 @@ function StageDisplay() {
                 <p style={{ color: '#ffffff', fontSize: 'clamp(1.4rem, 4.5vw, 3rem)', fontWeight: 300, lineHeight: 1.65, textAlign: 'center', whiteSpace: 'pre-line' }}>
                   {state.current.lines}
                 </p>
+                {state.current.translationLines && state.current.translationLines.trim() && (
+                  <>
+                    <div style={{ width: 36, height: 1, background: 'rgba(255,255,255,0.12)', margin: '14px auto' }} />
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(1rem, 3.2vw, 2rem)', fontWeight: 300, lineHeight: 1.65, textAlign: 'center', whiteSpace: 'pre-line' }}>
+                      {state.current.translationLines}
+                    </p>
+                  </>
+                )}
                 {state.current.title && (
                   <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.8rem', marginTop: 28, fontStyle: 'italic' }}>
                     {state.current.title}

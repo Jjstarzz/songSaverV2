@@ -92,10 +92,11 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const activeTitle = playlist ? (playlist[songIdx]?.title ?? '') : title
   const activeAvailableLyrics = playlist ? (playlist[songIdx]?.availableLyrics ?? availableLyrics ?? []) : (availableLyrics ?? [])
 
-  // Reset language selections when song changes
+  // Reset language selections when song changes; auto-select secondary if available
   useEffect(() => {
     setPrimaryLangId(null)
-    setSecondaryLangId(null)
+    setSecondaryLangId(activeAvailableLyrics.length >= 2 ? activeAvailableLyrics[1].id : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTitle])
 
   const defaultLyricsText = playlist ? (playlist[songIdx]?.lyricsText ?? '') : lyricsText
