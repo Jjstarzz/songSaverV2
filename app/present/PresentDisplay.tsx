@@ -166,12 +166,21 @@ export function PresentDisplay() {
             style={{ opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}
           >
             {slide.blank && slide.holdingImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={slide.holdingImageUrl}
-                alt=""
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-              />
+              /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(slide.holdingImageUrl) ? (
+                <video
+                  key={slide.holdingImageUrl}
+                  autoPlay loop muted playsInline
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+                  src={slide.holdingImageUrl}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={slide.holdingImageUrl}
+                  alt=""
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+                />
+              )
             )}
             {showScreensaver && (
               <div

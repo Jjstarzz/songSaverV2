@@ -993,8 +993,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
                 {/* Holding slide image */}
                 <div>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Holding Slide Image</p>
-                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 8 }}>Shown when screen is blanked. Paste an image URL.</p>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Holding Slide</p>
+                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 8 }}>Shown when screen is blanked. Paste an image or video URL — videos loop automatically.</p>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <input
                       type="url"
