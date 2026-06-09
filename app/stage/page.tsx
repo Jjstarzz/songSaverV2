@@ -94,7 +94,7 @@ function StageDisplay() {
           <div style={{ padding: '6px 18px', background: 'rgba(124,58,237,0.15)', borderBottom: '1px solid rgba(139,92,246,0.25)', flexShrink: 0 }}>
             <p style={{ color: '#a78bfa', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>Now on screen</p>
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6%' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6%', overflowY: 'auto' }}>
             {state.blank ? (
               <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '1rem', letterSpacing: '0.15em' }}>SCREEN IS BLANK</p>
             ) : (
