@@ -136,7 +136,6 @@ export default function PrintPage() {
           margin: 0 auto;
           background: #fff;
           padding: 3rem 3.5rem 4rem;
-          min-height: 100vh;
         }
 
         /* Song block must not split across pages */
@@ -240,7 +239,12 @@ export default function PrintPage() {
             song.song_lyrics?.find((l) => l.is_default) ??
             song.song_lyrics?.[0] ?? null
 
+          const secondaryLyric = song.song_lyrics?.length > 1
+            ? song.song_lyrics.find((l) => l !== defaultLyric) ?? null
+            : null
+
           const sections = defaultLyric ? parseLyricSections(defaultLyric.lyrics) : []
+          const secondarySections = secondaryLyric ? parseLyricSections(secondaryLyric.lyrics) : []
 
           return (
             <div
@@ -269,16 +273,24 @@ export default function PrintPage() {
               {/* Lyrics */}
               <div style={{ paddingLeft: '2.25rem' }}>
                 {sections.length > 0 ? (
-                  sections.map((sec, si) => (
-                    <div key={si} style={{ marginBottom: '0.85rem' }}>
-                      {sec.label && (
-                        <p className="section-label">{sec.label}</p>
-                      )}
-                      <p style={{ lineHeight: 1.9, whiteSpace: 'pre-wrap', fontSize: '1.1rem' }}>
-                        {sec.lines.join('\n').trim()}
-                      </p>
-                    </div>
-                  ))
+                  sections.map((sec, si) => {
+                    const secTrans = secondarySections[si] ?? null
+                    return (
+                      <div key={si} style={{ marginBottom: '0.85rem' }}>
+                        {sec.label && (
+                          <p className="section-label">{sec.label}</p>
+                        )}
+                        <p style={{ lineHeight: 1.9, whiteSpace: 'pre-wrap', fontSize: '1.1rem' }}>
+                          {sec.lines.join('\n').trim()}
+                        </p>
+                        {secTrans && secTrans.lines.join('').trim() && (
+                          <p style={{ lineHeight: 1.8, whiteSpace: 'pre-wrap', fontSize: '0.97rem', color: '#666', fontStyle: 'italic', marginTop: '0.2rem', borderLeft: '2px solid #e0d4ff', paddingLeft: '0.6rem' }}>
+                            {secTrans.lines.join('\n').trim()}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })
                 ) : (
                   <p style={{ color: '#bbb', fontSize: '0.9rem', fontStyle: 'italic', fontFamily: 'Arial, sans-serif' }}>
                     No lyrics saved for this song
