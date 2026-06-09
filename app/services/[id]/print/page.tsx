@@ -147,8 +147,11 @@ export default function PrintPage() {
           max-width: 720px;
           margin: 0 auto;
           background: #fff;
-          padding: 3rem 3.5rem 4rem;
+          padding: 1.5rem 3rem 3rem;
         }
+
+        /* Keep header on same page as first song */
+        .service-header { break-after: avoid; page-break-after: avoid; }
 
         /* Song block must not split across pages */
         .song-block { break-inside: avoid; page-break-inside: avoid; }
@@ -221,7 +224,7 @@ export default function PrintPage() {
 
       <div className="page-wrap">
         {/* ── Service header ─────────────────────── */}
-        <div style={{ borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '2rem' }}>
+        <div className="service-header" style={{ borderBottom: '2px solid #111', paddingBottom: '0.6rem', marginBottom: '1.25rem' }}>
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: 1.2 }}>
             {service?.theme || (service ? SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES] : 'Service')}
           </h1>
