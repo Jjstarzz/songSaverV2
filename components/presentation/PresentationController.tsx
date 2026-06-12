@@ -653,8 +653,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                     {slides.map((slide, i) => {
-                      const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
-                      const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).slice(0, 3).join('\n')
+                      const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).join('\n')
+                      const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).join('\n')
                       const isActive = currentIdx === i && !blank
                       const hasNote = !!getNote(slide.label)
                       const notesOpen = notesOpenIdx === i
@@ -687,11 +687,11 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                 ✎
                               </button>
                             </div>
-                            <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.45, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                              {previewLines || slide.content.slice(0, 80)}
+                            <p style={{ color: isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.45, whiteSpace: 'pre-line' }}>
+                              {previewLines || slide.content}
                             </p>
                             {translationPreview && (
-                              <p style={{ marginTop: 5, color: isActive ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 300, lineHeight: 1.4, whiteSpace: 'pre-line', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                              <p style={{ marginTop: 5, color: isActive ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 300, lineHeight: 1.4, whiteSpace: 'pre-line' }}>
                                 {translationPreview}
                               </p>
                             )}
