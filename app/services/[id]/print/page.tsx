@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { SERVICE_TYPES, formatKey } from '@/types/database'
-import { Loader2, Printer } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 /* ─── Types ─────────────────────────────────── */
 interface PrintSong {
@@ -66,6 +66,7 @@ export default function PrintPage() {
   const [songs, setSongs] = useState<PrintSong[]>([])
   const [userKeys, setUserKeys] = useState<Record<string, string>>({})
   const [ready, setReady] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -118,52 +119,22 @@ export default function PrintPage() {
     }
   }, [])
 
-  const downloadTxt = () => {
-    if (!service || !songs.length) return
-    const lines: string[] = []
-    const title = service.theme || SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES] || 'Service'
-    lines.push(title.toUpperCase())
-    lines.push(fmtDate(service.date) + '  ·  ' + SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES])
-    if (service.notes) lines.push(service.notes)
-    lines.push('═'.repeat(50))
-    lines.push('')
-
-    songs.forEach((item, index) => {
-      const song = item.songs
-      const resolvedKey = item.key_override ?? userKeys[song.id] ?? song.default_key
-      const keyLabel = resolvedKey ? ` [${resolvedKey}${song.mode === 'minor' ? 'm' : ''}]` : ''
-      const defaultLyric = song.song_lyrics?.find((l) => l.is_default) ?? song.song_lyrics?.[0] ?? null
-      const secondaryLyric = song.song_lyrics?.length > 1 ? song.song_lyrics.find((l) => l !== defaultLyric) ?? null : null
-
-      lines.push(`${index + 1}. ${song.title.toUpperCase()}${keyLabel}`)
-      if (song.artist) lines.push(`   ${song.artist}`)
-      lines.push('')
-
-      if (defaultLyric) {
-        const primarySections = parseLyricSections(defaultLyric.lyrics)
-        const secondarySections = secondaryLyric ? parseLyricSections(secondaryLyric.lyrics) : []
-        primarySections.forEach((sec, si) => {
-          if (sec.label) lines.push(`[${sec.label}]`)
-          lines.push(sec.lines.join('\n').trim())
-          const trans = secondarySections[si]
-          if (trans && trans.lines.join('').trim()) {
-            lines.push('')
-            lines.push(trans.lines.join('\n').trim())
-          }
-          lines.push('')
-        })
-      }
-
-      if (index < songs.length - 1) lines.push('─'.repeat(40), '')
-    })
-
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+  const downloadPdf = async () => {
+    if (!service) return
+    setDownloading(true)
+    try {
+      const { generateServicePdf } = await import('./ServicePdfDoc')
+      const blob = await generateServicePdf(service, songs, userKeys)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const slug = (service.theme || service.type || 'service').replace(/[^a-z0-9]/gi, '_')
+      a.download = `${slug}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   // Auto-trigger print once content is ready
@@ -257,16 +228,17 @@ export default function PrintPage() {
           .btn-back     { background: #fff; border: 1px solid #ddd; color: #444; }
           .btn-print    { background: #7c3aed; color: #fff; }
           .btn-download { background: #fff; border: 1px solid #7c3aed; color: #7c3aed; }
+          .btn-download:disabled { opacity: 0.6; cursor: not-allowed; }
         }
       `}</style>
 
       {/* Screen-only toolbar */}
       <div className="toolbar no-print" style={{ fontFamily: 'Arial, sans-serif' }}>
         <button className="btn btn-back" onClick={() => window.history.back()}>← Back</button>
-        <button className="btn btn-download" onClick={downloadTxt}>
+        <button className="btn btn-download" onClick={downloadPdf} disabled={downloading}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download .txt
+            {downloading ? 'Generating…' : 'Download PDF'}
           </span>
         </button>
         <button className="btn btn-print" onClick={() => window.print()}>
