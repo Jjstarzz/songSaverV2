@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, ChevronDown, Music2, Search, ExternalLink } from 'lucide-react'
+import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical } from 'lucide-react'
 import Link from 'next/link'
 import { Song, ServiceSong, MUSICAL_KEYS, formatKey } from '@/types/database'
 import { Button } from '@/components/ui/Button'
@@ -28,6 +28,8 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
   const [search, setSearch] = useState('')
   const [selectedKey, setSelectedKey] = useState('')
   const [saving, setSaving] = useState(false)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
 
   const availableSongs = songs.filter(
     (s) =>
@@ -63,15 +65,17 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     else { toast.success(`Removed "${title}"`); onUpdate() }
   }
 
-  const moveItem = async (itemId: string, direction: 'up' | 'down') => {
-    const idx = items.findIndex((i) => i.id === itemId)
-    if (direction === 'up' && idx === 0) return
-    if (direction === 'down' && idx === items.length - 1) return
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
-    await Promise.all([
-      supabase.from('service_songs').update({ order_index: swapIdx }).eq('id', items[idx].id),
-      supabase.from('service_songs').update({ order_index: idx }).eq('id', items[swapIdx].id),
-    ])
+  const handleDrop = async (dropIdx: number) => {
+    if (dragIdx === null || dragIdx === dropIdx) {
+      setDragIdx(null); setDragOverIdx(null); return
+    }
+    const reordered = [...items]
+    const [moved] = reordered.splice(dragIdx, 1)
+    reordered.splice(dropIdx, 0, moved)
+    setDragIdx(null); setDragOverIdx(null)
+    await Promise.all(reordered.map((item, i) =>
+      supabase.from('service_songs').update({ order_index: i }).eq('id', item.id)
+    ))
     onUpdate()
   }
 
@@ -112,7 +116,16 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
               : formatKey(item.songs.preferred_key || item.songs.default_key, item.songs.mode)
 
             return (
-              <div key={item.id} className="glass-card flex items-center gap-3 p-3">
+              <div
+                key={item.id}
+                className="glass-card flex items-center gap-3 p-3 transition-opacity"
+                style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
+                draggable={!readOnly}
+                onDragStart={() => setDragIdx(idx)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
+                onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
+                onDrop={() => handleDrop(idx)}
+              >
                 {/* Order number */}
                 <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
                   {idx + 1}
@@ -144,22 +157,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                 {/* Controls */}
                 {!readOnly && (
                   <>
-                    <div className="flex flex-col gap-0.5 shrink-0">
-                      <button
-                        onClick={() => moveItem(item.id, 'up')}
-                        disabled={idx === 0}
-                        className="text-[var(--fg-subtle)] hover:text-[var(--fg-muted)] disabled:opacity-20 transition-colors"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5 rotate-180" />
-                      </button>
-                      <button
-                        onClick={() => moveItem(item.id, 'down')}
-                        disabled={idx === items.length - 1}
-                        className="text-[var(--fg-subtle)] hover:text-[var(--fg-muted)] disabled:opacity-20 transition-colors"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
                     <button
                       onClick={() => removeSong(item.id, item.songs.title)}
                       className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
