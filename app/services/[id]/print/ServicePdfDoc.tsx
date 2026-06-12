@@ -1,6 +1,24 @@
 import React from 'react'
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, pdf, Font } from '@react-pdf/renderer'
 import { SERVICE_TYPES, formatKey } from '@/types/database'
+
+// Noto Sans Malayalam covers both Malayalam script AND Latin characters
+Font.register({
+  family: 'Noto',
+  fonts: [
+    {
+      src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Regular.ttf',
+      fontWeight: 400,
+    },
+    {
+      src: 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Bold.ttf',
+      fontWeight: 700,
+    },
+  ],
+})
+
+// Silence the default hyphenation warning
+Font.registerHyphenationCallback(word => [word])
 
 export interface PdfSong {
   order_index: number
@@ -47,26 +65,49 @@ function parseLyricSections(raw: string): LyricsSection[] {
 }
 
 const s = StyleSheet.create({
-  page: { fontFamily: 'Times-Roman', paddingTop: 44, paddingBottom: 44, paddingHorizontal: 56, fontSize: 11, color: '#111111' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', lineHeight: 1.2, marginBottom: 3 },
-  meta: { fontSize: 9, color: '#555555', fontFamily: 'Helvetica' },
-  notes: { fontSize: 9, color: '#666666', fontFamily: 'Helvetica', fontStyle: 'italic', marginTop: 3 },
-  headerRule: { borderBottomWidth: 1.5, borderBottomColor: '#111111', marginTop: 10, marginBottom: 16 },
-  songBlock: { marginBottom: 10 },
-  songTitleRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  songNumber: { fontSize: 9, color: '#aaaaaa', fontFamily: 'Helvetica', paddingTop: 3, width: 20, flexShrink: 0 },
+  page: {
+    fontFamily: 'Noto',
+    fontWeight: 400,
+    paddingTop: 40,
+    paddingBottom: 48,
+    paddingHorizontal: 52,
+    fontSize: 11,
+    color: '#111111',
+  },
+  title: { fontSize: 20, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 },
+  meta: { fontSize: 9, color: '#555555' },
+  notes: { fontSize: 9, color: '#666666', marginTop: 3 },
+  headerRule: { borderBottomWidth: 1.5, borderBottomColor: '#111111', marginTop: 10, marginBottom: 14 },
+
+  songBlock: { marginBottom: 12 },
+  songHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
+  songNumber: { fontSize: 9, color: '#aaaaaa', width: 22, flexShrink: 0, paddingTop: 4 },
   songTitleWrap: { flex: 1 },
-  songTitleInner: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: 5 },
-  songTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold' },
-  keyBadge: { fontSize: 8, color: '#6d28d9', backgroundColor: '#ede9fe', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 3 },
-  artist: { fontSize: 9, color: '#777777', fontFamily: 'Helvetica', marginTop: 2, marginBottom: 6 },
-  lyricsWrap: { paddingLeft: 20 },
+  songTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  songTitle: { fontSize: 13, fontWeight: 700, marginRight: 6 },
+  keyBadge: {
+    fontSize: 8, color: '#6d28d9', backgroundColor: '#ede9fe',
+    paddingLeft: 5, paddingRight: 5, paddingTop: 2, paddingBottom: 2,
+    borderRadius: 3,
+  },
+  artist: { fontSize: 9, color: '#777777', marginTop: 2, marginBottom: 5 },
+  lyricsWrap: { paddingLeft: 22 },
   section: { marginBottom: 7 },
-  sectionLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#999999', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
-  primaryLines: { fontSize: 10.5, fontFamily: 'Times-Roman', lineHeight: 1.8 },
-  translationLines: { fontSize: 9.5, fontFamily: 'Times-Italic', color: '#555555', lineHeight: 1.65, marginTop: 3, paddingLeft: 6, borderLeftWidth: 1.5, borderLeftColor: '#d4bbff' },
+  sectionLabel: {
+    fontSize: 7, fontWeight: 700, color: '#999999',
+    letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2,
+  },
+  primaryLines: { fontSize: 10.5, lineHeight: 1.85 },
+  translationLines: {
+    fontSize: 9.5, color: '#555555', lineHeight: 1.7,
+    marginTop: 3, paddingLeft: 7,
+    borderLeftWidth: 1.5, borderLeftColor: '#d4bbff',
+  },
   songDivider: { borderBottomWidth: 0.5, borderBottomColor: '#e0e0e0', marginVertical: 10 },
-  footer: { position: 'absolute', bottom: 24, left: 56, right: 56, textAlign: 'center', fontSize: 7.5, color: '#cccccc', fontFamily: 'Helvetica' },
+  footer: {
+    position: 'absolute', bottom: 24, left: 52, right: 52,
+    textAlign: 'center', fontSize: 7.5, color: '#cccccc',
+  },
 })
 
 interface DocProps {
@@ -82,30 +123,36 @@ function ServiceDocument({ service, songs, userKeys }: DocProps) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* Header */}
-        <View>
-          <Text style={s.title}>{title}</Text>
-          <Text style={s.meta}>{fmtDate(service.date)}{'  ·  '}{SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES]}</Text>
-          {service.notes ? <Text style={s.notes}>{service.notes}</Text> : null}
-        </View>
-        <View style={s.headerRule} />
 
-        {/* Songs */}
+        {/* ── Service header ── */}
+        <View wrap={false}>
+          <Text style={s.title}>{title}</Text>
+          <Text style={s.meta}>
+            {fmtDate(service.date)}{'  ·  '}{SERVICE_TYPES[service.type as keyof typeof SERVICE_TYPES]}
+          </Text>
+          {service.notes ? <Text style={s.notes}>{service.notes}</Text> : null}
+          <View style={s.headerRule} />
+        </View>
+
+        {/* ── Songs ── */}
         {songs.map((item, index) => {
           const song = item.songs
           const resolvedKey = item.key_override ?? userKeys[song.id] ?? song.default_key
           const keyLabel = formatKey(resolvedKey, song.mode)
           const defaultLyric = song.song_lyrics?.find(l => l.is_default) ?? song.song_lyrics?.[0] ?? null
-          const secondaryLyric = song.song_lyrics?.length > 1 ? (song.song_lyrics.find(l => l !== defaultLyric) ?? null) : null
+          const secondaryLyric = song.song_lyrics?.length > 1
+            ? (song.song_lyrics.find(l => l !== defaultLyric) ?? null)
+            : null
           const primarySections = defaultLyric ? parseLyricSections(defaultLyric.lyrics) : []
           const secondarySections = secondaryLyric ? parseLyricSections(secondaryLyric.lyrics) : []
 
           return (
-            <View key={index} style={s.songBlock} wrap={false}>
-              <View style={s.songTitleRow}>
+            <View key={index} style={s.songBlock}>
+              {/* Song title row — kept together, won't break mid-title */}
+              <View style={s.songHeader} wrap={false}>
                 <Text style={s.songNumber}>{index + 1}.</Text>
                 <View style={s.songTitleWrap}>
-                  <View style={s.songTitleInner}>
+                  <View style={s.songTitleRow}>
                     <Text style={s.songTitle}>{song.title}</Text>
                     {keyLabel ? <Text style={s.keyBadge}>{keyLabel}</Text> : null}
                   </View>
@@ -113,15 +160,16 @@ function ServiceDocument({ service, songs, userKeys }: DocProps) {
                 </View>
               </View>
 
+              {/* Lyrics sections — each section stays together */}
               <View style={s.lyricsWrap}>
                 {primarySections.length === 0 && (
-                  <Text style={{ fontSize: 9, color: '#bbbbbb', fontFamily: 'Helvetica', fontStyle: 'italic' }}>No lyrics saved</Text>
+                  <Text style={{ fontSize: 9, color: '#bbbbbb' }}>No lyrics saved</Text>
                 )}
                 {primarySections.map((sec, si) => {
                   const trans = secondarySections[si]
                   const transText = trans?.lines.join('\n').trim()
                   return (
-                    <View key={si} style={s.section}>
+                    <View key={si} style={s.section} wrap={false}>
                       {sec.label ? <Text style={s.sectionLabel}>{sec.label}</Text> : null}
                       <Text style={s.primaryLines}>{sec.lines.join('\n').trim()}</Text>
                       {transText ? <Text style={s.translationLines}>{transText}</Text> : null}
@@ -130,7 +178,7 @@ function ServiceDocument({ service, songs, userKeys }: DocProps) {
                 })}
               </View>
 
-              {index < songs.length - 1 && <View style={s.songDivider} />}
+              {index < songs.length - 1 ? <View style={s.songDivider} /> : null}
             </View>
           )
         })}
