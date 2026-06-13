@@ -169,7 +169,7 @@ function ServiceDocument({ service, songs, userKeys }: DocProps) {
                   const trans = secondarySections[si]
                   const transText = trans?.lines.join('\n').trim()
                   return (
-                    <View key={si} style={s.section} wrap={false}>
+                    <View key={si} style={s.section}>
                       {sec.label ? <Text style={s.sectionLabel}>{sec.label}</Text> : null}
                       <Text style={s.primaryLines}>{sec.lines.join('\n').trim()}</Text>
                       {transText ? <Text style={s.translationLines}>{transText}</Text> : null}
