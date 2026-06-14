@@ -93,6 +93,7 @@ export interface Database {
           spotify_url: string | null
           notes: string | null
           original_language: string | null
+          verseview_number: number | null
           created_by: string
           team_id: string | null
           created_at: string
@@ -112,6 +113,7 @@ export interface Database {
           spotify_url?: string | null
           notes?: string | null
           original_language?: string | null
+          verseview_number?: number | null
           created_by: string
           team_id?: string | null
           created_at?: string
@@ -130,6 +132,7 @@ export interface Database {
           spotify_url?: string | null
           notes?: string | null
           original_language?: string | null
+          verseview_number?: number | null
           team_id?: string | null
           updated_at?: string
         }

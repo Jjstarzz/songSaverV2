@@ -187,6 +187,12 @@ export function SongDetailClient({ id }: Props) {
               <p className="text-base font-bold text-white">{song.time_signature}</p>
             </div>
           )}
+          {song.verseview_number && (
+            <div className="glass-card p-3 text-center">
+              <p className="section-label text-[10px] mb-1">VerseView #</p>
+              <p className="text-base font-bold text-white">{song.verseview_number}</p>
+            </div>
+          )}
         </div>
 
         {/* Per-user key preference */}

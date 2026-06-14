@@ -63,6 +63,7 @@ export function SongForm({ song }: SongFormProps) {
     spotify_url: song?.spotify_url ?? '',
     notes: song?.notes ?? '',
     original_language: song?.original_language ?? '',
+    verseview_number: song?.verseview_number?.toString() ?? '',
   })
   const [tags, setTags] = useState<string[]>(song?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
@@ -172,6 +173,7 @@ export function SongForm({ song }: SongFormProps) {
       spotify_url: form.spotify_url.trim() || null,
       notes: form.notes.trim() || null,
       original_language: form.original_language || null,
+      verseview_number: form.verseview_number ? parseInt(form.verseview_number) : null,
       tags,
     }
 
@@ -433,6 +435,14 @@ export function SongForm({ song }: SongFormProps) {
             options={timeSigOptions}
           />
         </div>
+        <Input
+          label="VerseView Number"
+          type="number"
+          min={1}
+          value={form.verseview_number}
+          onChange={(e) => set('verseview_number', e.target.value)}
+          placeholder="e.g. 142"
+        />
       </section>
 
       {/* ── Tags ── */}
