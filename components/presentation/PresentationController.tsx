@@ -651,7 +651,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>No lyrics added yet</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
                     {slides.map((slide, i) => {
                       const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).join('\n')
                       const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).join('\n')
@@ -659,7 +659,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                       const hasNote = !!getNote(slide.label)
                       const notesOpen = notesOpenIdx === i
                       return (
-                        <div key={i}>
+                        <div key={i} style={{ flexShrink: 0, width: 190 }}>
                           <button
                             onClick={() => showSlide(i)}
                             style={{
