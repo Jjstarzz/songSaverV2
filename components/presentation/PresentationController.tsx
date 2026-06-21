@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils'
 import { LANGUAGE_NAMES } from '@/types/database'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
 import {
-  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS,
-  LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
+  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS, PHOTO_BACKGROUNDS,
+  LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, PHOTO_BG_IDS, PHOTO_BG_URLS, BG_STATIC, ANIMATION_CSS,
   FONT_OPTIONS, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
@@ -323,9 +323,11 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // Background resolution for inline display
   const isLiveBg = LIVE_BG_IDS.has(background)
   const isVideoBg = VIDEO_BG_IDS.has(background)
-  const inlineBgStyle = (isLiveBg || isVideoBg) ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
+  const isPhotoBg = PHOTO_BG_IDS.has(background)
+  const inlineBgStyle = (isLiveBg || isVideoBg || isPhotoBg) ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
   const inlineBgClass = isLiveBg ? `live-${background}` : ''
   const inlineVideoUrl = isVideoBg ? VIDEO_BG_URLS[background] : null
+  const inlinePhotoUrl = isPhotoBg ? PHOTO_BG_URLS[background] : null
 
   // ── Present button (shown in song detail / service header) ──
   if (!open) {
@@ -358,6 +360,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           autoPlay loop muted playsInline preload="auto"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
           src={inlineVideoUrl}
+        />
+      )}
+      {inlinePhotoUrl && (
+        <img
+          key={background}
+          src={inlinePhotoUrl}
+          alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
         />
       )}
       {/* Section list sheet (slides over inline when open) */}
@@ -569,7 +579,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             // Always use swatch for the preview (avoids CSS class injection issues in portal)
             const liveSwatch = LIVE_BACKGROUNDS.find(b => b.id === background)?.swatch
             const videoSwatch = VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch
-            const previewBg = liveSwatch ?? videoSwatch ?? BG_STATIC[background] ?? BG_STATIC.dark
+            const photoUrl = PHOTO_BACKGROUNDS.find(b => b.id === background)?.url
+            const previewBg = photoUrl ? `url(${photoUrl}) center/cover no-repeat` : (liveSwatch ?? videoSwatch ?? BG_STATIC[background] ?? BG_STATIC.dark)
             const previewContent = !blank ? lastContentRef.current : null
             const previewLines = previewContent?.lines.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
             const previewFontSize = `${(0.62 * (SIZE_MULTIPLIERS[fontSizeKey] ?? 1)).toFixed(2)}rem`
@@ -821,10 +832,19 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Video</p>
                     <span style={{ fontSize: '0.52rem', color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2">
+                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
                     {VIDEO_BACKGROUNDS.map((bg) => (
                       <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
                         <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
+                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>Photos</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-2">
+                    {PHOTO_BACKGROUNDS.map((bg) => (
+                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
+                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: `url(${bg.url}) center/cover no-repeat` }} />
                         <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
                       </button>
                     ))}

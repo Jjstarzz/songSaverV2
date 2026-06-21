@@ -161,6 +161,40 @@ export const VIDEO_BG_URLS: Record<string, string> = Object.fromEntries(
   VIDEO_BACKGROUNDS.map(b => [b.id, b.url])
 )
 
+export interface PhotoBackground {
+  id: string
+  label: string
+  url: string
+}
+
+export const PHOTO_BACKGROUNDS: PhotoBackground[] = [
+  {
+    id: 'photo-sky',
+    label: 'Sky',
+    url: 'https://res.cloudinary.com/do3irqqtz/image/upload/q_auto/f_auto/v1782030986/jeremy-bishop-G9i_plbfDgk-unsplash_o2oxzq.jpg',
+  },
+  {
+    id: 'photo-nature',
+    label: 'Nature',
+    url: 'https://res.cloudinary.com/do3irqqtz/image/upload/q_auto/f_auto/v1782030994/melanie-magdalena-VdFkSO3uePI-unsplash_e9mxkr.jpg',
+  },
+  {
+    id: 'photo-forest',
+    label: 'Forest',
+    url: 'https://res.cloudinary.com/do3irqqtz/image/upload/q_auto/f_auto/v1782030996/casey-horner-gzH1qxPLXtA-unsplash_jcvvcs.jpg',
+  },
+  {
+    id: 'photo-dawn',
+    label: 'Dawn',
+    url: 'https://res.cloudinary.com/do3irqqtz/image/upload/q_auto/f_auto/v1782031108/mohammad-alizade-S5uV7ro4UPY-unsplash_mm6non.jpg',
+  },
+]
+
+export const PHOTO_BG_IDS = new Set(PHOTO_BACKGROUNDS.map(b => b.id))
+export const PHOTO_BG_URLS: Record<string, string> = Object.fromEntries(
+  PHOTO_BACKGROUNDS.map(b => [b.id, b.url])
+)
+
 export const ALL_BACKGROUNDS: Background[] = [...STATIC_BACKGROUNDS, ...LIVE_BACKGROUNDS]
 export const LIVE_BG_IDS = new Set(LIVE_BACKGROUNDS.map(b => b.id))
 

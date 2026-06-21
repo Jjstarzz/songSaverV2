@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { Tv2 } from 'lucide-react'
 import {
-  BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, ANIMATION_CSS,
+  BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, PHOTO_BG_IDS, PHOTO_BG_URLS, ANIMATION_CSS,
   FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
 
@@ -99,8 +99,10 @@ export function PresentDisplay() {
   const bgId = slide.background ?? 'dark'
   const isLive = LIVE_BG_IDS.has(bgId)
   const isVideo = VIDEO_BG_IDS.has(bgId)
+  const isPhoto = PHOTO_BG_IDS.has(bgId)
   const videoUrl = isVideo ? VIDEO_BG_URLS[bgId] : null
-  const bgStyle = (isLive || isVideo) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
+  const photoUrl = isPhoto ? PHOTO_BG_URLS[bgId] : null
+  const bgStyle = (isLive || isVideo || isPhoto) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
   const bgClass = isLive ? `live-${bgId}` : ''
 
   // Detect dark text so we can flip the text-shadow to a light glow
@@ -149,6 +151,14 @@ export function PresentDisplay() {
             autoPlay loop muted playsInline preload="auto"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
             src={videoUrl}
+          />
+        )}
+        {photoUrl && (
+          <img
+            key={bgId}
+            src={photoUrl}
+            alt=""
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
           />
         )}
         {!connected ? (
