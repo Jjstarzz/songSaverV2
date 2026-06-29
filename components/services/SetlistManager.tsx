@@ -30,6 +30,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
   const [saving, setSaving] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+  const [editingKeyId, setEditingKeyId] = useState<string | null>(null)
 
   const availableSongs = songs.filter(
     (s) =>
@@ -63,6 +64,12 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     const { error } = await supabase.from('service_songs').delete().eq('id', itemId)
     if (error) toast.error('Failed to remove song')
     else { toast.success(`Removed "${title}"`); onUpdate() }
+  }
+
+  const updateKey = async (itemId: string, key: string | null) => {
+    const { error } = await supabase.from('service_songs').update({ key_override: key }).eq('id', itemId)
+    if (error) toast.error('Failed to update key')
+    else { onUpdate(); setEditingKeyId(null) }
   }
 
   const handleDrop = async (dropIdx: number) => {
@@ -114,62 +121,108 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
             const displayKey = item.key_override
               ? formatKey(item.key_override, item.songs.mode)
               : formatKey(item.songs.preferred_key || item.songs.default_key, item.songs.mode)
+            const isEditingKey = editingKeyId === item.id
 
             return (
               <div
                 key={item.id}
-                className="glass-card flex items-center gap-3 p-3 transition-opacity"
+                className="glass-card transition-opacity overflow-hidden"
                 style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
-                draggable={!readOnly}
+                draggable={!readOnly && !isEditingKey}
                 onDragStart={() => setDragIdx(idx)}
                 onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
                 onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
                 onDrop={() => handleDrop(idx)}
               >
-                {/* Order number */}
-                <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
-                  {idx + 1}
-                </span>
-
-                {/* Song info — tappable link */}
-                <Link
-                  href={`/songs/${item.song_id}`}
-                  className="flex-1 min-w-0 group/link"
-                >
-                  <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
-                    {item.songs.title}
-                  </p>
-                  <p className="text-xs text-[var(--fg-muted)]">
-                    {displayKey || (item.songs.artist ?? 'No key set')}
-                    {displayKey && item.songs.artist && (
-                      <span className="text-[var(--fg-subtle)]"> · {item.songs.artist}</span>
-                    )}
-                  </p>
-                </Link>
-
-                {/* Key override badge */}
-                {item.key_override && (
-                  <span className="text-xs font-medium text-emerald-400 shrink-0">
-                    {formatKey(item.key_override, item.songs.mode)}
+                {/* Main row */}
+                <div className="flex items-center gap-3 p-3">
+                  {/* Order number */}
+                  <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
+                    {idx + 1}
                   </span>
-                )}
 
-                {/* Controls */}
-                {!readOnly && (
-                  <>
-                    <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
+                  {/* Song info — tappable link */}
+                  <Link href={`/songs/${item.song_id}`} className="flex-1 min-w-0 group/link">
+                    <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
+                      {item.songs.title}
+                    </p>
+                    {item.songs.artist && (
+                      <p className="text-xs text-[var(--fg-muted)] truncate">{item.songs.artist}</p>
+                    )}
+                  </Link>
+
+                  {/* Key badge — tappable to edit */}
+                  {!readOnly ? (
                     <button
-                      onClick={() => removeSong(item.id, item.songs.title)}
-                      className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
+                      onClick={() => setEditingKeyId(isEditingKey ? null : item.id)}
+                      className={cn(
+                        'text-xs font-medium shrink-0 px-2 py-1 rounded-lg border transition-all',
+                        isEditingKey
+                          ? 'bg-accent-600 border-accent-500 text-white'
+                          : item.key_override
+                            ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20'
+                            : displayKey
+                              ? 'text-[var(--fg-muted)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
+                              : 'text-[var(--fg-subtle)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
+                      )}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {displayKey || 'Key'}
                     </button>
-                  </>
-                )}
+                  ) : (
+                    displayKey && (
+                      <span className="text-xs font-medium text-[var(--fg-muted)] shrink-0">{displayKey}</span>
+                    )
+                  )}
 
-                {/* Read-only: show link icon */}
-                {readOnly && (
-                  <ExternalLink className="w-3.5 h-3.5 text-[var(--fg-subtle)] shrink-0" />
+                  {/* Controls */}
+                  {!readOnly && (
+                    <>
+                      <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
+                      <button
+                        onClick={() => removeSong(item.id, item.songs.title)}
+                        className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+
+                  {readOnly && (
+                    <ExternalLink className="w-3.5 h-3.5 text-[var(--fg-subtle)] shrink-0" />
+                  )}
+                </div>
+
+                {/* Inline key picker */}
+                {isEditingKey && (
+                  <div className="px-3 pb-3 animate-fade-in">
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                      <button
+                        onClick={() => updateKey(item.id, null)}
+                        className={cn(
+                          'shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
+                          !item.key_override
+                            ? 'bg-accent-600 border-accent-500 text-white'
+                            : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
+                        )}
+                      >
+                        Original
+                      </button>
+                      {MUSICAL_KEYS.map((k) => (
+                        <button
+                          key={k}
+                          onClick={() => updateKey(item.id, k)}
+                          className={cn(
+                            'shrink-0 w-8 py-1 rounded-lg text-xs font-medium border transition-all text-center',
+                            item.key_override === k
+                              ? 'bg-emerald-600 border-emerald-500 text-white'
+                              : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
+                          )}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )
