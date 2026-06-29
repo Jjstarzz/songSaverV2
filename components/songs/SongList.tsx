@@ -449,7 +449,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
           }
         />
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-1.5">
           {filteredSongs.map((song) => (
             <SongCard key={song.id} song={song} userKey={userKeys[song.id]} />
           ))}

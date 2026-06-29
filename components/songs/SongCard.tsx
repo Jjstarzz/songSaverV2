@@ -2,7 +2,7 @@
 
 import { memo } from 'react'
 import Link from 'next/link'
-import { Music2, Heart, ChevronRight, UserRound, Calendar } from 'lucide-react'
+import { Music2, Heart, ChevronRight } from 'lucide-react'
 import { SongWithLanguages, LANGUAGE_NAMES, formatKey } from '@/types/database'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
@@ -24,113 +24,86 @@ export const SongCard = memo(function SongCard({ song, compact, userKey }: SongC
     : null
   const languages = song.song_lyrics?.map((l) => l.language) ?? []
 
+  const hasMeta = !!(song.default_key || song.preferred_key || userKey || song.bpm || song.time_signature || song.artist)
+  const hasTagsOrLangs = !compact && (song.tags.length > 0 || song.original_language || languages.length > 0)
+
   return (
     <div className="relative">
       <Link
         href={`/songs/${song.id}`}
         className={cn(
-          'glass-card-hover flex items-center gap-4 transition-all duration-200 group',
-          compact ? 'p-3' : 'p-4'
+          'glass-card-hover flex items-center gap-3 transition-all duration-200 group',
+          compact ? 'p-2.5' : 'p-3'
         )}
       >
         {/* Icon */}
         <div className={cn(
           'shrink-0 rounded-xl bg-accent-500/15 border border-accent-500/20 flex items-center justify-center text-accent-400',
-          compact ? 'w-9 h-9' : 'w-11 h-11'
+          compact ? 'w-8 h-8' : 'w-10 h-10'
         )}>
-          <Music2 className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
+          <Music2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0 pr-6">
-          <h3 className={cn(
-            'font-semibold text-white truncate',
-            compact ? 'text-sm' : 'text-base'
-          )}>
+          <h3 className="text-sm font-semibold text-white truncate leading-snug">
             {song.title}
           </h3>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            {song.artist && (
-              <span className="text-xs text-white/50 truncate">{song.artist}</span>
-            )}
-            {(song.default_key || song.preferred_key || userKey) && (
-              <>
-                <span className="text-xs text-white/30">·</span>
-                {userKey ? (
-                  <span className="text-xs font-medium text-emerald-400">
-                    {formatKey(userKey, song.mode)}
-                    {(song.preferred_key || song.default_key) && userKey !== (song.preferred_key || song.default_key) && (
-                      <span className="text-white/30 font-normal"> ({formatKey(song.preferred_key || song.default_key, song.mode)})</span>
-                    )}
+
+          {/* Meta row: artist · key · time */}
+          {hasMeta && (
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {song.artist && (
+                <span className="text-[11px] text-white/45 truncate">{song.artist}</span>
+              )}
+              {(song.default_key || song.preferred_key || userKey) && (
+                <>
+                  {song.artist && <span className="text-[11px] text-white/25">·</span>}
+                  {userKey ? (
+                    <span className="text-[11px] font-medium text-emerald-400">
+                      {formatKey(userKey, song.mode)}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-white/45">{formatKey(song.preferred_key || song.default_key, song.mode)}</span>
+                  )}
+                </>
+              )}
+              {song.time_signature && (
+                <>
+                  <span className="text-[11px] text-white/25">·</span>
+                  <span className="text-[11px] text-white/45">{song.time_signature}</span>
+                </>
+              )}
+              {!compact && song.last_sung_date && (
+                <>
+                  <span className="text-[11px] text-white/25">·</span>
+                  <span className="text-[10px] text-white/30">
+                    {new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
-                ) : (
-                  <span className="text-xs text-white/50">{formatKey(song.preferred_key || song.default_key, song.mode)}</span>
-                )}
-              </>
-            )}
-            {song.bpm && (
-              <>
-                <span className="text-xs text-white/30">·</span>
-                <span className="text-xs text-white/50">{song.bpm} BPM</span>
-              </>
-            )}
-            {song.time_signature && (
-              <>
-                <span className="text-xs text-white/30">·</span>
-                <span className="text-xs text-white/50">{song.time_signature}</span>
-              </>
-            )}
-          </div>
-
-          {/* Creator */}
-          {!compact && creatorLabel && (
-            <div className="flex items-center gap-1 mt-1">
-              <UserRound className="w-2.5 h-2.5 text-white/25 shrink-0" />
-              <span className="text-[10px] text-white/35">{creatorLabel}</span>
-            </div>
-          )}
-
-          {/* Tags */}
-          {!compact && song.tags.length > 0 && (
-            <div className="flex gap-1.5 mt-2 flex-wrap">
-              {song.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="tag-pill">{tag}</span>
-              ))}
-              {song.tags.length > 3 && (
-                <span className="text-xs text-white/30 self-center">+{song.tags.length - 3}</span>
+                </>
               )}
             </div>
           )}
 
-          {/* Language badges */}
-          {!compact && (song.original_language || languages.length > 0) && (
-            <div className="flex gap-1 mt-1.5 flex-wrap items-center">
+          {/* Tags + languages on one row */}
+          {hasTagsOrLangs && (
+            <div className="flex gap-1 mt-1 flex-wrap items-center">
+              {song.tags.slice(0, 2).map((tag) => (
+                <span key={tag} className="tag-pill">{tag}</span>
+              ))}
               {song.original_language && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-500/10 text-sky-400 border border-sky-500/15">
                   {LANGUAGE_NAMES[song.original_language] ?? song.original_language.toUpperCase()}
                 </span>
               )}
-              {languages.slice(0, 4).map((lang) => (
-                <span
-                  key={lang}
-                  className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/15"
-                >
+              {languages.slice(0, 3).map((lang) => (
+                <span key={lang} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
                   {LANGUAGE_NAMES[lang] ?? lang.toUpperCase()}
                 </span>
               ))}
-              {languages.length > 4 && (
-                <span className="text-[10px] text-white/30 self-center">+{languages.length - 4}</span>
+              {(song.tags.length > 2 || languages.length > 3) && (
+                <span className="text-[10px] text-white/30">+{(song.tags.length - 2) + Math.max(0, languages.length - 3)}</span>
               )}
-            </div>
-          )}
-
-          {/* Last sung date */}
-          {!compact && song.last_sung_date && (
-            <div className="flex items-center gap-1 mt-1">
-              <Calendar className="w-2.5 h-2.5 text-white/25 shrink-0" />
-              <span className="text-[10px] text-white/35">
-                Last sung {new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
             </div>
           )}
         </div>
