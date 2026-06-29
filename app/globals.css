@@ -7,17 +7,17 @@
    ───────────────────────────────────────────── */
 :root {
   /* dark theme (default) */
-  --bg:           #0a0a0f;
-  --bg-surface:   #111118;
-  --bg-elevated:  #16161f;
-  --bg-card:      rgba(255,255,255,0.04);
-  --bg-card-hover:rgba(255,255,255,0.07);
-  --bg-input:     rgba(255,255,255,0.06);
+  --bg:           #08080e;
+  --bg-surface:   #0d0d18;
+  --bg-elevated:  #12121e;
+  --bg-card:      rgba(255,255,255,0.055);
+  --bg-card-hover:rgba(255,255,255,0.09);
+  --bg-input:     rgba(255,255,255,0.07);
   --fg:           #ffffff;
-  --fg-muted:     rgba(255,255,255,0.50);
-  --fg-subtle:    rgba(255,255,255,0.30);
-  --border:       rgba(255,255,255,0.08);
-  --border-focus: rgba(124,92,252,0.50);
+  --fg-muted:     rgba(255,255,255,0.55);
+  --fg-subtle:    rgba(255,255,255,0.32);
+  --border:       rgba(255,255,255,0.10);
+  --border-focus: rgba(124,92,252,0.55);
   color-scheme: dark;
 }
 
@@ -59,6 +59,7 @@ html.light {
 
   html {
     background-color: var(--bg);
+    background-image: radial-gradient(ellipse 90% 50% at 50% -5%, rgba(109,70,245,0.13) 0%, transparent 65%);
     color: var(--fg);
     @apply antialiased;
     -webkit-text-size-adjust: 100%;
@@ -67,7 +68,7 @@ html.light {
   }
 
   body {
-    background-color: var(--bg);
+    background-color: transparent;
     color: var(--fg);
     font-feature-settings: "rlig" 1, "calt" 1;
     min-height: 100vh;
@@ -102,20 +103,23 @@ html.light {
   .glass-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.4);
     @apply rounded-2xl;
   }
 
   .glass-card-hover {
     background: var(--bg-card);
     border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.4);
     @apply rounded-2xl transition-all duration-200;
   }
   .glass-card-hover:hover {
     background: var(--bg-card-hover);
-    border-color: color-mix(in srgb, var(--border) 100%, white 30%);
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.45);
   }
 
-  /* In light mode, add a subtle shadow to cards */
+  /* In light mode, override shadows */
   html.light .glass-card,
   html.light .glass-card-hover {
     box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
@@ -124,9 +128,9 @@ html.light {
 
   /* Section label */
   .section-label {
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--fg-muted);
   }
@@ -154,7 +158,7 @@ html.light {
   /* Tag pill */
   .tag-pill {
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
-           text-xs font-medium bg-accent-500/15 text-accent-400 border border-accent-500/20;
+           text-xs font-medium bg-accent-500/20 text-accent-300 border border-accent-500/25;
   }
 
   /* Gradient text */
@@ -180,6 +184,7 @@ html.light {
   .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 z-50;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid rgba(255,255,255,0.10);
   }
 
   /* Light mode: bottom nav */
