@@ -211,6 +211,26 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
           </button>
         </div>
 
+        {/* Language quick-filters */}
+        {availableLanguages.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5">
+            {availableLanguages.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
+                className={cn(
+                  'shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200',
+                  selectedLang === lang
+                    ? 'bg-accent-600 border-accent-500 text-white'
+                    : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)] hover:text-white hover:border-white/20'
+                )}
+              >
+                {LANGUAGE_NAMES[lang] ?? lang.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Expanded filters panel */}
         {showFilters && (
           <div className="mt-2 space-y-2">
