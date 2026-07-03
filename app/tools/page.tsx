@@ -15,12 +15,11 @@ const BASE_FREQ: Record<string, number> = {
   'G#': 415.30, A: 440.00, 'A#': 466.16, B: 493.88,
 }
 
-const MAJOR_SCALE  = [0, 2, 4, 5, 7, 9, 11]
-const MINOR_SCALE  = [0, 2, 3, 5, 7, 8, 10]
-const MAJOR_CHORD  = [0, 4, 7, 12]
-const MINOR_CHORD  = [0, 3, 7, 12]
+const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
+const MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10]
+const MAJOR_CHORD = [0, 4, 7, 12]
+const MINOR_CHORD = [0, 3, 7, 12]
 
-// Piano layout (one octave, 280-wide SVG)
 const WHITE_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 const BLACK_KEY_X: Record<string, number> = {
   'C#': 27, 'D#': 67, 'F#': 147, 'G#': 187, 'A#': 227,
@@ -40,42 +39,84 @@ function semToFreq(root: string, semitones: number): number {
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 
+// Cache reverb per AudioContext so we only build the impulse once
+const reverbCache = new WeakMap<AudioContext, ConvolverNode>()
+
+function getOrCreateReverb(ctx: AudioContext): ConvolverNode {
+  if (reverbCache.has(ctx)) return reverbCache.get(ctx)!
+  const sampleRate = ctx.sampleRate
+  const duration   = 2.2          // seconds of reverb tail
+  const length     = Math.floor(sampleRate * duration)
+  const impulse    = ctx.createBuffer(2, length, sampleRate)
+  for (let c = 0; c < 2; c++) {
+    const data = impulse.getChannelData(c)
+    for (let i = 0; i < length; i++) {
+      // Exponential decay noise burst
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.8)
+    }
+  }
+  const conv = ctx.createConvolver()
+  conv.buffer = impulse
+  reverbCache.set(ctx, conv)
+  return conv
+}
+
 function playPad(ctx: AudioContext, root: string, minor: boolean, time: number) {
   const chordIntervals = minor ? MINOR_CHORD : MAJOR_CHORD
-  // Bass note an octave below + chord + top octave
+  // Sub bass + chord root + 3rd + 5th + top octave
   const voices = [-12, ...chordIntervals]
 
-  const master = ctx.createGain()
-  const filter = ctx.createBiquadFilter()
-  filter.type = 'lowpass'
-  filter.frequency.value = 2200
-  filter.Q.value = 0.4
-  master.connect(filter)
-  filter.connect(ctx.destination)
+  // Shared reverb (wet signal path)
+  const reverb    = getOrCreateReverb(ctx)
+  const reverbGain = ctx.createGain()
+  reverbGain.gain.value = 0.28        // 28 % wet
+  reverb.connect(reverbGain)
+  reverbGain.connect(ctx.destination)
+
+  // Dry signal path: lowpass → master gain
+  const masterFilter = ctx.createBiquadFilter()
+  masterFilter.type = 'lowpass'
+  masterFilter.frequency.value = 2400
+  masterFilter.Q.value = 0.4
+
+  const masterGain = ctx.createGain()
+  masterGain.gain.value = 0.72
+  masterGain.connect(masterFilter)
+  masterFilter.connect(ctx.destination)
+  masterFilter.connect(reverb)        // also feed reverb
 
   voices.forEach((semi, vi) => {
-    const freq = semToFreq(root, semi)
-    const isBass = vi === 0
-    const vol = isBass ? 0.20 : 0.10
+    const freq  = semToFreq(root, semi)
+    const isSub = vi === 0
 
-    // 3 slightly detuned oscillators per voice → thick pad texture
-    ;[-8, 0, 8].forEach(detune => {
+    // Volume per voice (sub gets more body, upper voices lighter)
+    const vol = isSub ? 0.22 : vi === 1 ? 0.13 : 0.09
+
+    // 5 detuned oscillators per voice — wider spread = lusher pad
+    const detunings: number[]          = isSub ? [0, -5, 5] : [-20, -8, 0, 8, 20]
+    const oscTypes: OscillatorType[]   = ['sine', 'sine', 'triangle', 'sine', 'sine']
+
+    detunings.forEach((detune, di) => {
       const osc = ctx.createOscillator()
       const g   = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = freq
-      osc.detune.value = detune
 
-      // Slow-attack pad envelope
+      osc.type          = isSub ? 'sine' : oscTypes[di] ?? 'sine'
+      osc.frequency.value = freq
+      osc.detune.value  = detune
+
+      const attackTime  = isSub ? 0.65 : 0.48
+      const sustainVol  = vol / detunings.length
+      const releaseEnd  = time + 5.2
+
       g.gain.setValueAtTime(0, time)
-      g.gain.linearRampToValueAtTime(vol, time + 0.35)
-      g.gain.setValueAtTime(vol, time + 0.35)
-      g.gain.linearRampToValueAtTime(0, time + 4.0)
+      g.gain.linearRampToValueAtTime(sustainVol, time + attackTime)
+      g.gain.setValueAtTime(sustainVol, time + attackTime)
+      g.gain.linearRampToValueAtTime(0, releaseEnd)
 
       osc.connect(g)
-      g.connect(master)
+      g.connect(masterGain)
       osc.start(time)
-      osc.stop(time + 4.1)
+      osc.stop(releaseEnd + 0.1)
     })
   })
 }
@@ -84,7 +125,7 @@ function playClick(ctx: AudioContext, time: number, accent: boolean) {
   const osc = ctx.createOscillator()
   const g   = ctx.createGain()
   osc.frequency.value = accent ? 1100 : 800
-  g.gain.setValueAtTime(accent ? 0.7 : 0.4, time)
+  g.gain.setValueAtTime(accent ? 0.65 : 0.35, time)
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.055)
   osc.connect(g)
   g.connect(ctx.destination)
@@ -95,25 +136,27 @@ function playClick(ctx: AudioContext, time: number, accent: boolean) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function ToolsPage() {
-  const [selectedKey, setSelectedKey] = useState('C')
-  const [isMinor,     setIsMinor]     = useState(false)
-  const [bpm,         setBpm]         = useState(80)
-  const [isPlaying,   setIsPlaying]   = useState(false)
-  const [activeBeat,  setActiveBeat]  = useState(-1)
+  const [selectedKey,   setSelectedKey]   = useState('C')
+  const [isMinor,       setIsMinor]       = useState(false)
+  const [bpm,           setBpm]           = useState(80)
+  const [isPlaying,     setIsPlaying]     = useState(false)
+  const [activeBeat,    setActiveBeat]    = useState(-1)
+  const [metronomeOn,   setMetronomeOn]   = useState(true)
 
-  // Audio refs
-  const ctxRef       = useRef<AudioContext | null>(null)
-  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const nextNoteRef  = useRef(0)
-  const beatRef      = useRef(0)
+  const ctxRef      = useRef<AudioContext | null>(null)
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nextNoteRef = useRef(0)
+  const beatRef     = useRef(0)
 
-  // Mutable refs so scheduler always reads latest values without restarting
-  const bpmRef   = useRef(bpm)
-  const keyRef   = useRef(selectedKey)
-  const minorRef = useRef(isMinor)
-  useEffect(() => { bpmRef.current   = bpm        }, [bpm])
-  useEffect(() => { keyRef.current   = selectedKey }, [selectedKey])
-  useEffect(() => { minorRef.current = isMinor     }, [isMinor])
+  // Stable refs for hot values — scheduler reads these, never re-creates
+  const bpmRef        = useRef(bpm)
+  const keyRef        = useRef(selectedKey)
+  const minorRef      = useRef(isMinor)
+  const metronomeRef  = useRef(metronomeOn)
+  useEffect(() => { bpmRef.current       = bpm        }, [bpm])
+  useEffect(() => { keyRef.current       = selectedKey }, [selectedKey])
+  useEffect(() => { minorRef.current     = isMinor     }, [isMinor])
+  useEffect(() => { metronomeRef.current = metronomeOn }, [metronomeOn])
 
   const stopScheduler = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -131,10 +174,9 @@ export default function ToolsPage() {
       const beat = beatRef.current
       const t    = nextNoteRef.current
 
-      playClick(ctx, t, beat === 0)
+      if (metronomeRef.current) playClick(ctx, t, beat === 0)
       if (beat === 0) playPad(ctx, keyRef.current, minorRef.current, t)
 
-      // Visual beat dot update (fire slightly before audio)
       const fireIn = Math.max(0, (t - ctx.currentTime) * 1000 - 30)
       setTimeout(() => setActiveBeat(beat), fireIn)
 
@@ -143,20 +185,18 @@ export default function ToolsPage() {
     }
 
     timerRef.current = setTimeout(schedule, 25)
-  }, []) // stable — reads state via refs
+  }, [])
 
   const startScheduler = useCallback(() => {
     if (!ctxRef.current) ctxRef.current = new AudioContext()
     const ctx = ctxRef.current
     if (ctx.state === 'suspended') ctx.resume()
-
-    beatRef.current    = 0
+    beatRef.current     = 0
     nextNoteRef.current = ctx.currentTime + 0.05
     setIsPlaying(true)
     schedule()
   }, [schedule])
 
-  // Cleanup on unmount
   useEffect(() => () => { stopScheduler() }, [stopScheduler])
 
   // Tap tempo
@@ -199,7 +239,6 @@ export default function ToolsPage() {
             ))}
           </div>
 
-          {/* Major / Minor */}
           <div className="flex gap-2 pt-1">
             {(['Major', 'Minor'] as const).map(m => (
               <button
@@ -220,13 +259,10 @@ export default function ToolsPage() {
 
         {/* ── Piano diagram ── */}
         <div className="glass-card p-4 space-y-3">
-          <p className="section-label">
-            {selectedKey} {isMinor ? 'Minor' : 'Major'} — scale notes
-          </p>
+          <p className="section-label">{selectedKey} {isMinor ? 'Minor' : 'Major'} — scale notes</p>
 
           <div className="flex justify-center px-2">
             <svg viewBox="0 0 280 122" className="w-full max-w-sm drop-shadow-md">
-              {/* White keys */}
               {WHITE_NOTES.map((note, i) => {
                 const inScale = scaleNotes.includes(note)
                 const isRoot  = note === selectedKey
@@ -239,8 +275,7 @@ export default function ToolsPage() {
                       strokeWidth={1}
                     />
                     <text
-                      x={i * 40 + 20} y={110}
-                      textAnchor="middle" fontSize="10"
+                      x={i * 40 + 20} y={110} textAnchor="middle" fontSize="10"
                       fill={inScale || isRoot ? 'rgba(255,255,255,0.9)' : '#555'}
                       fontWeight={isRoot ? '700' : '500'}
                     >
@@ -250,7 +285,6 @@ export default function ToolsPage() {
                 )
               })}
 
-              {/* Black keys (drawn on top) */}
               {Object.entries(BLACK_KEY_X).map(([note, x]) => {
                 const inScale = scaleNotes.includes(note)
                 const isRoot  = note === selectedKey
@@ -264,8 +298,7 @@ export default function ToolsPage() {
                     />
                     {(inScale || isRoot) && (
                       <text
-                        x={x + 13} y={69}
-                        textAnchor="middle" fontSize="7.5"
+                        x={x + 13} y={69} textAnchor="middle" fontSize="7.5"
                         fill="rgba(255,255,255,0.85)" fontWeight="600"
                       >
                         {note}
@@ -277,7 +310,6 @@ export default function ToolsPage() {
             </svg>
           </div>
 
-          {/* Scale note pills */}
           <div className="flex flex-wrap gap-1.5 justify-center pt-1">
             {scaleNotes.map((note, i) => (
               <span
@@ -307,7 +339,6 @@ export default function ToolsPage() {
             </button>
           </div>
 
-          {/* BPM display */}
           <div className="flex items-center justify-center gap-5">
             <button
               onClick={() => setBpm(b => Math.max(40, b - 1))}
@@ -327,33 +358,46 @@ export default function ToolsPage() {
             </button>
           </div>
 
-          {/* Slider */}
           <input
             type="range" min={40} max={220} value={bpm}
             onChange={e => setBpm(Number(e.target.value))}
             className="w-full h-1.5 rounded-full appearance-none bg-white/10 accent-violet-500 cursor-pointer"
           />
 
-          {/* Beat dots */}
-          <div className="flex justify-center gap-4 py-1">
-            {[0, 1, 2, 3].map(i => (
-              <div
-                key={i}
-                className={cn(
-                  'rounded-full transition-all duration-75',
-                  activeBeat === i
-                    ? i === 0
-                      ? 'w-4 h-4 bg-accent-400 shadow-[0_0_10px_2px_rgba(139,92,246,0.6)]'
-                      : 'w-3.5 h-3.5 bg-white/70'
-                    : i === 0
-                      ? 'w-3.5 h-3.5 bg-accent-500/30 border border-accent-500/40'
-                      : 'w-3 h-3 bg-white/15'
-                )}
-              />
-            ))}
+          {/* Metronome toggle + beat dots */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMetronomeOn(v => !v)}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
+                metronomeOn
+                  ? 'bg-accent-500/20 border-accent-500/40 text-accent-300'
+                  : 'bg-white/[0.05] border-white/10 text-white/35'
+              )}
+            >
+              <span className={cn('w-1.5 h-1.5 rounded-full', metronomeOn ? 'bg-accent-400' : 'bg-white/20')} />
+              Metronome
+            </button>
+
+            <div className="flex flex-1 justify-end gap-3">
+              {[0, 1, 2, 3].map(i => (
+                <div
+                  key={i}
+                  className={cn(
+                    'rounded-full transition-all duration-75',
+                    activeBeat === i
+                      ? i === 0
+                        ? 'w-4 h-4 bg-accent-400 shadow-[0_0_10px_2px_rgba(139,92,246,0.6)]'
+                        : 'w-3.5 h-3.5 bg-white/70'
+                      : i === 0
+                        ? 'w-3.5 h-3.5 bg-accent-500/30 border border-accent-500/40'
+                        : 'w-3 h-3 bg-white/15'
+                  )}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Play / Stop */}
           <button
             onClick={isPlaying ? stopScheduler : startScheduler}
             className={cn(
@@ -365,7 +409,7 @@ export default function ToolsPage() {
           >
             {isPlaying
               ? <><Square className="w-5 h-5 fill-current" /> Stop</>
-              : <><Play  className="w-5 h-5 fill-current" /> Play · {selectedKey} {isMinor ? 'min' : 'maj'} · {bpm} BPM</>
+              : <><Play   className="w-5 h-5 fill-current" /> Play · {selectedKey} {isMinor ? 'min' : 'maj'} · {bpm} BPM</>
             }
           </button>
         </div>
