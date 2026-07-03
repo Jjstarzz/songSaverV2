@@ -47,10 +47,10 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
   const [showFilters, setShowFilters] = useState(false)
   const [filterTab, setFilterTab] = useState<'tags' | 'key' | 'lang' | 'bpm'>('tags')
 
-  // Collect all languages present in the song library
+  // Collect original languages present in the song library
   const availableLanguages = useMemo(() => {
     const langSet = new Set<string>()
-    songs.forEach((s) => s.song_lyrics?.forEach((l) => langSet.add(l.language)))
+    songs.forEach((s) => { if (s.original_language) langSet.add(s.original_language) })
     return Array.from(langSet).sort()
   }, [songs])
 
@@ -88,10 +88,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
       if (selectedMode && song.mode !== selectedMode) return false
       if (selectedTimeSig && song.time_signature !== selectedTimeSig) return false
 
-      if (selectedLang) {
-        const langs = song.song_lyrics?.map((l) => l.language) ?? []
-        if (!langs.includes(selectedLang)) return false
-      }
+      if (selectedLang && song.original_language !== selectedLang) return false
 
       if (selectedOriginalLang && song.original_language !== selectedOriginalLang) return false
 
