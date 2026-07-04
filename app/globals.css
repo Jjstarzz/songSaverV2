@@ -22,33 +22,37 @@
 }
 
 html.cream {
-  --bg:           #e8e2d6;
-  --bg-surface:   #dfd8cb;
-  --bg-elevated:  #ede8de;
-  --bg-card:      rgba(255,255,255,0.38);
-  --bg-card-hover:rgba(255,255,255,0.55);
-  --bg-input:     rgba(44,40,32,0.07);
-  --fg:           #2c2820;
-  --fg-muted:     rgba(44,40,32,0.58);
-  --fg-subtle:    rgba(44,40,32,0.36);
-  --border:       rgba(44,40,32,0.12);
-  --border-focus: rgba(124,92,252,0.50);
+  --bg:           #ede7da;
+  --bg-surface:   #e4ddd0;
+  --bg-elevated:  #f5f1eb;
+  --bg-card:      rgba(255,255,255,0.52);
+  --bg-card-hover:rgba(255,255,255,0.72);
+  --bg-input:     rgba(60,50,35,0.07);
+  --fg:           #2c2418;
+  --fg-muted:     rgba(44,36,24,0.60);
+  --fg-subtle:    rgba(44,36,24,0.38);
+  --border:       rgba(44,36,24,0.11);
+  --border-focus: rgba(124,92,252,0.45);
   color-scheme: light;
+  /* Soft warm glow instead of dark purple */
+  background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(180,140,80,0.14) 0%, transparent 60%) !important;
 }
 
 html.light {
-  --bg:           #f8f7f4;
-  --bg-surface:   #edecea;
+  --bg:           #f6f5f2;
+  --bg-surface:   #eeede9;
   --bg-elevated:  #ffffff;
-  --bg-card:      rgba(255,255,255,0.75);
-  --bg-card-hover:rgba(255,255,255,0.95);
-  --bg-input:     rgba(0,0,0,0.04);
+  --bg-card:      rgba(255,255,255,0.80);
+  --bg-card-hover:rgba(255,255,255,0.97);
+  --bg-input:     rgba(0,0,0,0.045);
   --fg:           #111118;
-  --fg-muted:     rgba(17,17,24,0.55);
-  --fg-subtle:    rgba(17,17,24,0.35);
+  --fg-muted:     rgba(17,17,24,0.56);
+  --fg-subtle:    rgba(17,17,24,0.36);
   --border:       rgba(0,0,0,0.08);
-  --border-focus: rgba(124,92,252,0.50);
+  --border-focus: rgba(124,92,252,0.45);
   color-scheme: light;
+  /* Subtle lavender glow instead of heavy dark gradient */
+  background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(124,92,252,0.08) 0%, transparent 60%) !important;
 }
 
 /* ─────────────────────────────────────────────
@@ -119,11 +123,18 @@ html.light {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.45);
   }
 
-  /* In light mode, override shadows */
+  /* In light/cream mode, override shadows */
   html.light .glass-card,
-  html.light .glass-card-hover {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+  html.light .glass-card-hover,
+  html.cream .glass-card,
+  html.cream .glass-card-hover {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.05);
     backdrop-filter: none;
+  }
+  html.light .glass-card-hover:hover,
+  html.cream .glass-card-hover:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.07);
+    border-color: rgba(0,0,0,0.13);
   }
 
   /* Section label */
@@ -249,9 +260,18 @@ html.light .text-emerald-400, html.light .text-red-400, html.light .text-amber-4
 html.cream .text-accent-400, html.cream .text-accent-300,
 html.cream .text-emerald-400, html.cream .text-red-400, html.cream .text-amber-400 { color: revert !important; }
 
+/* Page title gradient (from-white to-white/70) is invisible in light/cream — replace with dark gradient */
+html.light h1.bg-gradient-to-b,
+html.cream h1.bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--fg) 0%, color-mix(in srgb, var(--fg) 70%, transparent) 100%) !important;
+}
+
 /* Cream: bottom nav + sticky header */
-html.cream .bottom-nav { background: rgba(220,214,202,0.92) !important; border-top-color: var(--border); }
-html.cream .sticky-header-bg { background: rgba(232,226,214,0.94) !important; }
+html.cream .bottom-nav { background: rgba(232,224,210,0.93) !important; border-top-color: var(--border); }
+html.cream .sticky-header-bg { background: rgba(237,231,218,0.95) !important; }
+
+/* Light: sticky header */
+html.light .sticky-header-bg { background: rgba(246,245,242,0.95) !important; }
 
 /* ─────────────────────────────────────────────
    Animations

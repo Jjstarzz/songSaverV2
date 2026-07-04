@@ -187,10 +187,15 @@ export default function ToolsPage() {
     timerRef.current = setTimeout(schedule, 25)
   }, [])
 
-  const startScheduler = useCallback(() => {
-    if (!ctxRef.current) ctxRef.current = new AudioContext()
+  const startScheduler = useCallback(async () => {
+    if (!ctxRef.current) {
+      // webkitAudioContext fallback for older iOS Safari
+      const Ctx = (window.AudioContext ?? (window as any).webkitAudioContext) as typeof AudioContext
+      ctxRef.current = new Ctx()
+    }
     const ctx = ctxRef.current
-    if (ctx.state === 'suspended') ctx.resume()
+    // Must await resume() — iOS Safari keeps context suspended until this resolves
+    await ctx.resume()
     beatRef.current     = 0
     nextNoteRef.current = ctx.currentTime + 0.05
     setIsPlaying(true)
