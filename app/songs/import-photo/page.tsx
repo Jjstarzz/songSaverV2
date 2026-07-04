@@ -42,6 +42,7 @@ export default function ImportPhotoPage() {
   const { user } = useAuth()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('pick')
   const [saving, setSaving] = useState(false)
@@ -127,8 +128,17 @@ export default function ImportPhotoPage() {
         </Button>
       </BackHeader>
 
+      {/* Gallery picker — no capture attribute so it opens the photo library */}
       <input
         ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      {/* Camera input — capture forces the camera directly */}
+      <input
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -150,7 +160,7 @@ export default function ImportPhotoPage() {
               className="glass-card border-2 border-dashed border-accent-500/30 rounded-2xl p-10 flex flex-col items-center gap-4 cursor-pointer hover:border-accent-500/60 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-16 h-16 rounded-2xl bg-accent-500/15 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-accent-500/15 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
                 <ImagePlus className="w-8 h-8 text-accent-400" />
               </div>
               <div className="text-center">
@@ -160,7 +170,7 @@ export default function ImportPhotoPage() {
             </div>
 
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => cameraInputRef.current?.click()}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent-500/10 border border-accent-500/25 text-accent-300 text-sm font-medium hover:bg-accent-500/20 transition-colors"
             >
               <Camera className="w-4 h-4" />
