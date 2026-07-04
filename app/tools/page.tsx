@@ -194,8 +194,18 @@ export default function ToolsPage() {
       ctxRef.current = new Ctx()
     }
     const ctx = ctxRef.current
-    // Must await resume() — iOS Safari keeps context suspended until this resolves
+
+    // iOS requires a silent buffer played synchronously in the gesture handler
+    // before any scheduled audio will work
+    const silentBuf = ctx.createBuffer(1, 1, ctx.sampleRate)
+    const silentSrc = ctx.createBufferSource()
+    silentSrc.buffer = silentBuf
+    silentSrc.connect(ctx.destination)
+    silentSrc.start(0)
+
+    // Must await resume() — iOS keeps context suspended until this resolves
     await ctx.resume()
+
     beatRef.current     = 0
     nextNoteRef.current = ctx.currentTime + 0.05
     setIsPlaying(true)
