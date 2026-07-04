@@ -66,14 +66,16 @@ If absolutely no song content is visible, respond with exactly: NO_CONTENT_FOUND
   }
 
   // Full mode: parse structured JSON from Claude
+  // Strip markdown code fences if Claude added them despite instructions
+  const jsonText = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
   try {
-    const parsed = JSON.parse(text)
+    const parsed = JSON.parse(jsonText)
     return NextResponse.json({
       title: parsed.title ?? null,
       artist: parsed.artist ?? null,
       lyrics: parsed.lyrics ?? null,
     })
   } catch {
-    return NextResponse.json({ title: null, artist: null, lyrics: text })
+    return NextResponse.json({ title: null, artist: null, lyrics: jsonText })
   }
 }
