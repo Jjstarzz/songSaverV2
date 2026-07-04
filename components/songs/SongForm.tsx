@@ -90,7 +90,7 @@ export function SongForm({ song }: SongFormProps) {
       const res = await fetch('/api/ocr-lyrics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
+        body: JSON.stringify({ imageBase64: base64, mediaType, mode: 'lyrics-only' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'OCR failed')

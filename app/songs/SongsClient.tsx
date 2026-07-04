@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, WifiOff, BookmarkCheck } from 'lucide-react'
+import { Plus, WifiOff, BookmarkCheck, Camera } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { SongList } from '@/components/songs/SongList'
@@ -52,12 +52,19 @@ export function SongsClient() {
         title="Song Library"
         subtitle={loading ? '' : `${songs.length} songs`}
         action={
-          <Link href="/songs/new">
-            <Button size="sm">
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/songs/import-photo">
+              <Button variant="secondary" size="icon-sm" title="Import from photo">
+                <Camera className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Link href="/songs/new">
+              <Button size="sm">
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </Link>
+          </div>
         }
       />
       <SongList songs={songs} loading={loading} userKeys={userKeys} />
