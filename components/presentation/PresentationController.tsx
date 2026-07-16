@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, EyeOff, ExternalLink,
-  Copy, Check, Monitor, Tv2, List, QrCode, Search,
+  Copy, Check, Monitor, Tv2, List, QrCode, Search, Church,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false })
@@ -71,6 +71,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-screensaver-on') !== 'false' : true)
   const [screensaverInterval, setScreensaverInterval] = useState(() => typeof window !== 'undefined' ? (Number(localStorage.getItem('songsaver-screensaver-secs')) || 8) : 8)
+  const [logoMode, setLogoMode] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
   // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
   const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
@@ -213,19 +214,27 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
     const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
     lastContentRef.current = { section: s.label, lines: s.content, title: activeTitle }
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval, logoMode: false })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode })
   }
 
   const goToSong = (idx: number) => {
     setSongIdx(idx)
     setCurrentIdx(null)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval })
+    setLogoMode(false)
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode: false })
+  }
+
+  const toggleLogoMode = () => {
+    const next = !logoMode
+    setLogoMode(next)
+    setBlank(true)
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode: next })
   }
 
   const revealCurrent = () => {
@@ -239,7 +248,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       ? (translationPerSlide[currentIdx] ?? '')
       : ''
     const base = {
-      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval,
+      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode,
       translationLines,
       ...overrides,
     }
@@ -479,17 +488,33 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           <ChevronLeft style={{ width: 16, height: 16 }} /> Prev
         </button>
 
+        {/* Logo mode toggle */}
+        <button
+          onClick={toggleLogoMode}
+          title="Show church logo on projector"
+          style={{
+            width: 44, height: 48, flexShrink: 0, borderRadius: 14,
+            border: logoMode ? 'none' : '1px solid rgba(255,255,255,0.10)',
+            background: logoMode ? '#7c3aed' : 'rgba(255,255,255,0.06)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: logoMode ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+          }}
+        >
+          <Church style={{ width: 17, height: 17, color: logoMode ? '#fff' : 'rgba(255,255,255,0.45)' }} />
+        </button>
+
         {/* Blank toggle */}
         <button
           onClick={blank ? revealCurrent : showBlank}
           style={{
-            width: 48, height: 48, flexShrink: 0, borderRadius: 14, border: 'none',
-            background: blank ? '#7c3aed' : 'rgba(255,255,255,0.06)',
+            width: 44, height: 48, flexShrink: 0, borderRadius: 14,
+            border: (blank && !logoMode) ? 'none' : '1px solid rgba(255,255,255,0.10)',
+            background: (blank && !logoMode) ? '#7c3aed' : 'rgba(255,255,255,0.06)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: blank ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+            boxShadow: (blank && !logoMode) ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
           }}
         >
-          <EyeOff style={{ width: 18, height: 18, color: blank ? '#fff' : 'rgba(255,255,255,0.5)' }} />
+          <EyeOff style={{ width: 18, height: 18, color: (blank && !logoMode) ? '#fff' : 'rgba(255,255,255,0.5)' }} />
         </button>
 
         {/* Next */}

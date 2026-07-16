@@ -8,6 +8,7 @@ import {
   BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, PHOTO_BG_IDS, PHOTO_BG_URLS, ANIMATION_CSS,
   FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
 } from '@/lib/presentationBackgrounds'
+import { LogoAnimation } from '@/components/presentation/LogoAnimation'
 
 const SCREENSAVER_VERSES = [
   { text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.', ref: 'John 3:16' },
@@ -37,6 +38,7 @@ interface SlideState {
   translationLines?: string
   screensaverEnabled?: boolean
   screensaverInterval?: number
+  logoMode?: boolean
 }
 
 const INITIAL: SlideState = {
@@ -55,7 +57,8 @@ export function PresentDisplay() {
   const [ssVisible, setSsVisible] = useState(true)
   const ssTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const showScreensaver = connected && slide.blank && !slide.holdingImageUrl && slide.screensaverEnabled !== false
+  const showLogoMode   = connected && slide.blank && !!slide.logoMode
+  const showScreensaver = connected && slide.blank && !slide.holdingImageUrl && !slide.logoMode && slide.screensaverEnabled !== false
   const ssIntervalMs = (slide.screensaverInterval ?? 8) * 1000
 
   useEffect(() => {
@@ -191,6 +194,11 @@ export function PresentDisplay() {
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
                 />
               )
+            )}
+            {showLogoMode && (
+              <div className="flex flex-col items-center justify-center w-full h-full">
+                <LogoAnimation size="72vh" />
+              </div>
             )}
             {showScreensaver && (
               <div

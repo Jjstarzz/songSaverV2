@@ -39,84 +39,65 @@ function semToFreq(root: string, semitones: number): number {
 
 // ── Audio ────────────────────────────────────────────────────────────────────
 
-// Cache reverb per AudioContext so we only build the impulse once
-const reverbCache = new WeakMap<AudioContext, ConvolverNode>()
-
-function getOrCreateReverb(ctx: AudioContext): ConvolverNode {
-  if (reverbCache.has(ctx)) return reverbCache.get(ctx)!
-  const sampleRate = ctx.sampleRate
-  const duration   = 2.2          // seconds of reverb tail
-  const length     = Math.floor(sampleRate * duration)
-  const impulse    = ctx.createBuffer(2, length, sampleRate)
-  for (let c = 0; c < 2; c++) {
-    const data = impulse.getChannelData(c)
-    for (let i = 0; i < length; i++) {
-      // Exponential decay noise burst
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.8)
-    }
-  }
-  const conv = ctx.createConvolver()
-  conv.buffer = impulse
-  reverbCache.set(ctx, conv)
-  return conv
-}
-
 function playPad(ctx: AudioContext, root: string, minor: boolean, time: number) {
   const chordIntervals = minor ? MINOR_CHORD : MAJOR_CHORD
-  // Sub bass + chord root + 3rd + 5th + top octave
-  const voices = [-12, ...chordIntervals]
+  const end = time + 5.8
 
-  // Shared reverb (wet signal path)
-  const reverb    = getOrCreateReverb(ctx)
-  const reverbGain = ctx.createGain()
-  reverbGain.gain.value = 0.28        // 28 % wet
-  reverb.connect(reverbGain)
-  reverbGain.connect(ctx.destination)
+  // Two parallel feedback delays give natural, musical space without noise-impulse muddiness
+  const makeEcho = (ms: number, fb: number, wet: number) => {
+    const d   = ctx.createDelay(2.0)
+    const fbG = ctx.createGain()
+    const wetG = ctx.createGain()
+    d.delayTime.value = ms / 1000
+    fbG.gain.value    = fb
+    wetG.gain.value   = wet
+    d.connect(fbG); fbG.connect(d)
+    d.connect(wetG); wetG.connect(ctx.destination)
+    return d
+  }
+  const echo1 = makeEcho(415, 0.40, 0.18)
+  const echo2 = makeEcho(668, 0.34, 0.13)
 
-  // Dry signal path: lowpass → master gain
-  const masterFilter = ctx.createBiquadFilter()
-  masterFilter.type = 'lowpass'
-  masterFilter.frequency.value = 2400
-  masterFilter.Q.value = 0.4
+  // Main output chain: sources → master gain → low-pass → destination + echoes
+  const lpf = ctx.createBiquadFilter()
+  lpf.type = 'lowpass'
+  lpf.frequency.value = 1900
+  lpf.Q.value = 0.45
 
-  const masterGain = ctx.createGain()
-  masterGain.gain.value = 0.72
-  masterGain.connect(masterFilter)
-  masterFilter.connect(ctx.destination)
-  masterFilter.connect(reverb)        // also feed reverb
+  const master = ctx.createGain()
+  master.gain.value = 0.64
+  master.connect(lpf)
+  lpf.connect(ctx.destination)
+  lpf.connect(echo1)
+  lpf.connect(echo2)
 
-  voices.forEach((semi, vi) => {
-    const freq  = semToFreq(root, semi)
-    const isSub = vi === 0
+  // Sub bass (one octave below root) — single sine, slow attack
+  const sub = ctx.createOscillator()
+  const subG = ctx.createGain()
+  sub.type = 'sine'
+  sub.frequency.value = semToFreq(root, -12)
+  subG.gain.setValueAtTime(0, time)
+  subG.gain.linearRampToValueAtTime(0.21, time + 0.68)
+  subG.gain.linearRampToValueAtTime(0, end)
+  sub.connect(subG); subG.connect(master)
+  sub.start(time); sub.stop(end + 0.1)
 
-    // Volume per voice (sub gets more body, upper voices lighter)
-    const vol = isSub ? 0.22 : vi === 1 ? 0.13 : 0.09
-
-    // 5 detuned oscillators per voice — wider spread = lusher pad
-    const detunings: number[]          = isSub ? [0, -5, 5] : [-20, -8, 0, 8, 20]
-    const oscTypes: OscillatorType[]   = ['sine', 'sine', 'triangle', 'sine', 'sine']
-
-    detunings.forEach((detune, di) => {
+  // Chord voices: 2 detuned sine oscillators each (gentle chorus effect)
+  const VOLS = [0.17, 0.13, 0.11, 0.08]
+  chordIntervals.forEach((semi, vi) => {
+    const freq = semToFreq(root, semi)
+    const vol  = (VOLS[vi] ?? 0.07) / 2   // split evenly between 2 oscillators
+    ;[-6, 6].forEach(detune => {
       const osc = ctx.createOscillator()
       const g   = ctx.createGain()
-
-      osc.type          = isSub ? 'sine' : oscTypes[di] ?? 'sine'
+      osc.type = 'sine'
       osc.frequency.value = freq
-      osc.detune.value  = detune
-
-      const attackTime  = isSub ? 0.65 : 0.48
-      const sustainVol  = vol / detunings.length
-      const releaseEnd  = time + 5.2
-
+      osc.detune.value    = detune
       g.gain.setValueAtTime(0, time)
-      g.gain.linearRampToValueAtTime(sustainVol, time + attackTime)
-      g.gain.setValueAtTime(sustainVol, time + attackTime)
-      g.gain.linearRampToValueAtTime(0, releaseEnd)
-
-      osc.connect(g)
-      g.connect(masterGain)
-      osc.start(time)
-      osc.stop(releaseEnd + 0.1)
+      g.gain.linearRampToValueAtTime(vol, time + 0.52)
+      g.gain.linearRampToValueAtTime(0, end)
+      osc.connect(g); g.connect(master)
+      osc.start(time); osc.stop(end + 0.1)
     })
   })
 }
