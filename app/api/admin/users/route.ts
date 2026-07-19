@@ -66,6 +66,23 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ users })
 }
 
+/** PATCH /api/admin/users — update a user's role */
+export async function PATCH(req: NextRequest) {
+  const callerId = await verifyOwner(req)
+  if (!callerId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { id, role } = await req.json()
+  if (!id || !role) return NextResponse.json({ error: 'Missing id or role' }, { status: 400 })
+  if (!['admin', 'user'].includes(role)) return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  if (id === callerId) return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 })
+
+  const admin = adminClient()
+  const { error } = await admin.from('profiles').update({ role }).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ success: true })
+}
+
 /** DELETE /api/admin/users?id=<userId> — remove a user entirely */
 export async function DELETE(req: NextRequest) {
   const callerId = await verifyOwner(req)

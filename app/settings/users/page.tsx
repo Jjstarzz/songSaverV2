@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, UserRound, Trash2, Crown, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, UserRound, Trash2, Crown, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { ConfirmModal } from '@/components/ui/Modal'
@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [removeTarget, setRemoveTarget] = useState<AppUser | null>(null)
   const [removing, setRemoving] = useState(false)
+  const [togglingRoleId, setTogglingRoleId] = useState<string | null>(null)
 
   const fetchUsers = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -54,6 +55,28 @@ export default function UsersPage() {
     if (!isOwner) { router.replace('/settings'); return }
     fetchUsers()
   }, [isOwner, roleLoading, fetchUsers, router])
+
+  const handleToggleRole = async (u: AppUser) => {
+    const newRole = u.role === 'admin' ? 'user' : 'admin'
+    setTogglingRoleId(u.id)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { toast.error('Not authenticated'); setTogglingRoleId(null); return }
+
+    const res = await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ id: u.id, role: newRole }),
+    })
+
+    if (!res.ok) {
+      const { error } = await res.json()
+      toast.error(error ?? 'Failed to update role')
+    } else {
+      toast.success(`${u.display_name ?? u.email ?? 'User'} is now ${newRole === 'admin' ? 'an Admin' : 'a regular user'}`)
+      fetchUsers()
+    }
+    setTogglingRoleId(null)
+  }
 
   const handleRemove = async () => {
     if (!removeTarget) return
@@ -155,6 +178,11 @@ export default function UsersPage() {
                         Owner
                       </span>
                     )}
+                    {u.role === 'admin' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-semibold">
+                        Admin
+                      </span>
+                    )}
                     {u.is_anonymous && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/40 border border-white/10">
                         Anonymous
@@ -167,16 +195,27 @@ export default function UsersPage() {
                   <p className="text-[10px] text-white/25 mt-0.5">Joined {joined}</p>
                 </div>
 
-                {/* Remove button — not shown for owner */}
+                {/* Role toggle + remove — not shown for owner */}
                 {!isOwnerRow && (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setRemoveTarget(u)}
-                    title="Remove user"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleToggleRole(u)}
+                      disabled={togglingRoleId === u.id}
+                      title={u.role === 'admin' ? 'Revoke admin' : 'Make admin'}
+                    >
+                      <ShieldCheck className={cn('w-4 h-4', u.role === 'admin' ? 'text-emerald-400' : 'text-white/30')} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setRemoveTarget(u)}
+                      title="Remove user"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </Button>
+                  </>
                 )}
               </div>
             )
