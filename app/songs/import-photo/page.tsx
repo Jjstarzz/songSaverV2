@@ -51,6 +51,7 @@ export default function ImportPhotoPage() {
   const [artist, setArtist] = useState('')
   const [lyrics, setLyrics] = useState('')
   const [language, setLanguage] = useState('en')
+  const [verseviewNumber, setVerseviewNumber] = useState('')
 
   const processImage = useCallback(async (file: File) => {
     const preview = URL.createObjectURL(file)
@@ -70,6 +71,7 @@ export default function ImportPhotoPage() {
       setTitle(data.title ?? '')
       setArtist(data.artist ?? '')
       setLyrics(data.lyrics ?? '')
+      setVerseviewNumber(data.verseview_number ? String(data.verseview_number) : '')
       setStep('review')
     } catch (err: any) {
       toast.error(err.message ?? 'Failed to process image')
@@ -97,7 +99,12 @@ export default function ImportPhotoPage() {
     setSaving(true)
     const { data, error } = await supabase
       .from('songs')
-      .insert({ title: title.trim(), artist: artist.trim() || null, created_by: user.id })
+      .insert({
+        title: title.trim(),
+        artist: artist.trim() || null,
+        verseview_number: verseviewNumber ? parseInt(verseviewNumber, 10) : null,
+        created_by: user.id,
+      })
       .select()
       .single()
 
@@ -239,6 +246,17 @@ export default function ImportPhotoPage() {
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
                   placeholder="Chris Tomlin"
+                  className="w-full bg-white/[0.06] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--fg)] placeholder-[var(--fg-subtle)] focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--fg-muted)] mb-1.5 font-medium">VerseView Number</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={verseviewNumber}
+                  onChange={(e) => setVerseviewNumber(e.target.value)}
+                  placeholder="e.g. 142"
                   className="w-full bg-white/[0.06] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--fg)] placeholder-[var(--fg-subtle)] focus:outline-none focus:border-accent-500/60 focus:ring-1 focus:ring-accent-500/30"
                 />
               </div>

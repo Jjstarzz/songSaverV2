@@ -39,6 +39,7 @@ interface SlideState {
   screensaverEnabled?: boolean
   screensaverInterval?: number
   logoMode?: boolean
+  showSectionLabels?: boolean
 }
 
 const INITIAL: SlideState = {
@@ -239,7 +240,7 @@ export function PresentDisplay() {
             )}
             {!slide.blank && (
               <>
-                {slide.section && (
+                {slide.section && slide.showSectionLabels !== false && (
                   <p
                     className="absolute top-12 left-1/2 -translate-x-1/2 text-white/30 font-bold tracking-[0.5em] uppercase whitespace-nowrap"
                     style={{ fontSize: '0.7rem', fontFamily }}

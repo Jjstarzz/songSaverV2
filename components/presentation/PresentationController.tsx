@@ -70,6 +70,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-screensaver-on') !== 'false' : true)
+  const [showSectionLabels, setShowSectionLabels] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-section-labels') !== 'false' : true)
   const [screensaverInterval, setScreensaverInterval] = useState(() => typeof window !== 'undefined' ? (Number(localStorage.getItem('songsaver-screensaver-secs')) || 8) : 8)
   const [logoMode, setLogoMode] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
@@ -135,7 +136,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const translationLines = secondaryLangId && currentIdx !== null
       ? (translationPerSlide[currentIdx] ?? '')
       : ''
-    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, translationLines }
+    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, translationLines }
     if (!blank && lastContentRef.current) {
       const { section, lines, title } = lastContentRef.current
       broadcast({ blank: false, section, lines, title, ...base })
@@ -214,12 +215,12 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
     const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
     lastContentRef.current = { section: s.label, lines: s.content, title: activeTitle }
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval, logoMode: false })
+    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: false })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode })
   }
 
   const goToSong = (idx: number) => {
@@ -227,14 +228,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     setCurrentIdx(null)
     setBlank(true)
     setLogoMode(false)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode: false })
+    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: false })
   }
 
   const toggleLogoMode = () => {
     const next = !logoMode
     setLogoMode(next)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode: next })
+    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: next })
   }
 
   const revealCurrent = () => {
@@ -248,7 +249,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       ? (translationPerSlide[currentIdx] ?? '')
       : ''
     const base = {
-      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, logoMode,
+      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode,
       translationLines,
       ...overrides,
     }
@@ -287,7 +288,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     setCurrentIdx(null)
     setBlank(false)
     lastContentRef.current = { section: reference, lines: text, title: '' }
-    broadcast({ blank: false, section: reference, lines: text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    broadcast({ blank: false, section: reference, lines: text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl, showSectionLabels: true })
   }
 
   const displayUrl = typeof window !== 'undefined' && code
@@ -1070,6 +1071,26 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                       <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                   )}
+                </div>
+
+                {/* Section labels */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Section Labels</p>
+                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 12 }}>Show a small &quot;Verse 1&quot;, &quot;Chorus&quot;, etc. label above the lyrics on the projected screen.</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>Show on projector</span>
+                    <button
+                      onClick={() => {
+                        const next = !showSectionLabels
+                        setShowSectionLabels(next)
+                        localStorage.setItem('songsaver-section-labels', String(next))
+                        rebroadcast({ showSectionLabels: next })
+                      }}
+                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: showSectionLabels ? 'rgba(124,58,237,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
+                    >
+                      <span style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', left: showSectionLabels ? 22 : 2 }} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Screensaver */}

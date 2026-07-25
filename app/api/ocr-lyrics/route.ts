@@ -39,13 +39,19 @@ JSON format:
 {
   "title": "Song title or null if not visible",
   "artist": "Artist/band name or null if not visible",
-  "lyrics": "Full lyrics text or null if not visible"
+  "lyrics": "Full lyrics text or null if not visible",
+  "verseview_number": "A VerseView catalog/song number if visible, as an integer, or null"
 }
 
 Lyrics rules:
 - Preserve original line breaks exactly
 - Format section labels as [Verse 1], [Chorus], [Bridge], etc. on their own line
 - Remove page numbers, watermarks, copyright notices, non-lyric text
+
+VerseView number rules:
+- Look for a standalone number labeled "VerseView", "VV", "Song #", "No.", or a bare "#123" near the title or in a corner of the image
+- Only extract it if it's clearly a catalog/reference number for the song, not a page number, verse number, or date
+- If none is visible, use null
 
 If absolutely no song content is visible, respond with exactly: NO_CONTENT_FOUND`,
           },
@@ -70,12 +76,14 @@ If absolutely no song content is visible, respond with exactly: NO_CONTENT_FOUND
   const jsonText = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
   try {
     const parsed = JSON.parse(jsonText)
+    const verseviewNumber = parseInt(parsed.verseview_number, 10)
     return NextResponse.json({
       title: parsed.title ?? null,
       artist: parsed.artist ?? null,
       lyrics: parsed.lyrics ?? null,
+      verseview_number: Number.isFinite(verseviewNumber) ? verseviewNumber : null,
     })
   } catch {
-    return NextResponse.json({ title: null, artist: null, lyrics: jsonText })
+    return NextResponse.json({ title: null, artist: null, lyrics: jsonText, verseview_number: null })
   }
 }
