@@ -195,6 +195,15 @@ returns boolean as $$
   );
 $$ language sql security definer stable;
 
+-- Helper: check if user is a platform admin or owner (profiles.role)
+create or replace function public.is_app_admin(p_user_id uuid)
+returns boolean as $$
+  select exists(
+    select 1 from public.profiles
+    where id = p_user_id and role in ('admin', 'owner')
+  );
+$$ language sql security definer stable;
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
@@ -256,12 +265,12 @@ create policy "Authenticated users can create songs"
   with check (auth.uid() = created_by);
 create policy "Only creator can update their song"
   on public.songs for update
-  using (created_by = auth.uid());
+  using (created_by = auth.uid() or public.is_app_admin(auth.uid()));
 create policy "Only creator can delete their song"
   on public.songs for delete
-  using (created_by = auth.uid());
+  using (created_by = auth.uid() or public.is_app_admin(auth.uid()));
 
--- SONG LYRICS (readable by all, writable only by song creator)
+-- SONG LYRICS (readable by all, writable by song creator or an app admin)
 create policy "All authenticated users can view lyrics"
   on public.song_lyrics for select
   using (auth.uid() is not null);
@@ -271,7 +280,7 @@ create policy "Only song creator can manage lyrics"
     exists(
       select 1 from public.songs s
       where s.id = song_id and s.created_by = auth.uid()
-    )
+    ) or public.is_app_admin(auth.uid())
   );
 
 -- SERVICES
@@ -288,11 +297,12 @@ create policy "Users can update own or team services"
   on public.services for update
   using (
     created_by = auth.uid() or
-    (team_id is not null and public.is_team_member(team_id, auth.uid()))
+    (team_id is not null and public.is_team_member(team_id, auth.uid())) or
+    public.is_app_admin(auth.uid())
   );
 create policy "Users can delete own services"
   on public.services for delete
-  using (created_by = auth.uid());
+  using (created_by = auth.uid() or public.is_app_admin(auth.uid()));
 
 -- SERVICE SONGS
 create policy "Users can view setlists for accessible services"
@@ -315,7 +325,7 @@ create policy "Users can manage setlists for their services"
         sv.created_by = auth.uid() or
         (sv.team_id is not null and public.is_team_member(sv.team_id, auth.uid()))
       )
-    )
+    ) or public.is_app_admin(auth.uid())
   );
 
 -- SONG TRANSITIONS (readable by all, managed by creator)

@@ -38,10 +38,10 @@ export function ServiceDetailClient({ id }: Props) {
     setTimeout(() => setCopied(false), 2500)
   }
 
-  const { isOwner: isAppOwner } = useRole()
+  const { isAdmin } = useRole()
   const isOwner = !!user && !!service && service.created_by === user.id
-  const canEdit = isOwner
-  const canDelete = isOwner || isAppOwner
+  const canEdit = isOwner || isAdmin
+  const canDelete = isOwner || isAdmin
   const creatorName = useCreatorName(service?.created_by)
   const isPast = !!service && service.date < new Date().toISOString().split('T')[0]
 
@@ -169,7 +169,7 @@ export function ServiceDetailClient({ id }: Props) {
             )}>
               {SERVICE_STATUSES[service.status]}
             </span>
-            {(isOwner || isAppOwner) ? (
+            {(isOwner || isAdmin) ? (
               <button
                 onClick={toggleVisibility}
                 className={cn(
@@ -220,7 +220,7 @@ export function ServiceDetailClient({ id }: Props) {
           serviceId={id}
           items={setlistItems}
           onUpdate={refetch}
-          readOnly={!isOwner && !isAppOwner}
+          readOnly={!isOwner && !isAdmin}
         />
       </div>
 
