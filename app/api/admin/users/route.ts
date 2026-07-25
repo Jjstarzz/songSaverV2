@@ -43,12 +43,11 @@ export async function GET(req: NextRequest) {
   const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Fetch display names from profiles
-  const ids = data.users.map(u => u.id)
-  const { data: profiles } = await admin
+  // Fetch display names from profiles (admin client bypasses RLS — no need to filter by id)
+  const { data: profiles, error: profilesError } = await admin
     .from('profiles')
     .select('id, display_name, role, is_anonymous, created_at')
-    .in('id', ids)
+  if (profilesError) return NextResponse.json({ error: profilesError.message }, { status: 500 })
 
   const profileMap = Object.fromEntries(
     (profiles ?? []).map((p: { id: string; display_name: string | null; role: string; is_anonymous: boolean; created_at: string }) => [p.id, p])
