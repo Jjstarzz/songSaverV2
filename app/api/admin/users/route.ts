@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
   // Fetch display names from profiles (admin client bypasses RLS — no need to filter by id)
   const { data: profiles, error: profilesError } = await admin
     .from('profiles')
-    .select('id, display_name, role, is_anonymous, created_at')
+    .select('id, display_name, role')
   if (profilesError) return NextResponse.json({ error: profilesError.message }, { status: 500 })
 
   const profileMap = Object.fromEntries(
-    (profiles ?? []).map((p: { id: string; display_name: string | null; role: string; is_anonymous: boolean; created_at: string }) => [p.id, p])
+    (profiles ?? []).map((p: { id: string; display_name: string | null; role: string }) => [p.id, p])
   )
 
   const users = data.users.map(u => ({
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     email: u.email ?? null,
     display_name: (profileMap[u.id] as { display_name?: string | null })?.display_name ?? null,
     role: (profileMap[u.id] as { role?: string })?.role ?? 'user',
-    is_anonymous: (profileMap[u.id] as { is_anonymous?: boolean })?.is_anonymous ?? false,
+    is_anonymous: u.is_anonymous ?? false,
     created_at: u.created_at,
   }))
 
