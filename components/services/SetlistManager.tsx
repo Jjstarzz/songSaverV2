@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
 import { Song, ServiceSong, MUSICAL_KEYS, formatKey } from '@/types/database'
 import { Button } from '@/components/ui/Button'
@@ -31,6 +31,29 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null)
+  const [showTransitions, setShowTransitions] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-show-transitions') !== 'false' : true)
+  const [transitionMap, setTransitionMap] = useState<Map<string, string | null>>(new Map())
+
+  const songIdsKey = items.map((i) => i.song_id).join(',')
+
+  useEffect(() => {
+    if (!showTransitions || items.length < 2) { setTransitionMap(new Map()); return }
+    let cancelled = false
+    const songIds = songIdsKey.split(',')
+    supabase
+      .from('song_transitions')
+      .select('from_song_id, to_song_id, notes')
+      .or(`from_song_id.in.(${songIds.join(',')}),to_song_id.in.(${songIds.join(',')})`)
+      .then(({ data }) => {
+        if (cancelled) return
+        const map = new Map<string, string | null>()
+        for (const t of (data ?? []) as { from_song_id: string; to_song_id: string; notes: string | null }[]) {
+          map.set([t.from_song_id, t.to_song_id].sort().join('|'), t.notes)
+        }
+        setTransitionMap(map)
+      })
+    return () => { cancelled = true }
+  }, [supabase, showTransitions, songIdsKey, items.length])
 
   const availableSongs = songs.filter(
     (s) =>
@@ -92,14 +115,32 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
         <p className="section-label">
           Setlist {items.length > 0 && `(${items.length} songs)`}
         </p>
-        {!readOnly && !adding && (
-          <button
-            onClick={() => setAdding(true)}
-            className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1"
-          >
-            <Plus className="w-3 h-3" /> Add Song
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {items.length > 1 && !adding && (
+            <button
+              onClick={() => {
+                const next = !showTransitions
+                setShowTransitions(next)
+                localStorage.setItem('songsaver-show-transitions', String(next))
+              }}
+              title="Show transition notes between songs"
+              className={cn(
+                'text-xs transition-colors flex items-center gap-1',
+                showTransitions ? 'text-accent-400 hover:text-accent-300' : 'text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]'
+              )}
+            >
+              <ArrowLeftRight className="w-3 h-3" /> Transitions
+            </button>
+          )}
+          {!readOnly && !adding && (
+            <button
+              onClick={() => setAdding(true)}
+              className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Add Song
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Song list */}
@@ -122,106 +163,121 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
               ? formatKey(item.key_override, item.songs.mode)
               : formatKey(item.songs.preferred_key || item.songs.default_key, item.songs.mode)
             const isEditingKey = editingKeyId === item.id
+            const nextItem = items[idx + 1]
+            const transitionNote = nextItem
+              ? transitionMap.get([item.song_id, nextItem.song_id].sort().join('|'))
+              : undefined
+            const hasTransition = showTransitions && nextItem && transitionMap.has([item.song_id, nextItem.song_id].sort().join('|'))
 
             return (
-              <div
-                key={item.id}
-                className="glass-card transition-opacity overflow-hidden"
-                style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
-                draggable={!readOnly && !isEditingKey}
-                onDragStart={() => setDragIdx(idx)}
-                onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
-                onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
-                onDrop={() => handleDrop(idx)}
-              >
-                {/* Main row */}
-                <div className="flex items-center gap-3 p-3">
-                  {/* Order number */}
-                  <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
-                    {idx + 1}
-                  </span>
+              <div key={item.id}>
+                <div
+                  className="glass-card transition-opacity overflow-hidden"
+                  style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
+                  draggable={!readOnly && !isEditingKey}
+                  onDragStart={() => setDragIdx(idx)}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
+                  onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
+                  onDrop={() => handleDrop(idx)}
+                >
+                  {/* Main row */}
+                  <div className="flex items-center gap-3 p-3">
+                    {/* Order number */}
+                    <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
+                      {idx + 1}
+                    </span>
 
-                  {/* Song info — tappable link */}
-                  <Link href={`/songs/${item.song_id}`} className="flex-1 min-w-0 group/link">
-                    <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
-                      {item.songs.title}
-                    </p>
-                    {item.songs.artist && (
-                      <p className="text-xs text-[var(--fg-muted)] truncate">{item.songs.artist}</p>
-                    )}
-                  </Link>
-
-                  {/* Key badge — tappable to edit */}
-                  {!readOnly ? (
-                    <button
-                      onClick={() => setEditingKeyId(isEditingKey ? null : item.id)}
-                      className={cn(
-                        'text-xs font-medium shrink-0 px-2 py-1 rounded-lg border transition-all',
-                        isEditingKey
-                          ? 'bg-accent-600 border-accent-500 text-white'
-                          : item.key_override
-                            ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20'
-                            : displayKey
-                              ? 'text-[var(--fg-muted)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
-                              : 'text-[var(--fg-subtle)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
+                    {/* Song info — tappable link */}
+                    <Link href={`/songs/${item.song_id}`} className="flex-1 min-w-0 group/link">
+                      <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
+                        {item.songs.title}
+                      </p>
+                      {item.songs.artist && (
+                        <p className="text-xs text-[var(--fg-muted)] truncate">{item.songs.artist}</p>
                       )}
-                    >
-                      {displayKey || 'Key'}
-                    </button>
-                  ) : (
-                    displayKey && (
-                      <span className="text-xs font-medium text-[var(--fg-muted)] shrink-0">{displayKey}</span>
-                    )
-                  )}
+                    </Link>
 
-                  {/* Controls */}
-                  {!readOnly && (
-                    <>
-                      <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
+                    {/* Key badge — tappable to edit */}
+                    {!readOnly ? (
                       <button
-                        onClick={() => removeSong(item.id, item.songs.title)}
-                        className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
-
-                  {readOnly && (
-                    <ExternalLink className="w-3.5 h-3.5 text-[var(--fg-subtle)] shrink-0" />
-                  )}
-                </div>
-
-                {/* Inline key picker */}
-                {isEditingKey && (
-                  <div className="px-3 pb-3 animate-fade-in">
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                      <button
-                        onClick={() => updateKey(item.id, null)}
+                        onClick={() => setEditingKeyId(isEditingKey ? null : item.id)}
                         className={cn(
-                          'shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
-                          !item.key_override
+                          'text-xs font-medium shrink-0 px-2 py-1 rounded-lg border transition-all',
+                          isEditingKey
                             ? 'bg-accent-600 border-accent-500 text-white'
-                            : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
+                            : item.key_override
+                              ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20'
+                              : displayKey
+                                ? 'text-[var(--fg-muted)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
+                                : 'text-[var(--fg-subtle)] border-[var(--border)] bg-[var(--bg-input)] hover:text-white'
                         )}
                       >
-                        Original
+                        {displayKey || 'Key'}
                       </button>
-                      {MUSICAL_KEYS.map((k) => (
+                    ) : (
+                      displayKey && (
+                        <span className="text-xs font-medium text-[var(--fg-muted)] shrink-0">{displayKey}</span>
+                      )
+                    )}
+
+                    {/* Controls */}
+                    {!readOnly && (
+                      <>
+                        <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
                         <button
-                          key={k}
-                          onClick={() => updateKey(item.id, k)}
+                          onClick={() => removeSong(item.id, item.songs.title)}
+                          className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+
+                    {readOnly && (
+                      <ExternalLink className="w-3.5 h-3.5 text-[var(--fg-subtle)] shrink-0" />
+                    )}
+                  </div>
+
+                  {/* Inline key picker */}
+                  {isEditingKey && (
+                    <div className="px-3 pb-3 animate-fade-in">
+                      <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                        <button
+                          onClick={() => updateKey(item.id, null)}
                           className={cn(
-                            'shrink-0 w-8 py-1 rounded-lg text-xs font-medium border transition-all text-center',
-                            item.key_override === k
-                              ? 'bg-emerald-600 border-emerald-500 text-white'
+                            'shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
+                            !item.key_override
+                              ? 'bg-accent-600 border-accent-500 text-white'
                               : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
                           )}
                         >
-                          {k}
+                          Original
                         </button>
-                      ))}
+                        {MUSICAL_KEYS.map((k) => (
+                          <button
+                            key={k}
+                            onClick={() => updateKey(item.id, k)}
+                            className={cn(
+                              'shrink-0 w-8 py-1 rounded-lg text-xs font-medium border transition-all text-center',
+                              item.key_override === k
+                                ? 'bg-emerald-600 border-emerald-500 text-white'
+                                : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
+                            )}
+                          >
+                            {k}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                </div>
+
+                {hasTransition && (
+                  <div className="flex items-center gap-2 pl-8 py-1 text-[var(--fg-subtle)]">
+                    <ArrowLeftRight className="w-3 h-3 shrink-0" />
+                    <p className="text-xs italic truncate">
+                      {transitionNote || 'Flows well together'}
+                    </p>
                   </div>
                 )}
               </div>
