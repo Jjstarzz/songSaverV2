@@ -39,7 +39,12 @@ export default function UsersPage() {
     const res = await fetch('/api/admin/users', {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-    if (!res.ok) { toast.error('Failed to load users'); return }
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: null }))
+      toast.error(error ?? 'Failed to load users')
+      setLoading(false)
+      return
+    }
     const { users: data } = await res.json()
     // Sort: owner first, then by join date
     setUsers((data as AppUser[]).sort((a, b) => {
