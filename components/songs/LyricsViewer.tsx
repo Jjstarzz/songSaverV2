@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera } from 'lucide-react'
 import { SongLyrics, LANGUAGE_NAMES } from '@/types/database'
 import { Button } from '@/components/ui/Button'
+import { ConfirmModal } from '@/components/ui/Modal'
 import { Select, Textarea } from '@/components/ui/Input'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
@@ -74,6 +75,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
   const [searchOpen, setSearchOpen] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrTarget, setOcrTarget] = useState<'add' | 'edit'>('add')
+  const [discardOpen, setDiscardOpen] = useState(false)
   const imgInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -93,6 +95,15 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
   const cancelEdit = () => {
     setEditing(false)
     setEditText('')
+    setDiscardOpen(false)
+  }
+
+  const requestCancelEdit = () => {
+    if (editText !== (activeLyric?.lyrics ?? '')) {
+      setDiscardOpen(true)
+    } else {
+      cancelEdit()
+    }
   }
 
   const saveLyrics = async () => {
@@ -400,7 +411,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                             ? <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
                             : <Camera className="w-3.5 h-3.5" />}
                         </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={cancelEdit} disabled={saving}>
+                        <Button variant="ghost" size="icon-sm" onClick={requestCancelEdit} disabled={saving}>
                           <X className="w-3.5 h-3.5" />
                         </Button>
                         <Button size="icon-sm" onClick={saveLyrics} loading={saving}>
@@ -446,6 +457,15 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
           Add Lyrics
         </Button>
       )}
+
+      <ConfirmModal
+        open={discardOpen}
+        onClose={() => setDiscardOpen(false)}
+        onConfirm={cancelEdit}
+        title="Discard Changes"
+        description="Your unsaved changes to these lyrics will be lost. Are you sure you want to discard them?"
+        confirmLabel="Discard"
+      />
     </div>
   )
 }
