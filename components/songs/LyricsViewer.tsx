@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
-import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera } from 'lucide-react'
+import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera, Trash2 } from 'lucide-react'
 import { SongLyrics, LANGUAGE_NAMES } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { ConfirmModal } from '@/components/ui/Modal'
@@ -76,6 +76,8 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrTarget, setOcrTarget] = useState<'add' | 'edit'>('add')
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [deleteLangOpen, setDeleteLangOpen] = useState(false)
+  const [deletingLang, setDeletingLang] = useState(false)
   const imgInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -124,6 +126,26 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
       onUpdate?.()
     }
     setSaving(false)
+  }
+
+  const deleteLyrics = async () => {
+    if (!activeLyric) return
+    setDeletingLang(true)
+    const { error } = await supabase
+      .from('song_lyrics')
+      .delete()
+      .eq('id', activeLyric.id)
+
+    if (error) {
+      toast.error('Failed to delete lyrics')
+    } else {
+      toast.success(`${LANGUAGE_NAMES[activeLyric.language] ?? activeLyric.language} lyrics deleted`)
+      setDeleteLangOpen(false)
+      setEditing(false)
+      setActiveLang('')
+      onUpdate?.()
+    }
+    setDeletingLang(false)
   }
 
   const addLanguage = async () => {
@@ -395,6 +417,13 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                         Set default
                       </Button>
                     )}
+                    <Button
+                      variant="ghost" size="icon-sm"
+                      onClick={() => setDeleteLangOpen(true)}
+                      title="Delete lyrics"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </Button>
                     {!editing ? (
                       <Button variant="ghost" size="icon-sm" onClick={startEdit}>
                         <Pencil className="w-3.5 h-3.5" />
@@ -465,6 +494,16 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
         title="Discard Changes"
         description="Your unsaved changes to these lyrics will be lost. Are you sure you want to discard them?"
         confirmLabel="Discard"
+      />
+
+      <ConfirmModal
+        open={deleteLangOpen}
+        onClose={() => setDeleteLangOpen(false)}
+        onConfirm={deleteLyrics}
+        title="Delete Lyrics"
+        description={`This will permanently delete the ${LANGUAGE_NAMES[activeLyric?.language ?? ''] ?? activeLyric?.language ?? ''} lyrics for this song. This cannot be undone.`}
+        confirmLabel="Delete"
+        loading={deletingLang}
       />
     </div>
   )
