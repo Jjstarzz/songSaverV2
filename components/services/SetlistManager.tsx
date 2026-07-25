@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical, ArrowLeftRight } from 'lucide-react'
+import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical, ArrowLeftRight, ArrowDown } from 'lucide-react'
 import Link from 'next/link'
 import { Song, ServiceSong, MUSICAL_KEYS, formatKey } from '@/types/database'
 import { Button } from '@/components/ui/Button'
@@ -273,11 +273,13 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                 </div>
 
                 {hasTransition && (
-                  <div className="flex items-center gap-2 pl-8 py-1 text-[var(--fg-subtle)]">
-                    <ArrowLeftRight className="w-3 h-3 shrink-0" />
-                    <p className="text-xs italic truncate">
-                      {transitionNote || 'Flows well together'}
-                    </p>
+                  <div className="flex items-center gap-3 px-3 py-0.5">
+                    <div className="w-5 flex justify-center shrink-0">
+                      <ArrowDown className="w-3.5 h-3.5 text-accent-400/70" />
+                    </div>
+                    {transitionNote && (
+                      <p className="text-xs italic text-[var(--fg-subtle)] truncate">{transitionNote}</p>
+                    )}
                   </div>
                 )}
               </div>
