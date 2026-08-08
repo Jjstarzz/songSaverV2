@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Pencil, Trash2, Music2,
-  ExternalLink, Youtube, Music, ChevronDown, ChevronUp,
+  ExternalLink, Youtube, Music, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +15,7 @@ import { SongTransitions } from '@/components/songs/SongTransitions'
 import { ConfirmModal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useSong } from '@/hooks/useSongs'
+import { useService } from '@/hooks/useServices'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
@@ -32,6 +33,9 @@ interface Props {
 
 export function SongDetailClient({ id }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const serviceId = searchParams.get('serviceId')
+  const { service: navService } = useService(serviceId ?? '')
   const supabase = useSupabase()
   const { user } = useAuth()
   const { song, loading, refetch } = useSong(id)
@@ -106,6 +110,12 @@ export function SongDetailClient({ id }: Props) {
     )
   }
 
+  // Prev/next navigation when viewing a song from within a service's setlist
+  const serviceSongs = navService?.service_songs ?? []
+  const navIdx = serviceSongs.findIndex((ss) => ss.song_id === id)
+  const prevInService = navIdx > 0 ? serviceSongs[navIdx - 1] : null
+  const nextInService = navIdx >= 0 && navIdx < serviceSongs.length - 1 ? serviceSongs[navIdx + 1] : null
+
   return (
     <>
       <BackHeader
@@ -141,6 +151,30 @@ export function SongDetailClient({ id }: Props) {
           <ArrowLeft className="w-4 h-4" />
         </Button>
       </BackHeader>
+
+      {/* Prev/next navigation within the service this song was opened from */}
+      {navService && navIdx !== -1 && (
+        <div className="px-4 pt-3 flex items-center gap-2">
+          <button
+            onClick={() => prevInService && router.push(`/songs/${prevInService.song_id}?serviceId=${serviceId}`)}
+            disabled={!prevInService}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex-1 min-w-0 text-center">
+            <p className="text-[10px] text-white/30 uppercase tracking-wider truncate">{navService.theme || 'Service'}</p>
+            <p className="text-[10px] text-white/40">Song {navIdx + 1} of {serviceSongs.length}</p>
+          </div>
+          <button
+            onClick={() => nextInService && router.push(`/songs/${nextInService.song_id}?serviceId=${serviceId}`)}
+            disabled={!nextInService}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="px-4 pt-6 pb-10 space-y-6">
         {/* Hero */}

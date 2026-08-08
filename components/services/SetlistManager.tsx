@@ -188,7 +188,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                     </span>
 
                     {/* Song info — tappable link */}
-                    <Link href={`/songs/${item.song_id}`} className="flex-1 min-w-0 group/link">
+                    <Link href={`/songs/${item.song_id}?serviceId=${serviceId}`} className="flex-1 min-w-0 group/link">
                       <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
                         {item.songs.title}
                       </p>
