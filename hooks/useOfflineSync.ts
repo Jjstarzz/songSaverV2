@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSupabase } from './useSupabase'
 import { useAuth } from './useAuth'
-import { saveOfflineSong } from '@/lib/offlineDB'
+import { saveOfflineSongs } from '@/lib/offlineDB'
 
 /**
  * Silently syncs all songs (with full lyrics) to IndexedDB whenever
@@ -28,9 +28,8 @@ export function useOfflineSync() {
 
       if (error || !data) return
 
-      await Promise.allSettled(
-        data.map((song: any) =>
-          saveOfflineSong({
+      await saveOfflineSongs(
+        data.map((song: any) => ({
             id: song.id,
             title: song.title,
             artist: song.artist ?? null,
@@ -51,8 +50,7 @@ export function useOfflineSync() {
               lyrics: l.lyrics,
               is_default: l.is_default,
             })),
-          })
-        )
+        }))
       )
 
       setLastSynced(new Date())

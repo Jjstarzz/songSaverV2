@@ -10,6 +10,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toaster'
 import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
+import { resizeImage } from '@/lib/resizeImage'
 import { cn } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
 
@@ -17,23 +18,6 @@ const PRESET_TAGS = ['Praise', 'Worship', 'Fast', 'Slow', 'Thanksgiving', 'Easte
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '12/8']
 const LANG_OPTIONS = Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({ value, label }))
 
-function resizeImage(file: File, maxSize = 1024): Promise<{ base64: string; mediaType: 'image/jpeg' }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve({ base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' })
-    }
-    img.onerror = reject
-    img.src = url
-  })
-}
 
 interface LyricEntry {
   language: string
@@ -132,7 +116,7 @@ export function SongForm({ song }: SongFormProps) {
       const updated = prev.filter((_, i) => i !== idx)
       // Ensure one default
       if (updated.length > 0 && !updated.some((e) => e.is_default)) {
-        updated[0].is_default = true
+        return updated.map((e, i) => (i === 0 ? { ...e, is_default: true } : e))
       }
       return updated
     })
@@ -158,6 +142,11 @@ export function SongForm({ song }: SongFormProps) {
     e.preventDefault()
     if (!user) return
     if (!form.title.trim()) { toast.error('Title is required'); return }
+    const bpm = form.bpm ? parseInt(form.bpm, 10) : null
+    if (bpm !== null && (!Number.isFinite(bpm) || bpm <= 0 || bpm >= 400)) {
+      toast.error('BPM must be between 1 and 399')
+      return
+    }
 
     setLoading(true)
 
@@ -166,14 +155,14 @@ export function SongForm({ song }: SongFormProps) {
       artist: form.artist.trim() || null,
       default_key: form.default_key || null,
       preferred_key: form.preferred_key || null,
-      bpm: form.bpm ? parseInt(form.bpm) : null,
+      bpm,
       time_signature: form.time_signature || null,
       mode: (form.mode || null) as 'major' | 'minor' | null,
       youtube_url: form.youtube_url.trim() || null,
       spotify_url: form.spotify_url.trim() || null,
       notes: form.notes.trim() || null,
       original_language: form.original_language || null,
-      verseview_number: form.verseview_number ? parseInt(form.verseview_number) : null,
+      verseview_number: form.verseview_number ? parseInt(form.verseview_number, 10) || null : null,
       tags,
     }
 
@@ -194,7 +183,7 @@ export function SongForm({ song }: SongFormProps) {
       // Save any lyrics that were filled in (normalise section labels)
       const lyricsToSave = lyricEntries.filter((e) => e.lyrics.trim())
       if (lyricsToSave.length > 0) {
-        await supabase.from('song_lyrics').insert(
+        const { error: lyricsError } = await supabase.from('song_lyrics').insert(
           lyricsToSave.map((e) => ({
             song_id: data.id,
             language: e.language,
@@ -202,6 +191,12 @@ export function SongForm({ song }: SongFormProps) {
             is_default: e.is_default,
           }))
         )
+        if (lyricsError) {
+          // The song itself saved — send the user to it so they can re-add lyrics.
+          toast.error('Song created, but lyrics failed to save')
+          router.push(`/songs/${data.id}`)
+          return
+        }
       }
 
       toast.success('Song created')

@@ -9,6 +9,7 @@ import { Select, Textarea } from '@/components/ui/Input'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
+import { resizeImage } from '@/lib/resizeImage'
 import { cn } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
 
@@ -24,23 +25,6 @@ const SUPPORTED_LANGUAGES = Object.entries(LANGUAGE_NAMES).map(([value, label]) 
   label,
 }))
 
-function resizeImage(file: File, maxSize = 1024): Promise<{ base64: string; mediaType: 'image/jpeg' }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve({ base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' })
-    }
-    img.onerror = reject
-    img.src = url
-  })
-}
 
 /** Renders raw lyrics text with [Section] labels styled as headers. */
 const LyricsDisplay = memo(function LyricsDisplay({ text }: { text: string }) {

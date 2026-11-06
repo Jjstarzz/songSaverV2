@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
         { headers }
       )
       const data = await res.json()
+      if (!res.ok) return NextResponse.json({ error: data.message ?? 'Passage not found' }, { status: res.status })
       const text = data?.data?.content ? cleanText(data.data.content) : ''
       const reference = data?.data?.reference
       return NextResponse.json({ text, reference })

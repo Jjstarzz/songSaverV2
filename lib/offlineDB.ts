@@ -33,8 +33,13 @@ export interface OfflineSong {
   savedAt: number
 }
 
+// Reuse one connection for the page's lifetime instead of opening a new one
+// on every read/write (a full background sync would otherwise open hundreds).
+let dbPromise: Promise<IDBDatabase> | null = null
+
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result
@@ -42,9 +47,17 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE, { keyPath: 'id' })
       }
     }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    req.onsuccess = () => {
+      const db = req.result
+      // If another tab upgrades the schema or the browser closes the
+      // connection, drop the cached handle so the next call reopens.
+      db.onversionchange = () => { db.close(); dbPromise = null }
+      db.onclose = () => { dbPromise = null }
+      resolve(db)
+    }
+    req.onerror = () => { dbPromise = null; reject(req.error) }
   })
+  return dbPromise
 }
 
 export async function saveOfflineSong(song: Omit<OfflineSong, 'savedAt'>): Promise<void> {
@@ -52,6 +65,20 @@ export async function saveOfflineSong(song: Omit<OfflineSong, 'savedAt'>): Promi
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite')
     tx.objectStore(STORE).put({ ...song, savedAt: Date.now() })
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+/** Save many songs in a single transaction (used by the background sync). */
+export async function saveOfflineSongs(songs: Omit<OfflineSong, 'savedAt'>[]): Promise<void> {
+  if (!songs.length) return
+  const db = await openDB()
+  const now = Date.now()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite')
+    const store = tx.objectStore(STORE)
+    for (const song of songs) store.put({ ...song, savedAt: now })
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
