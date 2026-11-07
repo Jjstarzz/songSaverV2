@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
+import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT } from '@/lib/presentationProtocol'
 import { Maximize2, Minimize2 } from 'lucide-react'
 
 interface SlideInfo {
@@ -44,15 +45,18 @@ function StageDisplay() {
 
   useEffect(() => {
     if (!code) return
-    const ch = supabase.channel(`present-${code}`, { config: { broadcast: { ack: false } } })
-    ch.on('broadcast', { event: 'slide' }, ({ payload }) => {
+    const ch = supabase.channel(presentChannelName(code), { config: { broadcast: { ack: false } } })
+    ch.on('broadcast', { event: SLIDE_EVENT }, ({ payload }) => {
       setConnected(true)
       setState({
         blank: payload.blank ?? true,
-        current: { section: payload.section ?? '', lines: payload.lines ?? '', title: payload.title ?? '', translationLines: payload.translationLines ?? '' },
+        current: { section: payload.section || payload.reference || '', lines: payload.lines ?? '', title: payload.title ?? '', translationLines: payload.translationLines ?? '' },
         upNext: payload.upNext ?? null,
       })
-    }).subscribe()
+    }).subscribe((status) => {
+      // Ask the controller for the current slide when this screen (re)connects
+      if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
+    })
     return () => { supabase.removeChannel(ch) }
   }, [code, supabase])
 

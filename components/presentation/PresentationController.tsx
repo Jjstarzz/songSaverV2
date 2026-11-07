@@ -9,16 +9,15 @@ import {
 import dynamic from 'next/dynamic'
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false })
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { parseLyrics } from '@/lib/parseLyrics'
+import { toSlides } from '@/lib/parseLyrics'
 import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
 import { LANGUAGE_NAMES } from '@/types/database'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
-import {
-  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS, PHOTO_BACKGROUNDS,
-  LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, PHOTO_BG_IDS, PHOTO_BG_URLS, BG_STATIC, ANIMATION_CSS,
-  FONT_OPTIONS, SIZE_MULTIPLIERS,
-} from '@/lib/presentationBackgrounds'
+import { FONT_OPTIONS, SIZE_MULTIPLIERS } from '@/lib/presentationBackgrounds'
+import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT, type PresentState } from '@/lib/presentationProtocol'
+import { BackgroundLayer, PresentationStyles } from './BackgroundLayer'
+import { BackgroundPicker } from './BackgroundPicker'
 
 interface LyricsEntry {
   id: string
@@ -53,7 +52,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [showQr, setShowQr] = useState(false)
   const [notesOpenIdx, setNotesOpenIdx] = useState<number | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
-  const [controllerTab, setControllerTab] = useState<'slides' | 'settings' | 'scripture'>('slides')
+  const [controllerTab, setControllerTab] = useState<'slides' | 'look' | 'screens' | 'scripture'>('slides')
   const [showJoin, setShowJoin] = useState(false)
   const [joinInput, setJoinInput] = useState('')
   const [songIdx, setSongIdx] = useState(0)
@@ -70,12 +69,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const [primaryLangId, setPrimaryLangId] = useState<string | null>(null)
   const [secondaryLangId, setSecondaryLangId] = useState<string | null>(null)
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-screensaver-on') !== 'false' : true)
-  const [showSectionLabels, setShowSectionLabels] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-section-labels') !== 'false' : true)
   const [screensaverInterval, setScreensaverInterval] = useState(() => typeof window !== 'undefined' ? (Number(localStorage.getItem('songsaver-screensaver-secs')) || 8) : 8)
   const [logoMode, setLogoMode] = useState(false)
   const channelRef = useRef<RealtimeChannel | null>(null)
-  // Tracks last content on screen so settings changes can re-broadcast even for scripture verses
-  const lastContentRef = useRef<{ section: string; lines: string; title: string } | null>(null)
+  // Everything last sent to the screens. Settings changes merge into it, and
+  // it's re-sent when a projector/stage screen (re)connects.
+  const lastStateRef = useRef<PresentState | null>(null)
+  // Set when Next/Prev crosses into another song: which slide to show once its lyrics load
+  const pendingSlideRef = useRef<'first' | 'last' | null>(null)
   const langInitRef = useRef(false)
 
   // Browse state for Scripture tab
@@ -110,13 +111,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     : ''
 
   const slides: Slide[] = useMemo(() =>
-    parseLyrics(primaryLyrics).map(s => ({ label: s.label ?? '', content: s.content })),
+    toSlides(primaryLyrics).map(s => ({ label: s.label ?? '', content: s.content })),
     [primaryLyrics]
   )
 
   const translationPerSlide: string[] = useMemo(() => {
     if (!secondaryLyrics.trim() || slides.length === 0) return slides.map(() => '')
-    const parsed = parseLyrics(secondaryLyrics)
+    const parsed = toSlides(secondaryLyrics)
     if (parsed.length === slides.length) return parsed.map(s => s.content)
     const tLines = secondaryLyrics.split('\n').filter(l => l.trim())
     if (tLines.length === 0) return slides.map(() => '')
@@ -133,18 +134,18 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // updates without the presenter needing to re-click the current slide.
   useEffect(() => {
     if (!langInitRef.current) { langInitRef.current = true; return }
-    const translationLines = secondaryLangId && currentIdx !== null
-      ? (translationPerSlide[currentIdx] ?? '')
-      : ''
-    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, translationLines }
-    if (!blank && lastContentRef.current) {
-      const { section, lines, title } = lastContentRef.current
-      broadcast({ blank: false, section, lines, title, ...base })
-    } else {
-      broadcast({ blank: true, section: '', lines: '', title: activeTitle, ...base })
-    }
+    if (!blank && currentIdx !== null && slides[currentIdx]) showSlide(currentIdx)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [secondaryLangId, primaryLangId])
+
+  // After Next/Prev moves into another song, show its first/last slide once its lyrics are ready
+  useEffect(() => {
+    const pending = pendingSlideRef.current
+    if (!pending) return
+    pendingSlideRef.current = null
+    if (slides.length > 0) showSlide(pending === 'first' ? 0 : slides.length - 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides])
 
   // Create channel when controller is opened.
   // Reuse the same code for the whole browser session so the projector
@@ -161,14 +162,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     setCurrentIdx(null)
     setBlank(true)
 
-    const ch = supabase.channel(`present-${sessionCode}`, { config: { broadcast: { ack: false } } })
-    ch.subscribe()
-    channelRef.current = ch
+    const ch = connectChannel(sessionCode)
 
     return () => {
       supabase.removeChannel(ch)
       channelRef.current = null
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, supabase])
 
 
@@ -176,22 +176,44 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   useEffect(() => {
     if (!open) return
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        const next = currentIdx === null ? 0 : Math.min(currentIdx + 1, slides.length - 1)
-        showSlide(next)
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        if (currentIdx !== null && currentIdx > 0) showSlide(currentIdx - 1)
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      // Presentation clickers send PageDown/PageUp (and often '.'/'b' for black screen)
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) {
+        e.preventDefault(); goNext()
+      } else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) {
+        e.preventDefault(); goPrev()
+      } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
+        e.preventDefault(); if (blank) revealCurrent(); else showBlank()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentIdx, slides, activeTitle, background, fontSizeKey, fontFamily, textColor])
+  }, [open, currentIdx, slides, activeTitle, background, fontSizeKey, fontFamily, textColor, blank, songIdx])
 
-  const broadcast = (payload: object) => {
-    channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
+  /** Send a full state to the screens and remember it. */
+  const send = (state: PresentState) => {
+    lastStateRef.current = state
+    channelRef.current?.send({ type: 'broadcast', event: SLIDE_EVENT, payload: state })
+  }
+
+  /** Current look settings (as of this render). */
+  const appearance = () => ({
+    background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval,
+  })
+
+  /** Join a presentation channel; replies to screens asking for the current state. */
+  const connectChannel = (sessionCode: string) => {
+    const ch = supabase.channel(presentChannelName(sessionCode), { config: { broadcast: { ack: false } } })
+    ch.on('broadcast', { event: REQUEST_STATE_EVENT }, () => {
+      if (lastStateRef.current) {
+        ch.send({ type: 'broadcast', event: SLIDE_EVENT, payload: lastStateRef.current })
+      }
+    })
+    ch.subscribe()
+    channelRef.current = ch
+    return ch
   }
 
   // Notes stored in localStorage, keyed by song title + slide label
@@ -208,57 +230,96 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   }
 
   const showSlide = (idx: number) => {
+    const s = slides[idx]
+    if (!s) return
     setCurrentIdx(idx)
     setBlank(false)
-    const s = slides[idx]
+    setLogoMode(false)
     const next = slides[idx + 1] ?? null
-    const upNext = next ? { section: next.label, lines: next.content, title: activeTitle } : null
-    const translationLines = secondaryLangId ? (translationPerSlide[idx] ?? '') : ''
-    lastContentRef.current = { section: s.label, lines: s.content, title: activeTitle }
-    broadcast({ blank: false, section: s.label, lines: s.content, title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, upNext, translationLines, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: false })
+    const nextSong = !next && playlist ? playlist[songIdx + 1] : undefined
+    const upNext = next
+      ? { section: next.label, lines: next.content, title: activeTitle }
+      : nextSong ? { section: '', lines: toSlides(nextSong.lyricsText)[0]?.content ?? '', title: nextSong.title } : null
+    send({
+      ...appearance(),
+      blank: false,
+      lines: s.content,
+      translationLines: secondaryLangId ? (translationPerSlide[idx] ?? '') : '',
+      title: activeTitle,
+      section: s.label, // stage monitor only — the projector never shows section names
+      upNext,
+      logoMode: false,
+    })
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode })
+    send({ ...(lastStateRef.current ?? { lines: '', title: activeTitle, ...appearance() }), blank: true, logoMode })
   }
 
-  const goToSong = (idx: number) => {
+  /** Switch songs in a service. `silent` skips the blank broadcast when a slide follows immediately. */
+  const goToSong = (idx: number, silent = false) => {
+    if (!playlist || idx < 0 || idx >= playlist.length) return
     setSongIdx(idx)
     setCurrentIdx(null)
     setBlank(true)
     setLogoMode(false)
-    broadcast({ blank: true, section: '', lines: '', title: playlist![idx].title, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: false })
+    if (!silent) {
+      send({ ...appearance(), blank: true, lines: '', title: playlist[idx].title, upNext: null, logoMode: false })
+    }
+  }
+
+  const canGoNext = slides.length > 0 && (
+    currentIdx === null || currentIdx < slides.length - 1 || (!!playlist && songIdx < playlist.length - 1)
+  )
+  const canGoPrev = (currentIdx !== null && currentIdx > 0) || (!!playlist && songIdx > 0)
+
+  /** Next slide; from the last slide of a song, the first slide of the next song. */
+  const goNext = () => {
+    if (currentIdx === null) { if (slides.length) showSlide(0); return }
+    if (currentIdx < slides.length - 1) { showSlide(currentIdx + 1); return }
+    if (playlist && songIdx < playlist.length - 1) {
+      pendingSlideRef.current = 'first'
+      goToSong(songIdx + 1, true)
+    }
+  }
+
+  /** Previous slide; from the first slide of a song, the last slide of the previous song. */
+  const goPrev = () => {
+    if (currentIdx !== null && currentIdx > 0) { showSlide(currentIdx - 1); return }
+    if (playlist && songIdx > 0) {
+      pendingSlideRef.current = 'last'
+      goToSong(songIdx - 1, true)
+    }
   }
 
   const toggleLogoMode = () => {
     const next = !logoMode
     setLogoMode(next)
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: activeTitle, background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode: next })
+    send({ ...(lastStateRef.current ?? { lines: '', title: activeTitle, ...appearance() }), blank: true, logoMode: next })
   }
 
+  /** Un-blank: bring back whatever was last on screen (a song slide or a scripture verse). */
   const revealCurrent = () => {
-    if (currentIdx !== null) showSlide(currentIdx)
+    const last = lastStateRef.current
+    if (last && last.lines) {
+      setBlank(false)
+      setLogoMode(false)
+      send({ ...last, blank: false, logoMode: false })
+    } else if (slides.length) {
+      showSlide(currentIdx ?? 0)
+    }
   }
 
-  // Always pushes current state to the projector, optionally overriding specific fields.
-  // Used by every settings control so changes apply whether a slide is live or screen is blank.
-  const rebroadcast = (overrides: Record<string, unknown> = {}) => {
-    const translationLines = secondaryLangId && currentIdx !== null
-      ? (translationPerSlide[currentIdx] ?? '')
-      : ''
-    const base = {
-      background, fontSizeKey, fontFamily, textColor, holdingImageUrl, screensaverEnabled, screensaverInterval, showSectionLabels, logoMode,
-      translationLines,
+  // Apply a settings change to whatever is on screen right now (slide, verse or blank).
+  const rebroadcast = (overrides: Partial<PresentState> = {}) => {
+    send({
+      ...(lastStateRef.current ?? { blank: true, lines: '', title: activeTitle }),
+      ...appearance(),
+      logoMode,
       ...overrides,
-    }
-    if (!blank && lastContentRef.current) {
-      const { section, lines, title } = lastContentRef.current
-      broadcast({ blank: false, section, lines, title, ...base })
-    } else {
-      broadcast({ blank: true, section: '', lines: '', title: activeTitle, ...base })
-    }
+    })
   }
 
   const changeBackground = (bg: string) => {
@@ -287,8 +348,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const sendVerse = (reference: string, text: string) => {
     setCurrentIdx(null)
     setBlank(false)
-    lastContentRef.current = { section: reference, lines: text, title: '' }
-    broadcast({ blank: false, section: reference, lines: text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl, showSectionLabels: true })
+    setLogoMode(false)
+    send({ ...appearance(), blank: false, lines: text, translationLines: '', title: '', reference, section: reference, upNext: null, logoMode: false })
   }
 
   const displayUrl = typeof window !== 'undefined' && code
@@ -311,9 +372,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null }
     sessionStorage.setItem('songsaver-present-code', trimmed)
     setCode(trimmed)
-    const ch = supabase.channel(`present-${trimmed}`, { config: { broadcast: { ack: false } } })
-    ch.subscribe()
-    channelRef.current = ch
+    connectChannel(trimmed)
     setBlank(true)
     setCurrentIdx(null)
     setShowJoin(false)
@@ -330,14 +389,6 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   const inlineFontSize = `${(inlineBaseVw * (SIZE_MULTIPLIERS[fontSizeKey] ?? 1)).toFixed(2)}vw`
   const inlineFontFamily = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
 
-  // Background resolution for inline display
-  const isLiveBg = LIVE_BG_IDS.has(background)
-  const isVideoBg = VIDEO_BG_IDS.has(background)
-  const isPhotoBg = PHOTO_BG_IDS.has(background)
-  const inlineBgStyle = (isLiveBg || isVideoBg || isPhotoBg) ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
-  const inlineBgClass = isLiveBg ? `live-${background}` : ''
-  const inlineVideoUrl = isVideoBg ? VIDEO_BG_URLS[background] : null
-  const inlinePhotoUrl = isPhotoBg ? PHOTO_BG_URLS[background] : null
 
   // ── Present button (shown in song detail / service header) ──
   if (!open) {
@@ -356,31 +407,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // ── Inline display (same-device presentation) — z-[200], above controller ──
   const inlineDisplay = inlineOpen ? createPortal(
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');${ANIMATION_CSS}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');` }} />
       <div
-        className={inlineBgClass}
         style={{
           position: 'fixed', inset: 0, zIndex: 200,
-          display: 'flex', flexDirection: 'column',
-          ...(inlineBgStyle ?? {}),
+          display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#000',
         }}
       >
-      {inlineVideoUrl && (
-        <video
-          key={background}
-          autoPlay loop muted playsInline preload="auto"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          src={inlineVideoUrl}
-        />
-      )}
-      {inlinePhotoUrl && (
-        <img
-          key={background}
-          src={inlinePhotoUrl}
-          alt=""
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-        />
-      )}
+      <BackgroundLayer id={background} />
       {/* Section list sheet (slides over inline when open) */}
       {showSections && (
         <div style={{
@@ -427,7 +461,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
       {/* Slide content area — tap to request fullscreen */}
       <div
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8%', position: 'relative', cursor: 'pointer' }}
+        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8%', position: 'relative', cursor: 'pointer', zIndex: 1 }}
         onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}
       >
         {blank || !currentSlide ? (
@@ -436,16 +470,6 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           </p>
         ) : (
           <>
-            {currentSlide.label && (
-              <p style={{
-                position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
-                color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 700,
-                letterSpacing: '0.5em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                fontFamily: inlineFontFamily,
-              }}>
-                {currentSlide.label}
-              </p>
-            )}
             <p style={{
               color: textColor, textAlign: 'center', fontWeight: 300,
               fontSize: inlineFontSize, lineHeight: 1.55,
@@ -468,7 +492,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
       {/* Bottom control strip */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 2,
         padding: '12px 16px',
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         background: 'rgba(0,0,0,0.65)',
@@ -477,14 +501,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       }}>
         {/* Prev */}
         <button
-          onClick={() => currentIdx !== null && currentIdx > 0 && showSlide(currentIdx - 1)}
-          disabled={currentIdx === null || currentIdx === 0}
+          onClick={goPrev}
+          disabled={!canGoPrev}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             padding: '12px 0', borderRadius: 14,
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-            opacity: (currentIdx === null || currentIdx === 0) ? 0.25 : 1,
+            opacity: canGoPrev ? 1 : 0.25,
           }}
         >
           <ChevronLeft style={{ width: 16, height: 16 }} /> Prev
@@ -521,14 +545,14 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
         {/* Next */}
         <button
-          onClick={() => currentIdx !== null && currentIdx < slides.length - 1 && showSlide(currentIdx + 1)}
-          disabled={currentIdx === null || currentIdx === slides.length - 1}
+          onClick={goNext}
+          disabled={!canGoNext}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             padding: '12px 0', borderRadius: 14,
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-            opacity: (currentIdx === null || currentIdx === slides.length - 1) ? 0.25 : 1,
+            opacity: canGoNext ? 1 : 0.25,
           }}
         >
           Next <ChevronRight style={{ width: 16, height: 16 }} />
@@ -603,29 +627,27 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
           {/* Preview panel */}
           {(() => {
-            // Always use swatch for the preview (avoids CSS class injection issues in portal)
-            const liveSwatch = LIVE_BACKGROUNDS.find(b => b.id === background)?.swatch
-            const videoSwatch = VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch
-            const photoUrl = PHOTO_BACKGROUNDS.find(b => b.id === background)?.url
-            const previewBg = photoUrl ? `url(${photoUrl}) center/cover no-repeat` : (liveSwatch ?? videoSwatch ?? BG_STATIC[background] ?? BG_STATIC.dark)
-            const previewContent = !blank ? lastContentRef.current : null
+            const previewContent = !blank ? lastStateRef.current : null
             const previewLines = previewContent?.lines.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
             const previewFontSize = `${(0.62 * (SIZE_MULTIPLIERS[fontSizeKey] ?? 1)).toFixed(2)}rem`
             const previewFontFamily = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
             return (
               <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ position: 'relative', width: '100%', height: 130, overflow: 'hidden', background: previewBg }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: 420, margin: '0 auto', aspectRatio: '16 / 9', maxHeight: 180, overflow: 'hidden', background: '#000' }}>
+                  <BackgroundLayer id={background} still />
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
-                    {blank ? (
+                    {blank && logoMode ? (
+                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Logo showing</span>
+                    ) : blank ? (
                       holdingImageUrl
                         ? <img src={holdingImageUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Screen blank</span>
                     ) : previewContent ? (
                       <>
-                        {previewContent.section && (
-                          <span style={{ color: '#a78bfa', fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 2 }}>{previewContent.section}</span>
-                        )}
                         <p style={{ color: textColor, fontSize: previewFontSize, fontFamily: previewFontFamily, textAlign: 'center', lineHeight: 1.5, whiteSpace: 'pre-line', padding: '0 8%', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>{previewLines}</p>
+                        {previewContent.reference && (
+                          <span style={{ color: textColor, opacity: 0.7, fontSize: '0.5rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>{previewContent.reference}</span>
+                        )}
                       </>
                     ) : (
                       <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>Tap a slide to begin</span>
@@ -639,7 +661,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           {/* Tab bar */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingTop: 2 }}>
             <button style={TAB_STYLE(controllerTab === 'slides')} onClick={() => setControllerTab('slides')}>Slides</button>
-            <button style={TAB_STYLE(controllerTab === 'settings')} onClick={() => setControllerTab('settings')}>Settings</button>
+            <button style={TAB_STYLE(controllerTab === 'look')} onClick={() => setControllerTab('look')}>Look</button>
+            <button style={TAB_STYLE(controllerTab === 'screens')} onClick={() => setControllerTab('screens')}>Screens</button>
             <button style={TAB_STYLE(controllerTab === 'scripture')} onClick={() => setControllerTab('scripture')}>Scripture</button>
           </div>
 
@@ -650,46 +673,47 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             {controllerTab === 'slides' && (
               <div style={{ padding: '12px 16px' }}>
 
-                {/* Song navigation (playlist mode only) */}
+                {/* Songs in this service — tap to jump */}
                 {playlist && playlist.length > 1 && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
-                    padding: '8px 12px', borderRadius: 12,
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                  }}>
-                    <button
-                      onClick={() => goToSong(songIdx - 1)}
-                      disabled={songIdx === 0}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: songIdx === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
-                    >
-                      <ChevronLeft style={{ width: 16, height: 16 }} />
-                    </button>
-                    <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-                      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.55rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>
-                        Song {songIdx + 1} of {playlist.length}
-                      </p>
-                      <p style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {activeTitle}
-                      </p>
+                  <div style={{ marginBottom: 14 }}>
+                    <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      Song {songIdx + 1} of {playlist.length}
+                    </p>
+                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }} className="no-scrollbar">
+                      {playlist.map((p, i) => {
+                        const active = i === songIdx
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => goToSong(i)}
+                            aria-current={active ? 'true' : undefined}
+                            style={{
+                              flexShrink: 0, maxWidth: 200, padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              background: active ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${active ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                              color: active ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: '0.75rem', fontWeight: active ? 600 : 500,
+                            }}
+                          >
+                            <span style={{ opacity: 0.5, fontSize: '0.65rem' }}>{i + 1}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+                          </button>
+                        )
+                      })}
                     </div>
-                    <button
-                      onClick={() => goToSong(songIdx + 1)}
-                      disabled={songIdx === playlist.length - 1}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: songIdx === playlist.length - 1 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
-                    >
-                      <ChevronRight style={{ width: 16, height: 16 }} />
-                    </button>
                   </div>
                 )}
 
-                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Tap a slide to display it</p>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  Tap a slide to show it · section names are only shown to you
+                </p>
 
                 {slides.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '48px 0' }}>
                     <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>No lyrics added yet</p>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'row', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, paddingBottom: 6 }}>
                     {slides.map((slide, i) => {
                       const previewLines = slide.content.split('\n').filter((l: string) => l.trim()).join('\n')
                       const translationPreview = (translationPerSlide[i] ?? '').split('\n').filter((l: string) => l.trim()).join('\n')
@@ -697,7 +721,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                       const hasNote = !!getNote(slide.label)
                       const notesOpen = notesOpenIdx === i
                       return (
-                        <div key={i} style={{ flexShrink: 0, width: 190 }}>
+                        <div key={i} style={{ minWidth: 0 }}>
                           <button
                             onClick={() => showSlide(i)}
                             style={{
@@ -707,12 +731,10 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                               display: 'block', cursor: 'pointer', overflow: 'hidden', wordBreak: 'break-word',
                             }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: slide.label ? 4 : 0 }}>
-                              {slide.label && (
-                                <p style={{ color: '#a78bfa', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1 }}>
-                                  {slide.label}
-                                </p>
-                              )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, gap: 6 }}>
+                              <p style={{ color: isActive ? '#c4b5fd' : 'rgba(255,255,255,0.35)', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {i + 1}{slide.label ? ` · ${slide.label}` : ''}
+                              </p>
                               <button
                                 onClick={e => {
                                   e.stopPropagation()
@@ -720,7 +742,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                   else { setNotesOpenIdx(i); setNotesDraft(getNote(slide.label)) }
                                 }}
                                 title="Notes"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.18)', fontSize: '0.65rem', flexShrink: 0, lineHeight: 1 }}
+                                aria-label="Slide notes"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', margin: '-6px -6px -6px 0', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.25)', fontSize: '0.75rem', flexShrink: 0, lineHeight: 1 }}
                               >
                                 ✎
                               </button>
@@ -755,127 +778,12 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
               </div>
             )}
 
-            {/* ── SETTINGS TAB ── */}
-            {controllerTab === 'settings' && (
+            {/* ── LOOK TAB ── background, text, languages */}
+            {controllerTab === 'look' && (
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-                {/* Projector URL */}
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
-                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="QR code">
-                      <QrCode className="w-4 h-4" />
-                    </button>
-                    <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {showQr && displayUrl && (
-                    <div style={{ marginTop: 10, padding: 16, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                      <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
-                        <QRCode value={displayUrl} size={160} bgColor="#ffffff" fgColor="#09090b" level="M" />
-                      </div>
-                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', textAlign: 'center' }}>Scan to open the projector screen</p>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setInlineOpen(v => !v)}
-                    style={{
-                      marginTop: 8, width: '100%', padding: '9px 16px', borderRadius: 10,
-                      background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                      color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.55)',
-                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    }}
-                  >
-                    <Tv2 style={{ width: 14, height: 14 }} />
-                    {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
-                  </button>
-                  <button
-                    onClick={() => setShowJoin(v => !v)}
-                    style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', padding: '3px 0', display: 'block', width: '100%', textAlign: 'center' }}
-                  >
-                    {showJoin ? '✕ Cancel' : '+ Join an existing session'}
-                  </button>
-                  {showJoin && (
-                    <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
-                      <input
-                        type="text"
-                        value={joinInput}
-                        onChange={e => setJoinInput(e.target.value.toUpperCase())}
-                        onKeyDown={e => e.key === 'Enter' && joinSession()}
-                        placeholder="Enter session code"
-                        maxLength={8}
-                        style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
-                      />
-                      <button onClick={joinSession} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
-                        Join
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stage monitor URL */}
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <code style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stageUrl}</code>
-                    <button onClick={() => stageUrl && navigator.clipboard.writeText(stageUrl)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
-                      <Copy className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => stageUrl && window.open(stageUrl, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Background picker */}
                 <div>
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Background</p>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Static</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
-                    {STATIC_BACKGROUNDS.map((bg) => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>Animated</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
-                    {LIVE_BACKGROUNDS.map((bg) => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Video</p>
-                    <span style={{ fontSize: '0.52rem', color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
-                    {VIDEO_BACKGROUNDS.map((bg) => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>Photos</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2">
-                    {PHOTO_BACKGROUNDS.map((bg) => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all duration-150 block', background === bg.id ? 'border-white scale-110 shadow-lg' : 'border-white/20')} style={{ background: `url(${bg.url}) center/cover no-repeat` }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <BackgroundPicker value={background} onChange={changeBackground} />
                 </div>
 
                 {/* Font & size */}
@@ -1039,6 +947,88 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/* ── SCREENS TAB ── connecting screens, and what shows when blank */}
+            {controllerTab === 'screens' && (
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Projector URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
+                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="QR code">
+                      <QrCode className="w-4 h-4" />
+                    </button>
+                    <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {showQr && displayUrl && (
+                    <div style={{ marginTop: 10, padding: 16, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                      <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
+                        <QRCode value={displayUrl} size={160} bgColor="#ffffff" fgColor="#09090b" level="M" />
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', textAlign: 'center' }}>Scan to open the projector screen</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setInlineOpen(v => !v)}
+                    style={{
+                      marginTop: 8, width: '100%', padding: '9px 16px', borderRadius: 10,
+                      background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                      color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.55)',
+                      cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}
+                  >
+                    <Tv2 style={{ width: 14, height: 14 }} />
+                    {inlineOpen ? 'Presenting on this screen ✓' : 'Present on this screen'}
+                  </button>
+                  <button
+                    onClick={() => setShowJoin(v => !v)}
+                    style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', padding: '3px 0', display: 'block', width: '100%', textAlign: 'center' }}
+                  >
+                    {showJoin ? '✕ Cancel' : '+ Join an existing session'}
+                  </button>
+                  {showJoin && (
+                    <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={joinInput}
+                        onChange={e => setJoinInput(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && joinSession()}
+                        placeholder="Enter session code"
+                        maxLength={8}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                      />
+                      <button onClick={joinSession} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                        Join
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stage monitor URL */}
+                <div>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Stage Monitor</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <code style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stageUrl}</code>
+                    <button onClick={() => stageUrl && navigator.clipboard.writeText(stageUrl)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => stageUrl && window.open(stageUrl, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', margin: '4px 0 -8px' }}>When the screen is blank</p>
                 {/* Holding slide image */}
                 <div>
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Holding Slide</p>
@@ -1072,26 +1062,6 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                       <img src={holdingImageUrl} alt="Holding slide preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                   )}
-                </div>
-
-                {/* Section labels */}
-                <div>
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>Section Labels</p>
-                  <p style={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.65rem', marginBottom: 12 }}>Show a small &quot;Verse 1&quot;, &quot;Chorus&quot;, etc. label above the lyrics on the projected screen.</p>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>Show on projector</span>
-                    <button
-                      onClick={() => {
-                        const next = !showSectionLabels
-                        setShowSectionLabels(next)
-                        localStorage.setItem('songsaver-section-labels', String(next))
-                        rebroadcast({ showSectionLabels: next })
-                      }}
-                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: showSectionLabels ? 'rgba(124,58,237,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
-                    >
-                      <span style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', left: showSectionLabels ? 22 : 2 }} />
-                    </button>
-                  </div>
                 </div>
 
                 {/* Screensaver */}
@@ -1274,13 +1244,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
 
           {/* Navigation bar */}
           <div
-            className="px-4 pt-3 pb-4 border-t border-white/[0.08] flex items-center gap-2"
+            className="px-4 pt-3 pb-4 border-t border-[rgba(255,255,255,0.08)] flex items-center gap-2"
             style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
           >
             <button
-              onClick={() => currentIdx !== null && currentIdx > 0 && showSlide(currentIdx - 1)}
-              disabled={currentIdx === null || currentIdx === 0}
-              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/60 disabled:opacity-25 hover:bg-white/10 transition-all text-sm font-medium"
+              onClick={goPrev}
+              disabled={!canGoPrev}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] disabled:opacity-25 hover:bg-[rgba(255,255,255,0.1)] transition-all text-sm font-medium"
             >
               <ChevronLeft className="w-5 h-5" /> Prev
             </button>
@@ -1291,23 +1261,24 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                 'w-14 h-14 flex items-center justify-center rounded-2xl border transition-all duration-150',
                 blank
                   ? 'bg-purple-600 border-purple-500 shadow-lg shadow-purple-500/30'
-                  : 'bg-white/[0.06] border-white/[0.08] text-white/60 hover:bg-white/10'
+                  : 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.1)]'
               )}
               title={blank ? 'Show slide' : 'Blank screen'}
             >
-              <EyeOff className={cn('w-5 h-5', blank ? 'text-white' : 'text-white/60')} />
+              <EyeOff className={cn('w-5 h-5', blank ? 'text-[#fff]' : 'text-[rgba(255,255,255,0.6)]')} />
             </button>
 
             <button
-              onClick={() => currentIdx !== null && currentIdx < slides.length - 1 && showSlide(currentIdx + 1)}
-              disabled={currentIdx === null || currentIdx === slides.length - 1}
-              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/60 disabled:opacity-25 hover:bg-white/10 transition-all text-sm font-medium"
+              onClick={goNext}
+              disabled={!canGoNext}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] disabled:opacity-25 hover:bg-[rgba(255,255,255,0.1)] transition-all text-sm font-medium"
             >
-              Next <ChevronRight className="w-5 h-5" />
+              {currentIdx === null ? 'Start' : currentIdx === slides.length - 1 && playlist && songIdx < playlist.length - 1 ? 'Next song' : 'Next'} <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
-          <style>{`@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}${ANIMATION_CSS}`}</style>
+          <style dangerouslySetInnerHTML={{ __html: `@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}` }} />
+          <PresentationStyles />
         </div>,
         document.body
       )}

@@ -11,11 +11,10 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useSupabase } from '@/hooks/useSupabase'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
 import { cn } from '@/lib/utils'
-import {
-  STATIC_BACKGROUNDS, LIVE_BACKGROUNDS, VIDEO_BACKGROUNDS,
-  LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, BG_STATIC, ANIMATION_CSS,
-  FONT_OPTIONS,
-} from '@/lib/presentationBackgrounds'
+import { FONT_OPTIONS } from '@/lib/presentationBackgrounds'
+import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT, type PresentState } from '@/lib/presentationProtocol'
+import { BackgroundLayer, PresentationStyles } from './BackgroundLayer'
+import { BackgroundPicker } from './BackgroundPicker'
 
 interface VerseResult { reference: string; text: string }
 interface VerseRef    { id: string; reference: string }
@@ -82,10 +81,10 @@ export function ScriptureController() {
     }
     setCode(sc)
     setBlank(true)
-    const ch = supabase.channel(`present-${sc}`, { config: { broadcast: { ack: false } } })
-    ch.subscribe()
-    channelRef.current = ch
+    const ch = connectChannel(sc)
     return () => { supabase.removeChannel(ch); channelRef.current = null }
+    // connectChannel only reads refs; re-running on its identity would reconnect every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, supabase])
 
   // ── Auto-scroll columns ──
@@ -100,29 +99,48 @@ export function ScriptureController() {
   useEffect(() => { if (activeVerse)   scrollTo(vsColRef,   activeVerse.reference) }, [activeVerse])
 
   // ── Broadcast helpers ──
-  const broadcast = (payload: object) =>
-    channelRef.current?.send({ type: 'broadcast', event: 'slide', payload })
+  // Last state sent — re-sent when a projector/stage screen (re)connects
+  const lastStateRef = useRef<PresentState | null>(null)
+  const send = (state: PresentState) => {
+    lastStateRef.current = state
+    channelRef.current?.send({ type: 'broadcast', event: SLIDE_EVENT, payload: state })
+  }
+  function connectChannel(sessionCode: string) {
+    const ch = supabase.channel(presentChannelName(sessionCode), { config: { broadcast: { ack: false } } })
+    ch.on('broadcast', { event: REQUEST_STATE_EVENT }, () => {
+      if (lastStateRef.current) ch.send({ type: 'broadcast', event: SLIDE_EVENT, payload: lastStateRef.current })
+    })
+    ch.subscribe()
+    channelRef.current = ch
+    return ch
+  }
+
+  const verseState = (verse: VerseResult | null, isBlank: boolean, overrides: Partial<PresentState> = {}): PresentState => ({
+    blank: isBlank,
+    lines: verse?.text ?? '',
+    title: '',
+    reference: verse?.reference ?? '',
+    section: verse?.reference ?? '',
+    upNext: null,
+    background, fontSizeKey, fontFamily, textColor, holdingImageUrl,
+    ...overrides,
+  })
 
   const sendVerse = (verse: VerseResult) => {
     setActiveVerse(verse)
     setBlank(false)
-    broadcast({ blank: false, section: verse.reference, lines: verse.text, title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    send(verseState(verse, false))
   }
 
   const showBlank = () => {
     setBlank(true)
-    broadcast({ blank: true, section: '', lines: '', title: '', background, fontSizeKey, fontFamily, textColor, holdingImageUrl })
+    send(verseState(activeVerse, true))
   }
 
   const revealCurrent = () => { if (activeVerse) sendVerse(activeVerse) }
 
-  const rebroadcast = (overrides: Record<string, unknown> = {}) => {
-    const base = { background, fontSizeKey, fontFamily, textColor, holdingImageUrl, ...overrides }
-    if (!blank && activeVerse) {
-      broadcast({ blank: false, section: activeVerse.reference, lines: activeVerse.text, title: '', ...base })
-    } else {
-      broadcast({ blank: true, section: '', lines: '', title: '', ...base })
-    }
+  const rebroadcast = (overrides: Partial<PresentState> = {}) => {
+    send(verseState(activeVerse, blank || !activeVerse, overrides))
   }
 
   const changeBackground = (bg: string) => {
@@ -224,9 +242,7 @@ export function ScriptureController() {
     if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null }
     sessionStorage.setItem('songsaver-present-code', trimmed)
     setCode(trimmed)
-    const ch = supabase.channel(`present-${trimmed}`, { config: { broadcast: { ack: false } } })
-    ch.subscribe()
-    channelRef.current = ch
+    connectChannel(trimmed)
     setBlank(true)
     setActiveVerse(null)
     setShowJoin(false)
@@ -234,11 +250,6 @@ export function ScriptureController() {
   }
 
   // ── Inline display ──
-  const isLiveBg  = LIVE_BG_IDS.has(background)
-  const isVideoBg = VIDEO_BG_IDS.has(background)
-  const inlineBgStyle = (isLiveBg || isVideoBg) ? undefined : { background: BG_STATIC[background] ?? BG_STATIC.dark }
-  const inlineBgClass  = isLiveBg ? `live-${background}` : ''
-  const inlineVideoUrl = isVideoBg ? VIDEO_BG_URLS[background] : null
   const inlineFontFam  = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
 
   // ── Trigger button ──
@@ -257,19 +268,12 @@ export function ScriptureController() {
   // ── Inline fullscreen ──
   const inlineDisplay = inlineOpen ? createPortal(
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');${ANIMATION_CSS}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');` }} />
       <div
-        className={inlineBgClass}
-        style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', flexDirection: 'column', ...(inlineBgStyle ?? {}) }}
+        style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#000' }}
         onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}
       >
-        {inlineVideoUrl && (
-          <video key={background} autoPlay loop muted playsInline preload="auto"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-            src={inlineVideoUrl}
-          />
-        )}
-        {!blank && activeVerse && blank === false && holdingImageUrl === '' ? null : null}
+        <BackgroundLayer id={background} />
 
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8%', position: 'relative', zIndex: 1 }}>
           {blank || !activeVerse ? (
@@ -284,12 +288,14 @@ export function ScriptureController() {
             </>
           ) : (
             <>
-              <p style={{ position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5em', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: inlineFontFam }}>
-                {activeVerse.reference}
-              </p>
-              <p style={{ color: textColor, textAlign: 'center', fontWeight: 300, fontSize: '5vw', lineHeight: 1.55, whiteSpace: 'pre-wrap', fontFamily: inlineFontFam, textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)' }}>
-                {activeVerse.text}
-              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ color: textColor, textAlign: 'center', fontWeight: 300, fontSize: '5vw', lineHeight: 1.55, whiteSpace: 'pre-wrap', fontFamily: inlineFontFam, textShadow: '0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(255,255,255,0.04)' }}>
+                  {activeVerse.text}
+                </p>
+                <p style={{ marginTop: '2vw', color: textColor, opacity: 0.7, fontSize: '1.6vw', fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: inlineFontFam }}>
+                  {activeVerse.reference}
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -345,14 +351,12 @@ export function ScriptureController() {
 
           {/* Preview panel */}
           {(() => {
-            const liveSwatch = LIVE_BACKGROUNDS.find(b => b.id === background)?.swatch
-            const videoSwatch = VIDEO_BACKGROUNDS.find(b => b.id === background)?.swatch
-            const previewBg = liveSwatch ?? videoSwatch ?? BG_STATIC[background] ?? BG_STATIC.dark
             const previewLines = activeVerse?.text.split('\n').filter(Boolean).slice(0, 3).join('\n') ?? ''
             const previewFontFamily = FONT_OPTIONS.find(f => f.id === fontFamily)?.family ?? FONT_OPTIONS[0].family
             return (
               <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ position: 'relative', width: '100%', height: 130, overflow: 'hidden', background: previewBg }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: 420, margin: '0 auto', aspectRatio: '16 / 9', maxHeight: 180, overflow: 'hidden', background: '#000' }}>
+                  <BackgroundLayer id={background} still />
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
                     {blank ? (
                       holdingImageUrl
@@ -561,39 +565,10 @@ export function ScriptureController() {
                   </div>
                 </div>
 
-                {/* Background — always visible */}
+                {/* Background */}
                 <div>
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 10 }}>Background</p>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Static</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
-                    {STATIC_BACKGROUNDS.map(bg => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6, marginTop: 4 }}>Animated</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 mb-4">
-                    {LIVE_BACKGROUNDS.map(bg => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Video</p>
-                    <span style={{ fontSize: '0.55rem', color: '#34d399', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: 4, padding: '1px 5px' }}>MP4</span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2">
-                    {VIDEO_BACKGROUNDS.map(bg => (
-                      <button key={bg.id} onClick={() => changeBackground(bg.id)} className="flex flex-col items-center gap-1">
-                        <span className={cn('w-9 h-9 rounded-full border-2 transition-all block', background === bg.id ? 'border-white scale-110' : 'border-white/20')} style={{ background: bg.swatch }} />
-                        <span style={{ fontSize: '0.55rem', color: background === bg.id ? '#fff' : 'rgba(255,255,255,0.35)' }}>{bg.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <BackgroundPicker value={background} onChange={changeBackground} />
                 </div>
 
                 {/* Font & Size — always visible */}
@@ -655,21 +630,22 @@ export function ScriptureController() {
           </div>
 
           {/* Bottom nav bar */}
-          <div className="px-4 pt-3 pb-4 border-t border-white/[0.08] flex items-center gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="px-4 pt-3 pb-4 border-t border-[rgba(255,255,255,0.08)] flex items-center gap-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             <button onClick={prevVerse} disabled={!canPrev}
-              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/60 disabled:opacity-25 hover:bg-white/10 transition-all text-sm font-medium">
+              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] disabled:opacity-25 hover:bg-[rgba(255,255,255,0.1)] transition-all text-sm font-medium">
               <ChevronLeft className="w-5 h-5" /> Prev
             </button>
             <button onClick={blank ? revealCurrent : showBlank}
-              className={cn('w-14 h-14 flex items-center justify-center rounded-2xl border transition-all duration-150', blank ? 'bg-purple-600 border-purple-500 shadow-lg shadow-purple-500/30' : 'bg-white/[0.06] border-white/[0.08]')}>
-              <EyeOff className={cn('w-5 h-5', blank ? 'text-white' : 'text-white/60')} />
+              className={cn('w-14 h-14 flex items-center justify-center rounded-2xl border transition-all duration-150', blank ? 'bg-purple-600 border-purple-500 shadow-lg shadow-purple-500/30' : 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)]')}>
+              <EyeOff className={cn('w-5 h-5', blank ? 'text-[#fff]' : 'text-[rgba(255,255,255,0.6)]')} />
             </button>
             <button onClick={nextVerse} disabled={!canNext}
-              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-white/[0.06] border border-white/[0.08] text-white/60 disabled:opacity-25 hover:bg-white/10 transition-all text-sm font-medium">
+              className="flex-1 flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] disabled:opacity-25 hover:bg-[rgba(255,255,255,0.1)] transition-all text-sm font-medium">
               Next <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-          <style>{`@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}${ANIMATION_CSS}`}</style>
+          <style dangerouslySetInnerHTML={{ __html: `@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:0.4}}` }} />
+          <PresentationStyles />
         </div>,
         document.body
       )}

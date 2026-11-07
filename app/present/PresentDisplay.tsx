@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
 import { Tv2 } from 'lucide-react'
-import {
-  BG_STATIC, LIVE_BG_IDS, VIDEO_BG_IDS, VIDEO_BG_URLS, PHOTO_BG_IDS, PHOTO_BG_URLS, ANIMATION_CSS,
-  FONT_FAMILY_MAP, SIZE_MULTIPLIERS,
-} from '@/lib/presentationBackgrounds'
+import { FONT_FAMILY_MAP, SIZE_MULTIPLIERS } from '@/lib/presentationBackgrounds'
+import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT, type PresentState } from '@/lib/presentationProtocol'
 import { LogoAnimation } from '@/components/presentation/LogoAnimation'
+import { BackgroundLayer } from '@/components/presentation/BackgroundLayer'
 
 const SCREENSAVER_VERSES = [
   { text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.', ref: 'John 3:16' },
@@ -25,26 +24,18 @@ const SCREENSAVER_VERSES = [
   { text: 'The LORD your God is with you, the Mighty Warrior who saves. He will take great delight in you; in his love he will no longer rebuke you, but will rejoice over you with singing.', ref: 'Zephaniah 3:17' },
 ]
 
-interface SlideState {
-  blank: boolean
-  section: string
-  lines: string
-  title: string
-  background: string
-  fontSizeKey?: string
-  fontFamily?: string
-  textColor?: string
-  holdingImageUrl?: string
-  translationLines?: string
-  screensaverEnabled?: boolean
-  screensaverInterval?: number
-  logoMode?: boolean
-  showSectionLabels?: boolean
-}
+type SlideState = Partial<PresentState> & Pick<PresentState, 'blank' | 'lines' | 'title'>
 
 const INITIAL: SlideState = {
-  blank: true, section: '', lines: '', title: '',
+  blank: true, lines: '', title: '',
   background: 'dark', fontSizeKey: 'md', fontFamily: 'sans',
+}
+
+/** Scripture reference to caption the verse with (older controllers sent it as `section`). */
+function scriptureReference(s: SlideState): string {
+  if (s.reference) return s.reference
+  if (!s.title && s.section && s.showSectionLabels) return s.section
+  return ''
 }
 
 export function PresentDisplay() {
@@ -81,9 +72,9 @@ export function PresentDisplay() {
 
   useEffect(() => {
     if (!code) return
-    const channel = supabase.channel(`present-${code}`, { config: { broadcast: { ack: false } } })
+    const channel = supabase.channel(presentChannelName(code), { config: { broadcast: { ack: false } } })
     channel
-      .on('broadcast', { event: 'slide' }, ({ payload }) => {
+      .on('broadcast', { event: SLIDE_EVENT }, ({ payload }) => {
         setConnected(true)
         setFadeIn(false)
         setTimeout(() => {
@@ -91,7 +82,13 @@ export function PresentDisplay() {
           setFadeIn(true)
         }, 150)
       })
-      .subscribe()
+      .subscribe((status) => {
+        // Ask the controller for what's on screen now — so opening or
+        // reloading this window mid-service doesn't wait for the next slide.
+        if (status === 'SUBSCRIBED') {
+          channel.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
+        }
+      })
     return () => { supabase.removeChannel(channel) }
   }, [code, supabase])
 
@@ -99,15 +96,8 @@ export function PresentDisplay() {
     document.documentElement.requestFullscreen?.().catch(() => {})
   }
 
-  // Background
   const bgId = slide.background ?? 'dark'
-  const isLive = LIVE_BG_IDS.has(bgId)
-  const isVideo = VIDEO_BG_IDS.has(bgId)
-  const isPhoto = PHOTO_BG_IDS.has(bgId)
-  const videoUrl = isVideo ? VIDEO_BG_URLS[bgId] : null
-  const photoUrl = isPhoto ? PHOTO_BG_URLS[bgId] : null
-  const bgStyle = (isLive || isVideo || isPhoto) ? undefined : { background: BG_STATIC[bgId] ?? BG_STATIC.dark }
-  const bgClass = isLive ? `live-${bgId}` : ''
+  const reference = scriptureReference(slide)
 
   // Detect dark text so we can flip the text-shadow to a light glow
   const rawTextColor = slide.textColor ?? '#ffffff'
@@ -139,32 +129,13 @@ export function PresentDisplay() {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');
-        ${ANIMATION_CSS}
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&display=swap');` }} />
 
       <div
-        className={`w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative ${bgClass}`}
-        style={bgStyle}
+        className="w-full h-full flex flex-col items-center justify-center cursor-pointer select-none relative overflow-hidden"
         onClick={requestFullscreen}
       >
-        {videoUrl && (
-          <video
-            key={bgId}
-            autoPlay loop muted playsInline preload="auto"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-            src={videoUrl}
-          />
-        )}
-        {photoUrl && (
-          <img
-            key={bgId}
-            src={photoUrl}
-            alt=""
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          />
-        )}
+        <BackgroundLayer id={bgId} />
         {!connected ? (
           <div className="text-center space-y-3 relative z-10">
             <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mx-auto">
@@ -240,15 +211,7 @@ export function PresentDisplay() {
             )}
             {!slide.blank && (
               <>
-                {slide.section && slide.showSectionLabels !== false && (
-                  <p
-                    className="absolute top-12 left-1/2 -translate-x-1/2 text-white/30 font-bold tracking-[0.5em] uppercase whitespace-nowrap"
-                    style={{ fontSize: '0.7rem', fontFamily }}
-                  >
-                    {slide.section}
-                  </p>
-                )}
-
+                {/* Song section names ("Verse 1", "Chorus") are deliberately never shown here */}
                 {/* Main text */}
                 <p
                   className="text-center whitespace-pre-line"
@@ -287,6 +250,23 @@ export function PresentDisplay() {
                     }}
                   >
                     {slide.translationLines}
+                  </p>
+                )}
+
+                {reference && (
+                  <p
+                    style={{
+                      marginTop: '2.2vw',
+                      fontSize: '1.5vw',
+                      fontFamily,
+                      fontWeight: 500,
+                      letterSpacing: '0.16em',
+                      textTransform: 'uppercase',
+                      color: rawTextColor + 'b3',
+                      textShadow: transShadow,
+                    }}
+                  >
+                    {reference}
                   </p>
                 )}
 

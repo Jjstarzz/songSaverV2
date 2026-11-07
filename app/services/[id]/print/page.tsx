@@ -157,7 +157,7 @@ export default function PrintPage() {
   return (
     <>
       {/* ── Print + screen styles ───────────────── */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .page-wrap * { box-sizing: border-box; }
         body { background: #f0f0f0; font-family: Georgia, 'Times New Roman', serif; color: #111; }
 
@@ -230,7 +230,7 @@ export default function PrintPage() {
           .btn-download { background: #fff; border: 1px solid #7c3aed; color: #7c3aed; }
           .btn-download:disabled { opacity: 0.6; cursor: not-allowed; }
         }
-      `}</style>
+      ` }} />
 
       {/* Screen-only toolbar */}
       <div className="toolbar no-print" style={{ fontFamily: 'Arial, sans-serif' }}>

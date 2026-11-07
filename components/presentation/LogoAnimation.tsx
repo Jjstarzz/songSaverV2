@@ -3,7 +3,7 @@
 export function LogoAnimation({ size = '72vh' }: { size?: string }) {
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes spcBreath {
           0%, 100% { transform: scale(1); }
           50%       { transform: scale(1.022); }
@@ -31,7 +31,7 @@ export function LogoAnimation({ size = '72vh' }: { size?: string }) {
                      transform-origin: 248px 148px; }
         .spc-glow  { animation: glowPulse 4s ease-in-out infinite 1s; }
         .spc-rim   { animation: rimGlow 5s ease-in-out infinite; }
-      `}</style>
+      ` }} />
 
       <svg
         viewBox="0 0 400 400"
