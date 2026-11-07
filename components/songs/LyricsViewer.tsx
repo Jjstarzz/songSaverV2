@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
-import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera, Trash2 } from 'lucide-react'
+import { Globe, Plus, Pencil, Check, X, ClipboardPaste, Eye, Search, Camera, Trash2, Sun, Minus, Type } from 'lucide-react'
 import { SongLyrics, LANGUAGE_NAMES } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { ConfirmModal } from '@/components/ui/Modal'
@@ -12,6 +12,80 @@ import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
 import { resizeImage } from '@/lib/resizeImage'
 import { cn } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
+import { useWakeLock } from '@/hooks/useWakeLock'
+
+const SCALES = [0.85, 1, 1.15, 1.3, 1.5, 1.75, 2]
+const SCALE_KEY = 'songsaver-lyrics-scale'
+const AWAKE_KEY = 'songsaver-keep-awake'
+
+function readPref<T>(key: string, fallback: T, parse: (v: string) => T): T {
+  try {
+    const v = localStorage.getItem(key)
+    return v === null ? fallback : parse(v)
+  } catch {
+    return fallback
+  }
+}
+function writePref(key: string, value: string) {
+  try { localStorage.setItem(key, value) } catch { /* private mode etc. */ }
+}
+
+/** Text size + keep-screen-awake controls for reading lyrics during practice. */
+function ReadingControls() {
+  const [scaleIdx, setScaleIdx] = useState(1)
+  const [keepAwake, setKeepAwake] = useState(false)
+  const { supported: wakeSupported, active: awake } = useWakeLock(keepAwake)
+
+  // Load saved preferences after mount (avoids SSR hydration mismatch)
+  useEffect(() => {
+    const saved = readPref(SCALE_KEY, 1, Number)
+    const idx = SCALES.indexOf(saved)
+    setScaleIdx(idx === -1 ? 1 : idx)
+    setKeepAwake(readPref(AWAKE_KEY, false, (v) => v === 'true'))
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--lyrics-scale', String(SCALES[scaleIdx]))
+    return () => { document.documentElement.style.removeProperty('--lyrics-scale') }
+  }, [scaleIdx])
+
+  const changeScale = (delta: number) => {
+    setScaleIdx((i) => {
+      const next = Math.min(SCALES.length - 1, Math.max(0, i + delta))
+      writePref(SCALE_KEY, String(SCALES[next]))
+      return next
+    })
+  }
+
+  const btn = 'h-10 min-w-[40px] px-2.5 flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-input)] text-[var(--fg-muted)] text-xs font-medium disabled:opacity-35 transition-colors'
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1" role="group" aria-label="Lyrics text size">
+        <button className={btn} onClick={() => changeScale(-1)} disabled={scaleIdx === 0} aria-label="Smaller text">
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+        <span className="w-12 text-center text-xs text-[var(--fg-muted)] tabular-nums flex items-center justify-center gap-1" aria-live="polite">
+          <Type className="w-3.5 h-3.5" />{Math.round(SCALES[scaleIdx] * 100)}%
+        </span>
+        <button className={btn} onClick={() => changeScale(1)} disabled={scaleIdx === SCALES.length - 1} aria-label="Larger text">
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {wakeSupported && (
+        <button
+          className={cn(btn, 'ml-auto', keepAwake && 'border-amber-500/40 bg-amber-500/15 text-amber-400')}
+          onClick={() => setKeepAwake((v) => { writePref(AWAKE_KEY, String(!v)); return !v })}
+          aria-pressed={keepAwake}
+          title="Stop the screen from dimming while you read"
+        >
+          <Sun className="w-3.5 h-3.5" />
+          {keepAwake ? (awake ? 'Screen stays on' : 'Keep awake…') : 'Keep screen on'}
+        </button>
+      )}
+    </div>
+  )
+}
 
 interface LyricsViewerProps {
   songId: string
@@ -444,8 +518,11 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                   placeholder="Enter lyrics..."
                 />
               ) : (
-                <div className="glass-card p-5">
-                  <LyricsDisplay text={activeLyric.lyrics} />
+                <div className="space-y-2.5">
+                  <ReadingControls />
+                  <div className="glass-card p-5">
+                    <LyricsDisplay text={activeLyric.lyrics} />
+                  </div>
                 </div>
               )}
             </div>

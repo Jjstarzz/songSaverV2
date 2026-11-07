@@ -189,7 +189,7 @@ html.light {
     opacity: 0.9;
     white-space: pre-wrap;
     line-height: 1.9;
-    font-size: clamp(0.95rem, 2.5vw, 1.125rem);
+    font-size: calc(clamp(0.95rem, 2.5vw, 1.125rem) * var(--lyrics-scale, 1));
   }
 
   /* Bottom nav (dark default — light/cream override below) */

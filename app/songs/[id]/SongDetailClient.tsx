@@ -158,9 +158,10 @@ export function SongDetailClient({ id }: Props) {
           <button
             onClick={() => prevInService && router.push(`/songs/${prevInService.song_id}?serviceId=${serviceId}`)}
             disabled={!prevInService}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+            aria-label="Previous song in service"
+            className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0 text-center">
             <p className="text-[10px] text-white/30 uppercase tracking-wider truncate">{navService.theme || 'Service'}</p>
@@ -169,9 +170,10 @@ export function SongDetailClient({ id }: Props) {
           <button
             onClick={() => nextInService && router.push(`/songs/${nextInService.song_id}?serviceId=${serviceId}`)}
             disabled={!nextInService}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+            aria-label="Next song in service"
+            className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}
