@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Music2, Search, ExternalLink, GripVertical, ArrowLeftRight, ArrowDown } from 'lucide-react'
 import Link from 'next/link'
 import { Song, ServiceSong, MUSICAL_KEYS, formatKey } from '@/types/database'
@@ -30,6 +30,18 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
   const [saving, setSaving] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
+  // Local copy so reorders/removals show instantly; re-synced when the parent refetches
+  const [list, setList] = useState<SetlistItem[]>(items)
+  useEffect(() => { setList(items) }, [items])
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Second tap within 3s confirms a removal
+  useEffect(() => {
+    if (!confirmRemoveId) return
+    const t = setTimeout(() => setConfirmRemoveId(null), 3000)
+    return () => clearTimeout(t)
+  }, [confirmRemoveId])
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null)
   const [showTransitions, setShowTransitions] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('songsaver-show-transitions') !== 'false' : true)
   const [transitionMap, setTransitionMap] = useState<Map<string, string | null>>(new Map())
@@ -57,7 +69,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
 
   const availableSongs = songs.filter(
     (s) =>
-      !items.some((item) => item.song_id === s.id) &&
+      !list.some((item) => item.song_id === s.id) &&
       (search === '' ||
         s.title.toLowerCase().includes(search.toLowerCase()) ||
         s.artist?.toLowerCase().includes(search.toLowerCase()))
@@ -68,25 +80,29 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     const { error } = await supabase.from('service_songs').insert({
       service_id: serviceId,
       song_id: songId,
-      order_index: items.length,
+      order_index: list.length,
       key_override: selectedKey || null,
     })
     if (error) {
       toast.error('Failed to add song')
     } else {
-      toast.success('Song added to setlist')
+      const title = songs.find((s) => s.id === songId)?.title
+      toast.success(title ? `Added "${title}"` : 'Song added to setlist')
+      // Keep the panel open so several songs can be added in a row
       setSearch('')
       setSelectedKey('')
-      setAdding(false)
       onUpdate()
     }
     setSaving(false)
   }
 
   const removeSong = async (itemId: string, title: string) => {
+    setConfirmRemoveId(null)
+    setList((prev) => prev.filter((i) => i.id !== itemId))
     const { error } = await supabase.from('service_songs').delete().eq('id', itemId)
     if (error) toast.error('Failed to remove song')
-    else { toast.success(`Removed "${title}"`); onUpdate() }
+    else toast.success(`Removed "${title}"`)
+    onUpdate()
   }
 
   const updateKey = async (itemId: string, key: string | null) => {
@@ -95,25 +111,65 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     else { onUpdate(); setEditingKeyId(null) }
   }
 
-  const handleDrop = async (dropIdx: number) => {
-    if (dragIdx === null || dragIdx === dropIdx) {
-      setDragIdx(null); setDragOverIdx(null); return
-    }
-    const reordered = [...items]
-    const [moved] = reordered.splice(dragIdx, 1)
-    reordered.splice(dropIdx, 0, moved)
-    setDragIdx(null); setDragOverIdx(null)
-    await Promise.all(reordered.map((item, i) =>
+  const moveSong = async (from: number, to: number) => {
+    if (from === to || to < 0 || to >= list.length) return
+    const reordered = [...list]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    setList(reordered)
+    // Only write rows whose position actually changed
+    const changed = reordered
+      .map((item, i) => ({ item, i }))
+      .filter(({ item, i }) => item.order_index !== i)
+    const results = await Promise.all(changed.map(({ item, i }) =>
       supabase.from('service_songs').update({ order_index: i }).eq('id', item.id)
     ))
+    if (results.some((r) => r.error)) toast.error('Failed to save new order')
     onUpdate()
   }
+
+  /**
+   * Final index the dragged row would land at, from the pointer's position.
+   * Rows don't move during the drag, so first find the gap the pointer is in
+   * (0 = above the first row … length = below the last), then account for the
+   * dragged row being taken out of the list when it moves down.
+   */
+  const targetIndexAt = (clientY: number, from: number) => {
+    const rows = rowRefs.current.slice(0, list.length)
+    let gap = list.length
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]?.getBoundingClientRect()
+      if (r && clientY < r.top + r.height / 2) { gap = i; break }
+    }
+    return gap > from ? gap - 1 : gap
+  }
+
+  const onGripPointerDown = (e: React.PointerEvent, idx: number) => {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDragIdx(idx)
+    setDragOverIdx(idx)
+  }
+  const onGripPointerMove = (e: React.PointerEvent) => {
+    if (dragIdx === null) return
+    setDragOverIdx(targetIndexAt(e.clientY, dragIdx))
+    // Nudge the page when dragging near the top/bottom edge
+    const edge = 90
+    if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 12)
+    else if (e.clientY < edge) window.scrollBy(0, -12)
+  }
+  const onGripPointerUp = () => {
+    if (dragIdx !== null && dragOverIdx !== null) moveSong(dragIdx, dragOverIdx)
+    setDragIdx(null)
+    setDragOverIdx(null)
+  }
+  const onGripPointerCancel = () => { setDragIdx(null); setDragOverIdx(null) }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="section-label">
-          Setlist {items.length > 0 && `(${items.length} songs)`}
+          Setlist {list.length > 0 && `(${list.length} songs)`}
         </p>
         <div className="flex items-center gap-3">
           {items.length > 1 && !adding && (
@@ -144,7 +200,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
       </div>
 
       {/* Song list */}
-      {items.length === 0 ? (
+      {list.length === 0 ? (
         <div className="glass-card p-8 text-center">
           <Music2 className="w-8 h-8 text-[var(--fg-subtle)] mx-auto mb-2" />
           <p className="text-sm text-[var(--fg-muted)]">
@@ -158,12 +214,12 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map((item, idx) => {
+          {list.map((item, idx) => {
             const displayKey = item.key_override
               ? formatKey(item.key_override, item.songs.mode)
               : formatKey(item.songs.preferred_key || item.songs.default_key, item.songs.mode)
             const isEditingKey = editingKeyId === item.id
-            const nextItem = items[idx + 1]
+            const nextItem = list[idx + 1]
             const transitionNote = nextItem
               ? transitionMap.get([item.song_id, nextItem.song_id].sort().join('|'))
               : undefined
@@ -172,13 +228,9 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
             return (
               <div key={item.id}>
                 <div
+                  ref={(el) => { rowRefs.current[idx] = el }}
                   className="glass-card transition-opacity overflow-hidden"
-                  style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
-                  draggable={!readOnly && !isEditingKey}
-                  onDragStart={() => setDragIdx(idx)}
-                  onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx) }}
-                  onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
-                  onDrop={() => handleDrop(idx)}
+                  style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== null && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
                 >
                   {/* Main row */}
                   <div className="flex items-center gap-3 p-3">
@@ -223,13 +275,40 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                     {/* Controls */}
                     {!readOnly && (
                       <>
-                        <GripVertical className="w-4 h-4 text-[var(--fg-subtle)] shrink-0 cursor-grab active:cursor-grabbing" />
-                        <button
-                          onClick={() => removeSong(item.id, item.songs.title)}
-                          className="text-red-400/40 hover:text-red-400 transition-colors shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {confirmRemoveId === item.id ? (
+                          <button
+                            onClick={() => removeSong(item.id, item.songs.title)}
+                            className="shrink-0 h-9 px-3 rounded-lg text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30"
+                          >
+                            Remove
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmRemoveId(item.id)}
+                            aria-label={`Remove ${item.songs.title}`}
+                            className="w-9 h-9 -mr-1 flex items-center justify-center rounded-lg text-red-400/50 hover:text-red-400 transition-colors shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {list.length > 1 && (
+                          <button
+                            type="button"
+                            aria-label={`Reorder ${item.songs.title} (drag, or use arrow keys)`}
+                            onPointerDown={(e) => onGripPointerDown(e, idx)}
+                            onPointerMove={onGripPointerMove}
+                            onPointerUp={onGripPointerUp}
+                            onPointerCancel={onGripPointerCancel}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp') { e.preventDefault(); moveSong(idx, idx - 1) }
+                              if (e.key === 'ArrowDown') { e.preventDefault(); moveSong(idx, idx + 1) }
+                            }}
+                            className="w-9 h-11 -mr-2 flex items-center justify-center shrink-0 text-[var(--fg-subtle)] cursor-grab active:cursor-grabbing"
+                            style={{ touchAction: 'none' }}
+                          >
+                            <GripVertical className="w-5 h-5" />
+                          </button>
+                        )}
                       </>
                     )}
 
