@@ -150,7 +150,7 @@ export function PublicServiceView({ id }: Props) {
   return (
     <div className="min-h-dvh bg-[#09090b] text-[var(--fg)]">
       {/* Header */}
-      <div className="px-4 pt-12 pb-6 border-b border-white/[0.06]">
+      <div className="page-top px-4 pb-6 border-b border-white/[0.06]">
         <div className="max-w-xl mx-auto">
           {/* Branding */}
           <p className="text-[10px] text-white/25 tracking-[0.25em] uppercase mb-4">SongSaver</p>

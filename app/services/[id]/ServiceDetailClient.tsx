@@ -78,7 +78,15 @@ export function ServiceDetailClient({ id }: Props) {
   }
 
   if (!service) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><p className="text-white/50">Service not found</p></div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-6 text-center">
+        <p className="text-white/50">Service not found</p>
+        <p className="text-xs text-[var(--fg-subtle)] max-w-xs">It may have been deleted, or it&apos;s a private service from another account.</p>
+        <Link href="/services">
+          <Button variant="secondary">Back to services</Button>
+        </Link>
+      </div>
+    )
   }
 
   const setlistItems = (service.service_songs ?? []) as any[]

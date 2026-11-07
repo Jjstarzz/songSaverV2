@@ -451,7 +451,7 @@ export default function ImportPage() {
 
   return (
     <div className="min-h-dvh p-6 pb-12 max-w-lg mx-auto">
-      <div className="pt-12 pb-6">
+      <div className="page-top pb-6">
         <div className="w-12 h-12 rounded-2xl bg-accent-500/15 flex items-center justify-center mb-4">
           <Music2 className="w-6 h-6 text-accent-400" />
         </div>

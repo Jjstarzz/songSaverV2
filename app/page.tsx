@@ -70,6 +70,15 @@ export default function DashboardPage() {
       .slice(0, 3)
   }, [services])
 
+  // When nothing is scheduled, surface the most recent service so it's one tap away
+  const latestService = useMemo(() => {
+    if (upcomingServices.length > 0) return null
+    const today = todayLocal()
+    return services
+      .filter((s) => s.date < today)
+      .reduce<(typeof services)[number] | null>((best, s) => (!best || s.date > best.date ? s : best), null)
+  }, [services, upcomingServices.length])
+
   const favoriteSongs = useMemo(
     () => songs.filter((s) => isFavorite(s.id)).slice(0, 5),
     [songs, isFavorite]
@@ -92,13 +101,15 @@ export default function DashboardPage() {
     const diff = Math.round((target.getTime() - today.getTime()) / 86400000)
     if (diff === 0) return 'Today'
     if (diff === 1) return 'Tomorrow'
+    if (diff === -1) return 'Yesterday'
+    if (diff < 0) return `${-diff} days ago`
     return `In ${diff} days`
   }
 
   return (
     <div className="px-4 pb-8">
       {/* Header */}
-      <div className="pt-12 pb-6">
+      <div className="page-top pb-6">
         <p className="text-sm text-[var(--fg-muted)]">
           {greeting}{firstName ? `, ${firstName}` : ''}
         </p>
@@ -160,6 +171,34 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Latest service (when nothing is upcoming) */}
+      {!servicesLoading && latestService && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="section-label">Latest Service</p>
+            <Link href="/services/new" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">Plan next</Link>
+          </div>
+          <Link
+            href={`/services/${latestService.id}`}
+            className="glass-card-hover flex items-center gap-3 p-3.5"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center shrink-0">
+              <CalendarDays className="w-5 h-5 text-[var(--fg-muted)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[var(--fg)] truncate">
+                {latestService.theme || SERVICE_TYPES[latestService.type]}
+              </p>
+              <p className="text-xs text-[var(--fg-muted)] truncate">
+                {formatDate(latestService.date)} · {(latestService.service_songs ?? []).length} songs
+              </p>
+            </div>
+            <span className="text-xs text-[var(--fg-subtle)] shrink-0">{daysUntil(latestService.date)}</span>
+            <ChevronRight className="w-4 h-4 text-[var(--fg-subtle)]" />
+          </Link>
         </section>
       )}
 

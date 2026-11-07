@@ -290,11 +290,14 @@ html.cream .border-white\/10,       html.cream .border-white\/20 { border-color:
 html.light .divide-white\/\[0\.06\] > * + *,
 html.cream .divide-white\/\[0\.06\] > * + * { border-color: var(--border) !important; }
 
-/* Keep accent/semantic colours untouched */
+/* Accent/semantic colours: the 300/400 shades are tuned for dark backgrounds
+   and wash out on cream/light, so use deeper shades there. (Previously this
+   used `revert`, which reset them to the browser default — link blue/black.) */
 html.light .text-accent-400, html.light .text-accent-300,
-html.light .text-emerald-400, html.light .text-red-400, html.light .text-amber-400,
-html.cream .text-accent-400, html.cream .text-accent-300,
-html.cream .text-emerald-400, html.cream .text-red-400, html.cream .text-amber-400 { color: revert !important; }
+html.cream .text-accent-400, html.cream .text-accent-300 { color: #5c34e0 !important; }
+html.light .text-emerald-400, html.cream .text-emerald-400 { color: #047857 !important; }
+html.light .text-red-400,     html.cream .text-red-400     { color: #b91c1c !important; }
+html.light .text-amber-400,   html.cream .text-amber-400   { color: #b45309 !important; }
 
 /* Page title gradient (from-white to-white/70) is invisible in light/cream — replace with dark gradient */
 html.light h1.bg-gradient-to-b,
