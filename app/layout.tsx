@@ -62,7 +62,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="cream" themes={['dark', 'cream', 'light']} enableSystem={false}>
           <OfflineBanner />
           {/* Max-width container centred on large screens, full-width on mobile */}
-          <div className="min-h-dvh max-w-lg mx-auto relative" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div id="app-shell" className="min-h-dvh max-w-lg mx-auto relative" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
             {children}
           </div>
           <BottomNav />

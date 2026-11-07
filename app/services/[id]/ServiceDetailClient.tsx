@@ -127,7 +127,7 @@ export function ServiceDetailClient({ id }: Props) {
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
               </Button>
             )}
-            <Link href={`/services/${id}/print`} target="_blank">
+            <Link href={`/services/${id}/print`}>
               <Button variant="ghost" size="icon-sm" title="Export PDF">
                 <FileDown className="w-4 h-4" />
               </Button>
