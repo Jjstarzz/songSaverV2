@@ -5,6 +5,9 @@ import { useSupabase } from './useSupabase'
 import { useAuth } from './useAuth'
 import { Service, ServiceWithSongs } from '@/types/database'
 import { batchFetchCreatorNames } from './useCreatorName'
+import { getCached, setCached, onCacheClear } from '@/lib/listCache'
+
+const SERVICES_KEY = 'services'
 
 export interface ServiceWithPreview extends Service {
   service_songs: { id: string; order_index: number; songs: { title: string; artist: string | null } }[]
@@ -13,14 +16,20 @@ export interface ServiceWithPreview extends Service {
 
 export function useServices() {
   const supabase = useSupabase()
-  const { user } = useAuth()
-  const [services, setServices] = useState<ServiceWithPreview[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
+  const userId = user?.id
+  const [services, setServices] = useState<ServiceWithPreview[]>(() => getCached<ServiceWithPreview[]>(SERVICES_KEY) ?? [])
+  const [loading, setLoading] = useState(() => getCached(SERVICES_KEY) === undefined)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => onCacheClear(() => { setServices([]); setLoading(true) }), [])
+
   const fetchServices = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
+    if (!userId) {
+      if (!authLoading) setLoading(false)
+      return
+    }
+    if (getCached(SERVICES_KEY) === undefined) setLoading(true)
     // RLS returns own services + public services from others
     const { data, error: err } = await supabase
       .from('services')
@@ -32,9 +41,11 @@ export function useServices() {
     const list = (data ?? []) as any[]
     // Batch-fetch creator display names
     const nameMap = await batchFetchCreatorNames(supabase, list.map((s) => s.created_by))
-    setServices(list.map((s) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })) as unknown as ServiceWithPreview[])
+    const next = list.map((s) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })) as unknown as ServiceWithPreview[]
+    setCached(SERVICES_KEY, next)
+    setServices(next)
     setLoading(false)
-  }, [supabase, user])
+  }, [supabase, userId, authLoading])
 
   useEffect(() => {
     fetchServices()

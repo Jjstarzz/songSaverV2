@@ -9,7 +9,7 @@ import { Service, SERVICE_TYPES } from '@/types/database'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toaster'
-import { cn } from '@/lib/utils'
+import { cn, todayLocal } from '@/lib/utils'
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -29,7 +29,7 @@ export function ServiceForm({ service }: ServiceFormProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    date: service?.date ?? new Date().toISOString().split('T')[0],
+    date: service?.date ?? todayLocal(),
     type: service?.type ?? 'sunday_morning',
     status: service?.status ?? 'draft',
     theme: service?.theme ?? '',

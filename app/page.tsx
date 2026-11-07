@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useSupabase } from '@/hooks/useSupabase'
 import { SongCard } from '@/components/songs/SongCard'
 import { SERVICE_TYPES, Profile } from '@/types/database'
-import { cn } from '@/lib/utils'
+import { cn, todayLocal } from '@/lib/utils'
 
 function StatCard({ icon: Icon, label, value, href, color }: {
   icon: React.ElementType
@@ -63,7 +63,7 @@ export default function DashboardPage() {
   }, [])
 
   const upcomingServices = useMemo(() => {
-    const now = new Date().toISOString().split('T')[0]
+    const now = todayLocal()
     return services
       .filter((s) => s.date >= now && s.status !== 'completed')
       .sort((a, b) => a.date.localeCompare(b.date))

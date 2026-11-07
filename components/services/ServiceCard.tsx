@@ -2,20 +2,20 @@ import Link from 'next/link'
 import { ChevronRight, Music2, Globe, Lock, UserRound } from 'lucide-react'
 import { SERVICE_TYPES } from '@/types/database'
 import { ServiceWithPreview } from '@/hooks/useServices'
-import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
 interface ServiceCardProps {
   service: ServiceWithPreview
   past?: boolean
+  /** Current user's id — passed in so each card doesn't open its own auth subscription */
+  currentUserId?: string | null
 }
 
-export function ServiceCard({ service, past }: ServiceCardProps) {
-  const { user } = useAuth()
+export function ServiceCard({ service, past, currentUserId }: ServiceCardProps) {
   const d = new Date(service.date + 'T00:00:00')
   const month = d.toLocaleDateString('en-US', { month: 'short' })
   const day = d.getDate()
-  const isOwn = user?.id === service.created_by
+  const isOwn = !!currentUserId && currentUserId === service.created_by
   const creatorLabel = service.creator_name
     ? isOwn ? 'You' : service.creator_name
     : null

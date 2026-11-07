@@ -18,7 +18,7 @@ import { useRole } from '@/hooks/useRole'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { LANGUAGE_NAMES, Profile } from '@/types/database'
-import { cn } from '@/lib/utils'
+import { cn, todayLocal } from '@/lib/utils'
 
 const LANG_OPTIONS = Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({ value, label }))
 
@@ -186,7 +186,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `songsaver-export-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `songsaver-export-${todayLocal()}.json`
       a.click()
       URL.revokeObjectURL(url)
       toast.success(`Exported ${payload.songs.length} songs and ${payload.services.length} services`)

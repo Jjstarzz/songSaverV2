@@ -76,3 +76,13 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timer = setTimeout(() => fn(...args), delay)
   }
 }
+
+/**
+ * Today's date as YYYY-MM-DD in the user's local timezone.
+ * (`toISOString()` is UTC — in India it reports yesterday until 5:30am.)
+ */
+export function todayLocal(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}

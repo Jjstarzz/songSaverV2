@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SlidersHorizontal, X, Heart, ArrowUpDown } from 'lucide-react'
 import { SongWithLanguages, MUSICAL_KEYS, LANGUAGE_NAMES, formatKey } from '@/types/database'
 import { SongCard } from './SongCard'
@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Music2 } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
+import { useSupabase } from '@/hooks/useSupabase'
 import { cn } from '@/lib/utils'
 
 const ALL_TAGS = ['Praise', 'Worship', 'Fast', 'Slow', 'Thanksgiving', 'Easter', 'Christmas', 'Advent', 'Communion', 'Offering', 'Opening', 'Closing']
@@ -20,6 +21,48 @@ const SORT_OPTIONS = [
   { value: 'bpm_asc', label: 'BPM ↑' },
   { value: 'bpm_desc', label: 'BPM ↓' },
 ]
+
+const PAGE_SIZE = 40
+
+/** Lowercase, strip accents and punctuation so "Lord, I lift" matches "lord i lift". */
+function normalise(s: string) {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .normalize('NFC') // recompose so Indic vowel signs match stored lyrics
+    .replace(/[^\p{L}\p{M}\p{N}\s\u200C\u200D]/gu, ' ') // keep vowel signs + zero-width joiners (Malayalam/Tamil)
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Song IDs whose lyrics contain the search phrase. Words may be separated by
+ * line breaks or punctuation in the lyrics, so "you are holy" also matches
+ * "You are holy,\nholy".
+ */
+function useLyricMatches(query: string): Set<string> {
+  const supabase = useSupabase()
+  const [ids, setIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const words = normalise(query).split(' ').filter(Boolean)
+    if (words.join(' ').length < 3 || typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIds(new Set())
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      // Escape LIKE wildcards in user input, then allow anything between words
+      const pattern = '%' + words.map((w) => w.replace(/[\\%_]/g, (c) => '\\' + c)).join('%') + '%'
+      const { data } = await supabase.from('song_lyrics').select('song_id').ilike('lyrics', pattern).limit(200)
+      if (!cancelled) setIds(new Set((data ?? []).map((r: { song_id: string }) => r.song_id)))
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [query, supabase])
+
+  return ids
+}
 
 interface SongListProps {
   songs: SongWithLanguages[]
@@ -46,6 +89,11 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
   const [showMine, setShowMine] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [filterTab, setFilterTab] = useState<'tags' | 'key' | 'lang' | 'bpm'>('tags')
+
+  // Filtering 400+ songs on every keystroke makes typing lag on phones;
+  // let React keep the input responsive and filter at lower priority.
+  const deferredQuery = useDeferredValue(query)
+  const lyricMatches = useLyricMatches(deferredQuery)
 
   // Collect original languages present in the song library
   const availableLanguages = useMemo(() => {
@@ -75,11 +123,11 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
 
   const filteredSongs = useMemo(() => {
     let result = songs.filter((song) => {
-      if (query) {
-        const q = query.toLowerCase()
-        const matchesTitle = song.title.toLowerCase().includes(q)
-        const matchesArtist = song.artist?.toLowerCase().includes(q) ?? false
-        if (!matchesTitle && !matchesArtist) return false
+      if (deferredQuery) {
+        const q = normalise(deferredQuery)
+        const matchesTitle = normalise(song.title).includes(q)
+        const matchesArtist = song.artist ? normalise(song.artist).includes(q) : false
+        if (!matchesTitle && !matchesArtist && !lyricMatches.has(song.id)) return false
       }
 
       if (selectedTags.length > 0 && !selectedTags.every((t) => song.tags.includes(t))) return false
@@ -112,8 +160,36 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
       }
     })
 
+    // When searching, songs whose title/artist match come before lyric-only matches
+    if (deferredQuery) {
+      const q = normalise(deferredQuery)
+      const direct = (s: SongWithLanguages) => normalise(s.title).includes(q) || (!!s.artist && normalise(s.artist).includes(q))
+      result = [...result.filter(direct), ...result.filter((s) => !direct(s))]
+    }
+
     return result
-  }, [songs, query, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, favorites, user?.id, userKeys])
+  }, [songs, deferredQuery, lyricMatches, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, favorites, user?.id, userKeys])
+
+  // Render in pages; more appear as the user scrolls near the end
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [filteredSongs])
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisibleCount((n) => n + PAGE_SIZE) },
+      { rootMargin: '600px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [filteredSongs, visibleCount])
+
+  const firstLyricOnlyIdx = useMemo(() => {
+    if (!deferredQuery) return -1
+    const q = normalise(deferredQuery)
+    return filteredSongs.findIndex((s) => !normalise(s.title).includes(q) && !(s.artist && normalise(s.artist).includes(q)))
+  }, [filteredSongs, deferredQuery])
 
   const clearFilters = () => {
     setQuery('')
@@ -147,7 +223,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search songs..."
+              placeholder="Search titles, artists, lyrics…"
               className="input-base pl-10 pr-10"
             />
             {query && (
@@ -467,9 +543,15 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
         />
       ) : (
         <div className="space-y-1.5">
-          {filteredSongs.map((song) => (
-            <SongCard key={song.id} song={song} userKey={userKeys[song.id]} />
+          {filteredSongs.slice(0, visibleCount).map((song, i) => (
+            <div key={song.id}>
+              {i === firstLyricOnlyIdx && (
+                <p className="section-label pt-3 pb-1.5">Found in lyrics</p>
+              )}
+              <SongCard song={song} userKey={userKeys[song.id]} />
+            </div>
           ))}
+          {visibleCount < filteredSongs.length && <div ref={sentinelRef} className="h-10" aria-hidden />}
         </div>
       )}
     </div>

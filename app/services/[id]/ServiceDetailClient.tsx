@@ -17,7 +17,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { SERVICE_TYPES, SERVICE_STATUSES } from '@/types/database'
 import { PresentationController } from '@/components/presentation/PresentationController'
-import { formatDate } from '@/lib/utils'
+import { formatDate, todayLocal } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 interface Props { id: string }
@@ -43,7 +43,7 @@ export function ServiceDetailClient({ id }: Props) {
   const canEdit = isOwner || isAdmin
   const canDelete = isOwner || isAdmin
   const creatorName = useCreatorName(service?.created_by)
-  const isPast = !!service && service.date < new Date().toISOString().split('T')[0]
+  const isPast = !!service && service.date < todayLocal()
 
   const toggleVisibility = async () => {
     if (!service) return

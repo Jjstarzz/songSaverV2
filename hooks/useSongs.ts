@@ -6,16 +6,53 @@ import { useAuth } from './useAuth'
 import { SongWithLanguages, SongWithLyrics } from '@/types/database'
 import { getAllOfflineSongs, getOfflineSong } from '@/lib/offlineDB'
 import { batchFetchCreatorNames } from './useCreatorName'
+import { getCached, setCached, onCacheClear } from '@/lib/listCache'
+
+const SONGS_KEY = 'songs'
+
+// Share one in-flight request between components that mount at the same time
+// (e.g. the dashboard and a setlist picker both asking for the song list).
+let inflight: Promise<{ data: any[] | null; error: unknown }> | null = null
+function loadSongs(supabase: ReturnType<typeof useSupabase>) {
+  inflight ??= (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('songs')
+        .select('*, song_lyrics(language, is_default), service_songs(services(date))')
+        .order('updated_at', { ascending: false })
+      if (error || !data) return { data: null, error }
+      const nameMap = await batchFetchCreatorNames(supabase, data.map((s: any) => s.created_by))
+      return { data: data.map((s: any) => ({ ...s, creator_name: nameMap[s.created_by] ?? null })), error: null }
+    } finally {
+      inflight = null
+    }
+  })()
+  return inflight
+}
 
 export function useSongs() {
   const supabase = useSupabase()
-  const { user } = useAuth()
-  const [songs, setSongs] = useState<SongWithLanguages[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
+  const userId = user?.id
+  // Start from the cached list so navigating between pages is instant;
+  // a fresh copy is fetched in the background.
+  const [songs, setSongsState] = useState<SongWithLanguages[]>(() => getCached<SongWithLanguages[]>(SONGS_KEY) ?? [])
+  const [loading, setLoading] = useState(() => getCached(SONGS_KEY) === undefined)
   const [error, setError] = useState<string | null>(null)
 
+  const setSongs = useCallback((next: SongWithLanguages[] | ((prev: SongWithLanguages[]) => SongWithLanguages[])) => {
+    setSongsState((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next
+      setCached(SONGS_KEY, value)
+      return value
+    })
+  }, [])
+
+  useEffect(() => onCacheClear(() => { setSongsState([]); setLoading(true) }), [])
+
   const fetchSongs = useCallback(async () => {
-    setLoading(true)
+    // Only show the loading state when there's nothing to show yet
+    if (getCached(SONGS_KEY) === undefined) setLoading(true)
     setError(null)
 
     // If offline, load from IndexedDB immediately — no network needed
@@ -26,12 +63,12 @@ export function useSongs() {
       return
     }
 
-    if (!user) { setLoading(false); return }
+    if (!userId) {
+      if (!authLoading) setLoading(false) // no session at all — nothing to load
+      return
+    }
 
-    const { data, error: err } = await supabase
-      .from('songs')
-      .select('*, song_lyrics(language, is_default), service_songs(services(date))')
-      .order('updated_at', { ascending: false })
+    const { data, error: err } = await loadSongs(supabase)
 
     if (err) {
       // Network failed mid-request — fall back to offline cache
@@ -39,17 +76,16 @@ export function useSongs() {
       setSongs(offline as unknown as SongWithLanguages[])
     } else {
       const list = (data ?? []) as any[]
-      const nameMap = await batchFetchCreatorNames(supabase, list.map((s) => s.created_by))
       setSongs(list.map((s) => {
         const dates: string[] = (s.service_songs ?? [])
           .map((ss: any) => ss.services?.date)
           .filter(Boolean)
         const last_sung_date = dates.length > 0 ? dates.sort().at(-1) : null
-        return { ...s, creator_name: nameMap[s.created_by] ?? null, last_sung_date }
+        return { ...s, last_sung_date }
       }) as unknown as SongWithLanguages[])
     }
     setLoading(false)
-  }, [supabase, user])
+  }, [supabase, userId, authLoading, setSongs])
 
   useEffect(() => {
     fetchSongs()
@@ -64,7 +100,7 @@ export function useSongs() {
       return { error: err.message }
     }
     return { error: null }
-  }, [supabase, fetchSongs])
+  }, [supabase, fetchSongs, setSongs])
 
   return { songs, loading, error, refetch: fetchSongs, deleteSong }
 }
