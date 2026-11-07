@@ -251,6 +251,13 @@ html.light {
 html.light .text-white,
 html.cream .text-white { color: var(--fg) !important; }
 
+/* …but white text on solid coloured buttons/chips must stay white
+   (exact class tokens, so tinted backgrounds like bg-accent-500/15 aren't affected) */
+html.light .text-white:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]),
+html.cream .text-white:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]),
+html.light :is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]) .text-white,
+html.cream :is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]) .text-white { color: #fff !important; }
+
 /* text-white with opacity modifiers */
 html.light .text-white\/90, html.light .text-white\/80, html.light .text-white\/70,
 html.cream .text-white\/90, html.cream .text-white\/80, html.cream .text-white\/70 { color: rgba(44,40,32,0.80) !important; }

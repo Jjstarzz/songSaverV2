@@ -54,15 +54,20 @@ export function ServiceCard({ service, past, currentUserId }: ServiceCardProps) 
       <div className="flex-1 min-w-0">
         {/* Title row */}
         <div className="flex items-center gap-2 mb-0.5">
-          <span className={cn(
-            'text-xs font-medium',
-            service.status === 'draft' && 'text-[var(--fg-subtle)]',
-            service.status === 'confirmed' && 'text-emerald-400',
-            service.status === 'completed' && 'text-accent-400'
-          )}>
-            {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
-          </span>
-          <span className="text-[var(--fg-subtle)] text-xs">·</span>
+          {/* "Draft" on a service that has already happened is just noise */}
+          {!(past && service.status === 'draft') && (
+            <>
+              <span className={cn(
+                'text-xs font-medium',
+                service.status === 'draft' && 'text-[var(--fg-subtle)]',
+                service.status === 'confirmed' && 'text-emerald-400',
+                service.status === 'completed' && 'text-accent-400'
+              )}>
+                {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
+              </span>
+              <span className="text-[var(--fg-subtle)] text-xs">·</span>
+            </>
+          )}
           <span className="text-xs text-[var(--fg-muted)]">
             {SERVICE_TYPES[service.type]}
           </span>

@@ -110,7 +110,7 @@ export function ServicesClient() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search services or songs…"
+                placeholder="Search services…"
                 aria-label="Search services"
                 className="input-base pl-10 pr-10"
               />

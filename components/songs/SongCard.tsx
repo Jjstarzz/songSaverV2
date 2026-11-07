@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Music2, Heart, ChevronRight } from 'lucide-react'
 import { SongWithLanguages, LANGUAGE_NAMES, formatKey } from '@/types/database'
 import { useFavorites } from '@/hooks/useFavorites'
-import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
 interface SongCardProps {
@@ -16,16 +15,23 @@ interface SongCardProps {
 
 export const SongCard = memo(function SongCard({ song, compact, userKey }: SongCardProps) {
   const { isFavorite, toggle } = useFavorites()
-  const { user } = useAuth()
   const fav = isFavorite(song.id)
-  const isOwn = user?.id === song.created_by
-  const creatorLabel = song.creator_name
-    ? isOwn ? 'You' : song.creator_name
-    : null
-  const languages = song.song_lyrics?.map((l) => l.language) ?? []
+  // One de-duplicated list of languages (original + every lyrics version)
+  const languages = [...new Set([
+    ...(song.original_language ? [song.original_language] : []),
+    ...(song.song_lyrics?.map((l) => l.language) ?? []),
+  ])]
+  const hasLyrics = (song.song_lyrics?.length ?? 0) > 0
+  const key = userKey || song.preferred_key || song.default_key
+  const keyShort = key ? `${key}${song.mode === 'minor' ? 'm' : ''}` : null
 
-  const hasMeta = !!(song.default_key || song.preferred_key || userKey || song.bpm || song.time_signature || song.artist)
-  const hasTagsOrLangs = !compact && (song.tags.length > 0 || song.original_language || languages.length > 0)
+  const meta = [
+    song.artist,
+    song.time_signature,
+    !compact && song.last_sung_date
+      ? `Sung ${new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+      : null,
+  ].filter(Boolean) as string[]
 
   return (
     <div className="relative">
@@ -36,73 +42,58 @@ export const SongCard = memo(function SongCard({ song, compact, userKey }: SongC
           compact ? 'p-2.5' : 'p-3'
         )}
       >
-        {/* Icon */}
-        <div className={cn(
-          'shrink-0 rounded-xl bg-accent-500/15 border border-accent-500/20 flex items-center justify-center text-accent-400',
-          compact ? 'w-8 h-8' : 'w-10 h-10'
-        )}>
-          <Music2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+        {/* Key tile — the song's key at a glance (green when it's your personal key) */}
+        <div
+          className={cn(
+            'shrink-0 rounded-xl border flex items-center justify-center font-bold tabular-nums',
+            compact ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm',
+            userKey
+              ? 'bg-emerald-500/12 border-emerald-500/25 text-emerald-400'
+              : keyShort
+                ? 'bg-accent-500/12 border-accent-500/20 text-accent-400'
+                : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)]'
+          )}
+          title={key ? `${formatKey(key, song.mode)}${userKey ? ' (your key)' : ''}` : 'No key set'}
+        >
+          {keyShort ?? <Music2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />}
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 pr-6">
-          <h3 className="text-sm font-semibold text-white truncate leading-snug">
+        <div className={cn('flex-1 min-w-0', !compact && 'pr-8')}>
+          <h3 className="text-[15px] font-semibold text-[var(--fg)] truncate leading-snug">
             {song.title}
           </h3>
 
-          {/* Meta row: artist · key · time */}
-          {hasMeta && (
-            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              {[
-                song.artist && (
-                  <span key="artist" className="text-[11px] text-white/45 truncate">{song.artist}</span>
-                ),
-                (song.default_key || song.preferred_key || userKey) && (userKey ? (
-                  <span key="key" className="text-[11px] font-medium text-emerald-400">
-                    {formatKey(userKey, song.mode)}
-                  </span>
-                ) : (
-                  <span key="key" className="text-[11px] text-white/45">{formatKey(song.preferred_key || song.default_key, song.mode)}</span>
-                )),
-                song.time_signature && (
-                  <span key="time" className="text-[11px] text-white/45">{song.time_signature}</span>
-                ),
-                !compact && song.last_sung_date && (
-                  <span key="sung" className="text-[10px] text-white/30">
-                    {new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  </span>
-                ),
-              ]
-                .filter(Boolean)
-                // Separators only between items that are actually shown
-                .flatMap((item, i) => (i === 0 ? [item] : [<span key={`sep${i}`} className="text-[11px] text-white/25">·</span>, item]))}
-            </div>
+          {meta.length > 0 && (
+            <p className="text-xs text-[var(--fg-muted)] truncate mt-0.5">
+              {meta.join('  ·  ')}
+            </p>
           )}
 
-          {/* Tags + languages on one row */}
-          {hasTagsOrLangs && (
-            <div className="flex gap-1 mt-1 flex-wrap items-center">
+          {!compact && (song.tags.length > 0 || languages.length > 0 || !hasLyrics) && (
+            <div className="flex gap-1.5 mt-1.5 flex-wrap items-center">
               {song.tags.slice(0, 2).map((tag) => (
                 <span key={tag} className="tag-pill">{tag}</span>
               ))}
-              {song.original_language && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-500/10 text-sky-400 border border-sky-500/15">
-                  {LANGUAGE_NAMES[song.original_language] ?? song.original_language.toUpperCase()}
+              {song.tags.length > 2 && (
+                <span className="text-[10px] text-[var(--fg-subtle)]">+{song.tags.length - 2}</span>
+              )}
+              {languages.length > 0 && (
+                <span
+                  className="text-[10px] font-semibold tracking-wider text-[var(--fg-subtle)] uppercase"
+                  title={languages.map((l) => LANGUAGE_NAMES[l] ?? l).join(', ')}
+                >
+                  {languages.join(' · ')}
                 </span>
               )}
-              {languages.slice(0, 3).map((lang) => (
-                <span key={lang} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
-                  {LANGUAGE_NAMES[lang] ?? lang.toUpperCase()}
-                </span>
-              ))}
-              {(song.tags.length > 2 || languages.length > 3) && (
-                <span className="text-[10px] text-white/30">+{(song.tags.length - 2) + Math.max(0, languages.length - 3)}</span>
+              {!hasLyrics && (
+                <span className="text-[10px] font-medium text-amber-400">No lyrics</span>
               )}
             </div>
           )}
         </div>
 
-        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors shrink-0" />
+        <ChevronRight className="w-4 h-4 text-[var(--fg-subtle)] group-hover:text-[var(--fg-muted)] transition-colors shrink-0" />
       </Link>
 
       {/* Favourite button — overlaid so it doesn't trigger navigation */}
@@ -113,7 +104,7 @@ export const SongCard = memo(function SongCard({ song, compact, userKey }: SongC
             'absolute right-[34px] top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200',
             fav
               ? 'text-red-400 hover:text-red-300'
-              : 'text-white/20 hover:text-white/50'
+              : 'text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]'
           )}
           aria-label={fav ? 'Remove from favourites' : 'Add to favourites'}
         >

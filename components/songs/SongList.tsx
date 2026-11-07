@@ -223,7 +223,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search titles, artists, lyrics…"
+              placeholder="Search songs & lyrics…"
               className="input-base pl-10 pr-10"
             />
             {query && (
