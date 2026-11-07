@@ -21,7 +21,7 @@ export function BottomNav() {
   if (pathname.endsWith('/view') || pathname === '/present') return null
 
   return (
-    <nav className="bottom-nav bg-[var(--bg)]/88 backdrop-blur-2xl">
+    <nav className="bottom-nav">
       <div className="flex items-stretch max-w-lg mx-auto">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = exact
@@ -33,7 +33,7 @@ export function BottomNav() {
               key={href}
               href={href}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-0.5',
+                'flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-0.5 min-h-[56px]',
                 'transition-all duration-200 relative select-none',
                 'active:scale-95',
                 active ? 'text-accent-400' : 'text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]'
@@ -43,7 +43,7 @@ export function BottomNav() {
                 <span className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-2xl bg-accent-500/[0.13] border border-accent-500/25" />
               )}
               <Icon className="w-[18px] h-[18px] relative z-10" />
-              <span className="relative z-10 text-[9px] font-semibold leading-none tracking-wide">{label}</span>
+              <span className="relative z-10 text-[10px] font-semibold leading-none tracking-wide">{label}</span>
             </Link>
           )
         })}

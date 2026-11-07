@@ -61,7 +61,7 @@ export function SongTransitions({ songId, songTitle }: SongTransitionsProps) {
         {!adding && (
           <button
             onClick={() => setAdding(true)}
-            className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1"
+            className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1 py-3 -my-3 px-2 -mx-2"
           >
             <Plus className="w-3 h-3" /> Add
           </button>

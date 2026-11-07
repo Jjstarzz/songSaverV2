@@ -53,35 +53,29 @@ export const SongCard = memo(function SongCard({ song, compact, userKey }: SongC
           {/* Meta row: artist · key · time */}
           {hasMeta && (
             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-              {song.artist && (
-                <span className="text-[11px] text-white/45 truncate">{song.artist}</span>
-              )}
-              {(song.default_key || song.preferred_key || userKey) && (
-                <>
-                  {song.artist && <span className="text-[11px] text-white/25">·</span>}
-                  {userKey ? (
-                    <span className="text-[11px] font-medium text-emerald-400">
-                      {formatKey(userKey, song.mode)}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-white/45">{formatKey(song.preferred_key || song.default_key, song.mode)}</span>
-                  )}
-                </>
-              )}
-              {song.time_signature && (
-                <>
-                  <span className="text-[11px] text-white/25">·</span>
-                  <span className="text-[11px] text-white/45">{song.time_signature}</span>
-                </>
-              )}
-              {!compact && song.last_sung_date && (
-                <>
-                  <span className="text-[11px] text-white/25">·</span>
-                  <span className="text-[10px] text-white/30">
+              {[
+                song.artist && (
+                  <span key="artist" className="text-[11px] text-white/45 truncate">{song.artist}</span>
+                ),
+                (song.default_key || song.preferred_key || userKey) && (userKey ? (
+                  <span key="key" className="text-[11px] font-medium text-emerald-400">
+                    {formatKey(userKey, song.mode)}
+                  </span>
+                ) : (
+                  <span key="key" className="text-[11px] text-white/45">{formatKey(song.preferred_key || song.default_key, song.mode)}</span>
+                )),
+                song.time_signature && (
+                  <span key="time" className="text-[11px] text-white/45">{song.time_signature}</span>
+                ),
+                !compact && song.last_sung_date && (
+                  <span key="sung" className="text-[10px] text-white/30">
                     {new Date(song.last_sung_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
-                </>
-              )}
+                ),
+              ]
+                .filter(Boolean)
+                // Separators only between items that are actually shown
+                .flatMap((item, i) => (i === 0 ? [item] : [<span key={`sep${i}`} className="text-[11px] text-white/25">·</span>, item]))}
             </div>
           )}
 
@@ -116,7 +110,7 @@ export const SongCard = memo(function SongCard({ song, compact, userKey }: SongC
         <button
           onClick={(e) => { e.preventDefault(); toggle(song.id) }}
           className={cn(
-            'absolute right-10 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all duration-200',
+            'absolute right-[34px] top-1/2 -translate-y-1/2 p-3 rounded-full transition-all duration-200',
             fav
               ? 'text-red-400 hover:text-red-300'
               : 'text-white/20 hover:text-white/50'

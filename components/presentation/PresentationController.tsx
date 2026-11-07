@@ -344,10 +344,11 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:bg-purple-500/25 transition-colors"
+        aria-label={playlist ? 'Present service' : 'Present song'}
+        className="shrink-0 flex items-center gap-1.5 px-3 min-h-[36px] rounded-xl text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:bg-purple-500/25 transition-colors"
       >
         <Monitor className="w-3.5 h-3.5" />
-        {playlist ? 'Present Service' : 'Present'}
+        Present
       </button>
     )
   }

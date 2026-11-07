@@ -43,7 +43,7 @@ export function Toaster() {
   const remove = (id: string) => setToasts((prev) => prev.filter((x) => x.id !== id))
 
   return (
-    <div className="fixed top-4 right-4 left-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed right-4 left-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-lg mx-auto" style={{ top: 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))' }}>
       {toasts.map((t) => (
         <div
           key={t.id}

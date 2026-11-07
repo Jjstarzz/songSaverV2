@@ -16,6 +16,14 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null)
 
+  // Lock background scrolling while open (iOS/Android otherwise scroll the page behind)
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const handleKey = (e: KeyboardEvent) => {
@@ -28,7 +36,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -39,7 +47,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       <div
         ref={ref}
         className={cn(
-          'relative w-full max-w-lg max-h-[90vh] overflow-y-auto',
+          'relative w-full max-w-lg max-h-[90vh] max-h-[90dvh] overflow-y-auto overscroll-contain',
           'bg-base-850 border border-white/10 rounded-2xl shadow-card',
           'animate-slide-up',
           className

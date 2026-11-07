@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <p className="section-label">Upcoming Services</p>
-            <Link href="/services" className="text-xs text-accent-400">See all</Link>
+            <Link href="/services" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
           </div>
           <div className="space-y-2">
             {upcomingServices.map((service) => (
@@ -168,7 +168,7 @@ export default function DashboardPage() {
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <p className="section-label">Favourites</p>
-            <Link href="/songs" className="text-xs text-accent-400">See all</Link>
+            <Link href="/songs" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
           </div>
           <div className="space-y-2">
             {favoriteSongs.map((song) => (
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             <p className="section-label flex items-center gap-1.5">
               <TrendingUp className="w-3 h-3" /> Recent Songs
             </p>
-            <Link href="/songs" className="text-xs text-accent-400">See all</Link>
+            <Link href="/songs" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
           </div>
           {recentSongs.length === 0 ? (
             <div className="glass-card p-6 text-center">
@@ -238,7 +238,7 @@ export default function DashboardPage() {
       )}
 
       {/* Quick actions FAB row */}
-      <div className="fixed bottom-24 right-4 flex flex-col gap-2 z-40">
+      <div className="fixed right-4 flex flex-col gap-2 z-40" style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <Link
           href="/songs/new"
           className="w-14 h-14 rounded-full bg-accent-600 shadow-lg flex items-center justify-center text-white active:scale-95 transition-transform"

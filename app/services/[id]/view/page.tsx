@@ -9,7 +9,7 @@ interface Props {
 
 export default function PublicServicePage({ params }: Props) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#09090b]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-[#09090b]" />}>
       <PublicServiceView id={params.id} />
     </Suspense>
   )

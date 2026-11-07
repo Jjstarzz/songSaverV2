@@ -125,7 +125,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
               }}
               title="Show transition notes between songs"
               className={cn(
-                'text-xs transition-colors flex items-center gap-1',
+                'text-xs transition-colors flex items-center gap-1 py-3 -my-3 px-2 -mx-2',
                 showTransitions ? 'text-accent-400 hover:text-accent-300' : 'text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]'
               )}
             >

@@ -139,7 +139,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
   return (
     <div className="space-y-3">
       {/* Sticky search + controls */}
-      <div className="sticky top-0 z-30 pt-2 pb-1 bg-[var(--bg)]/90 backdrop-blur-xl px-4 -mx-4">
+      <div className="sticky-search-bg sticky top-0 z-30 pb-1 px-4 -mx-4" style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}>
         {/* Search row */}
         <div className="flex gap-2">
           <div className="flex-1 relative">

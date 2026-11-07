@@ -440,7 +440,7 @@ export default function ImportPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-dvh flex items-center justify-center p-6">
         <div className="glass-card p-8 text-center max-w-sm w-full">
           <p className="text-[var(--fg)] font-semibold">Sign in required</p>
           <p className="text-sm text-[var(--fg-muted)] mt-1">You must be signed in to import songs.</p>
@@ -450,7 +450,7 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 pb-12 max-w-lg mx-auto">
+    <div className="min-h-dvh p-6 pb-12 max-w-lg mx-auto">
       <div className="pt-12 pb-6">
         <div className="w-12 h-12 rounded-2xl bg-accent-500/15 flex items-center justify-center mb-4">
           <Music2 className="w-6 h-6 text-accent-400" />

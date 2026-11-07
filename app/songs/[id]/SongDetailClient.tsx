@@ -245,7 +245,7 @@ export function SongDetailClient({ id }: Props) {
             </div>
             <button
               onClick={() => setKeyPickerOpen((v) => !v)}
-              className="text-xs text-accent-400 hover:text-accent-300 transition-colors"
+              className="text-xs text-accent-400 hover:text-accent-300 transition-colors py-3 -my-3 px-2 -mx-2"
             >
               {keyPickerOpen ? 'Cancel' : userKey ? 'Change' : 'Set key'}
             </button>

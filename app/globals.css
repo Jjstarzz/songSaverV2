@@ -76,6 +76,7 @@ html.light {
     color: var(--fg);
     font-feature-settings: "rlig" 1, "calt" 1;
     min-height: 100vh;
+    min-height: 100dvh; /* excludes mobile browser toolbars */
   }
 
   a, button { -webkit-tap-highlight-color: transparent; }
@@ -191,16 +192,41 @@ html.light {
     font-size: clamp(0.95rem, 2.5vw, 1.125rem);
   }
 
-  /* Bottom nav */
+  /* Bottom nav (dark default — light/cream override below) */
   .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 z-50;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
     border-top: 1px solid rgba(255,255,255,0.10);
+    background: rgba(8,8,14,0.96);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+
+  /* Sticky top bars: frosted background + clear the iOS status bar / notch */
+  .sticky-header-bg {
+    background: rgba(8,8,14,0.88);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .sticky-search-bg {
+    background: rgba(8,8,14,0.90);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  html.light .sticky-search-bg { background: rgba(246,245,242,0.95); }
+  html.cream .sticky-search-bg { background: rgba(237,231,218,0.95); }
+
+  /* Top-of-page header that must clear the status bar on notched iPhones */
+  .page-top {
+    padding-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 1rem));
   }
 
   /* Light mode: bottom nav */
   html.light .bottom-nav {
-    background: rgba(248,247,244,0.9) !important;
+    background: rgba(248,247,244,0.97) !important;
     border-top-color: var(--border);
   }
 
@@ -235,6 +261,16 @@ html.cream .text-white\/60, html.cream .text-white\/50 { color: var(--fg-muted) 
 html.light .text-white\/40, html.light .text-white\/30, html.light .text-white\/20,
 html.cream .text-white\/40, html.cream .text-white\/30, html.cream .text-white\/20 { color: var(--fg-subtle) !important; }
 
+/* In-between opacities that were previously unthemed (near-invisible on cream/light) */
+html.light .text-white\/85, html.cream .text-white\/85 { color: rgba(44,40,32,0.85) !important; }
+html.light .text-white\/65, html.light .text-white\/55, html.light .text-white\/45,
+html.cream .text-white\/65, html.cream .text-white\/55, html.cream .text-white\/45 { color: var(--fg-muted) !important; }
+html.light .text-white\/35, html.light .text-white\/25, html.light .text-white\/15, html.light .text-white\/10,
+html.cream .text-white\/35, html.cream .text-white\/25, html.cream .text-white\/15, html.cream .text-white\/10 { color: var(--fg-subtle) !important; }
+
+/* Purple-tinted controls (e.g. Present button) need darker text on light grounds */
+html.light .text-purple-300, html.cream .text-purple-300 { color: #6d28d9 !important; }
+
 /* bg-white with opacity → input/surface tones */
 html.light .bg-white\/\[0\.04\], html.light .bg-white\/\[0\.05\],
 html.light .bg-white\/\[0\.06\], html.light .bg-white\/\[0\.07\], html.light .bg-white\/\[0\.08\],
@@ -267,7 +303,7 @@ html.cream h1.bg-gradient-to-b {
 }
 
 /* Cream: bottom nav + sticky header */
-html.cream .bottom-nav { background: rgba(232,224,210,0.93) !important; border-top-color: var(--border); }
+html.cream .bottom-nav { background: rgba(232,224,210,0.97) !important; border-top-color: var(--border); }
 html.cream .sticky-header-bg { background: rgba(237,231,218,0.95) !important; }
 
 /* Light: sticky header */

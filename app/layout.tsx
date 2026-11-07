@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/Toaster'
 import { ServiceWorkerInit } from '@/components/layout/ServiceWorkerInit'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
+import { ThemeColorSync } from '@/components/ui/ThemeColorSync'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'SongSaver',
   },
   formatDetection: {
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a0a0f',
+  themeColor: '#ede7da', // cream (default theme); ThemeColorSync updates it at runtime
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -55,19 +56,19 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="cream" themes={['dark', 'cream', 'light']} enableSystem={false}>
           <OfflineBanner />
           {/* Max-width container centred on large screens, full-width on mobile */}
-          <div className="min-h-screen pb-24 max-w-lg mx-auto relative">
+          <div className="min-h-dvh max-w-lg mx-auto relative" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
             {children}
           </div>
           <BottomNav />
           <Toaster />
           <ServiceWorkerInit />
+          <ThemeColorSync />
         </ThemeProvider>
       </body>
     </html>
