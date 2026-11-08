@@ -7,76 +7,79 @@
    Text levels are chosen to meet WCAG AA (≥ 4.5:1) on --bg and --bg-card.
    ───────────────────────────────────────────── */
 :root {
-  /* dark (default) */
-  --bg:            #0c0c11;
-  --bg-surface:    #111117;
-  --bg-elevated:   #18181f;
-  --bg-card:       #14141b;
-  --bg-card-hover: #1a1a23;
-  --bg-input:      #1b1b23;
-  --bg-hover:      rgba(255,255,255,0.05);
-  --fg:            #f1f1f4;
-  --fg-muted:      #b0b0bd;
-  --fg-subtle:     #8a8a99;
-  --border:        rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.15);
-  --border-focus:  #8b6bff;
-  --accent-fg:     #a993ff;
-  --accent-soft:   rgba(124,92,252,0.14);
-  --accent-border: rgba(124,92,252,0.42);
-  --danger:        #f87171;
-  --success:       #34d399;
-  --warning:       #fbbf24;
-  --shadow-card:   none;
+  /* dark (default) — lifted off pure black and text softened from pure white,
+     which cuts glare and the "halo" effect around bright text on black */
+  --bg:            #15151b;
+  --bg-surface:    #191920;
+  --bg-elevated:   #23232c;
+  --bg-card:       #1c1c24;
+  --bg-card-hover: #22222b;
+  --bg-input:      #20202a;
+  --bg-hover:      rgba(255,255,255,0.045);
+  --fg:            #e6e6ec;
+  --fg-muted:      #a9a9b7;
+  --fg-subtle:     #8c8c9b;
+  --border:        rgba(255,255,255,0.075);
+  --border-strong: rgba(255,255,255,0.14);
+  --border-focus:  #9a85ff;
+  --accent-fg:     #b2a2ff;
+  --accent-soft:   rgba(140,115,255,0.14);
+  --accent-border: rgba(140,115,255,0.40);
+  --danger:        #f19393;
+  --success:       #5fd3a8;
+  --warning:       #f0c066;
+  --shadow-card:   0 1px 2px rgba(0,0,0,0.25);
   --nav-h:         64px;
   color-scheme: dark;
 }
 
+/* paper — soft linen: less yellow, less glare, warm charcoal text */
 html.cream {
-  --bg:            #efe9de;
-  --bg-surface:    #e7e0d2;
-  --bg-elevated:   #fbf8f2;
-  --bg-card:       #f8f4ec;
-  --bg-card-hover: #fffdf8;
-  --bg-input:      #fbf8f3;
-  --bg-hover:      rgba(60,45,20,0.06);
-  --fg:            #271f14;
-  --fg-muted:      #594d3c;
-  --fg-subtle:     #6e6150;
-  --border:        rgba(60,45,20,0.13);
-  --border-strong: rgba(60,45,20,0.22);
-  --border-focus:  #6d46f5;
-  --accent-fg:     #4a26c0;
-  --accent-soft:   rgba(109,70,245,0.10);
-  --accent-border: rgba(109,70,245,0.35);
-  --danger:        #b42318;
-  --success:       #067a52;
-  --warning:       #8a4b05;
-  --shadow-card:   0 1px 2px rgba(60,45,20,0.06);
+  --bg:            #f1ede6;
+  --bg-surface:    #e9e4da;
+  --bg-elevated:   #fbf9f5;
+  --bg-card:       #f8f5ef;
+  --bg-card-hover: #fbf9f5;
+  --bg-input:      #fbf9f5;
+  --bg-hover:      rgba(70,55,35,0.05);
+  --fg:            #2e2922;
+  --fg-muted:      #5d5549;
+  --fg-subtle:     #6c6457;
+  --border:        rgba(70,55,35,0.11);
+  --border-strong: rgba(70,55,35,0.20);
+  --border-focus:  #6d4fe0;
+  --accent-fg:     #5232c4;
+  --accent-soft:   rgba(109,79,224,0.09);
+  --accent-border: rgba(109,79,224,0.32);
+  --danger:        #a8362a;
+  --success:       #17714f;
+  --warning:       #84500e;
+  --shadow-card:   0 1px 2px rgba(70,55,35,0.05), 0 2px 8px rgba(70,55,35,0.04);
   color-scheme: light;
 }
 
+/* white — soft cool grey page with gentle off-white cards instead of stark #fff */
 html.light {
-  --bg:            #f5f5f8;
-  --bg-surface:    #ececf1;
+  --bg:            #f3f4f7;
+  --bg-surface:    #eaecf0;
   --bg-elevated:   #ffffff;
-  --bg-card:       #ffffff;
-  --bg-card-hover: #fafaff;
+  --bg-card:       #fbfbfd;
+  --bg-card-hover: #ffffff;
   --bg-input:      #ffffff;
-  --bg-hover:      rgba(20,20,40,0.05);
-  --fg:            #14141b;
-  --fg-muted:      #4a4a58;
-  --fg-subtle:     #636372;
-  --border:        rgba(20,20,40,0.10);
-  --border-strong: rgba(20,20,40,0.18);
-  --border-focus:  #6d46f5;
-  --accent-fg:     #4a26c0;
-  --accent-soft:   rgba(109,70,245,0.09);
-  --accent-border: rgba(109,70,245,0.32);
-  --danger:        #b42318;
-  --success:       #067a52;
-  --warning:       #8a4b05;
-  --shadow-card:   0 1px 2px rgba(20,20,40,0.05);
+  --bg-hover:      rgba(25,30,45,0.045);
+  --fg:            #23252d;
+  --fg-muted:      #4d505c;
+  --fg-subtle:     #626572;
+  --border:        rgba(25,30,45,0.09);
+  --border-strong: rgba(25,30,45,0.17);
+  --border-focus:  #6d4fe0;
+  --accent-fg:     #5232c4;
+  --accent-soft:   rgba(109,79,224,0.08);
+  --accent-border: rgba(109,79,224,0.30);
+  --danger:        #a8362a;
+  --success:       #17714f;
+  --warning:       #84500e;
+  --shadow-card:   0 1px 2px rgba(25,30,45,0.04), 0 2px 8px rgba(25,30,45,0.04);
   color-scheme: light;
 }
 
@@ -115,7 +118,7 @@ html.light {
     border-radius: 6px;
   }
 
-  ::selection { background: rgba(124,92,252,0.30); color: var(--fg); }
+  ::selection { background: color-mix(in srgb, var(--accent-fg) 25%, transparent); color: var(--fg); }
 }
 
 /* Short, subtle motion — and none for people who ask for less */

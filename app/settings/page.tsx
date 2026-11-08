@@ -403,9 +403,9 @@ export default function SettingsPage() {
                           ? 'bg-accent-600 text-white'
                           : 'text-white/50 hover:text-white/70'
                       )}
-                      aria-label={`${t} theme`}
+                      aria-label={`${t === 'cream' ? 'Paper' : t === 'light' ? 'White' : 'Dark'} theme`}
                     >
-                      {t === 'dark' ? 'Dark' : t === 'cream' ? 'Cream' : 'Light'}
+                      {t === 'dark' ? 'Dark' : t === 'cream' ? 'Paper' : 'White'}
                     </button>
                   ))}
                 </div>

@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#efe9de', // cream (default theme); ThemeColorSync updates it at runtime
+  themeColor: '#f1ede6', // cream (default theme); ThemeColorSync updates it at runtime
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

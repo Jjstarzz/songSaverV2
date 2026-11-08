@@ -52,7 +52,16 @@ function StageDisplay() {
       // Ask the controller for the current slide when this screen (re)connects
       if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
     })
-    return () => { supabase.removeChannel(ch) }
+    const resync = () => { if (!document.hidden) ch.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} }) }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('focus', resync)
+    window.addEventListener('online', resync)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('focus', resync)
+      window.removeEventListener('online', resync)
+      supabase.removeChannel(ch)
+    }
   }, [code, supabase])
 
   if (!code) {
