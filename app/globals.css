@@ -46,12 +46,12 @@ html.cream {
   --border:        rgba(60,45,20,0.13);
   --border-strong: rgba(60,45,20,0.22);
   --border-focus:  #6d46f5;
-  --accent-fg:     #5530d0;
+  --accent-fg:     #4a26c0;
   --accent-soft:   rgba(109,70,245,0.10);
   --accent-border: rgba(109,70,245,0.35);
   --danger:        #b42318;
   --success:       #067a52;
-  --warning:       #a15c07;
+  --warning:       #8a4b05;
   --shadow-card:   0 1px 2px rgba(60,45,20,0.06);
   color-scheme: light;
 }
@@ -70,12 +70,12 @@ html.light {
   --border:        rgba(20,20,40,0.10);
   --border-strong: rgba(20,20,40,0.18);
   --border-focus:  #6d46f5;
-  --accent-fg:     #5530d0;
+  --accent-fg:     #4a26c0;
   --accent-soft:   rgba(109,70,245,0.09);
   --accent-border: rgba(109,70,245,0.32);
   --danger:        #b42318;
   --success:       #067a52;
-  --warning:       #a15c07;
+  --warning:       #8a4b05;
   --shadow-card:   0 1px 2px rgba(20,20,40,0.05);
   color-scheme: light;
 }

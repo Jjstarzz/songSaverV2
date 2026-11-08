@@ -19,11 +19,12 @@ import { BackgroundPicker } from './BackgroundPicker'
 interface VerseResult { reference: string; text: string }
 interface VerseRef    { id: string; reference: string }
 
-export function ScriptureController() {
+export function ScriptureController({ defaultOpen = false, onClose }: { defaultOpen?: boolean; onClose?: () => void } = {}) {
   const supabase = useSupabase()
 
   // Open / close
-  const [open, setOpen]           = useState(false)
+  const [open, setOpenState]      = useState(defaultOpen)
+  const setOpen = (v: boolean) => { setOpenState(v); if (!v) onClose?.() }
   const [inlineOpen, setInlineOpen] = useState(false)
 
   // Presentation core
@@ -344,7 +345,7 @@ export function ScriptureController() {
                 {activeVerse ? activeVerse.reference : 'No verse selected'}
               </p>
             </div>
-            <button onClick={() => setOpen(false)} style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 12 }}>
+            <button onClick={() => setOpen(false)} aria-label="Close presenter" style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 12 }}>
               <X className="w-4 h-4" />
             </button>
           </div>

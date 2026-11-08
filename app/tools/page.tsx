@@ -210,8 +210,8 @@ export default function ToolsPage() {
   const scaleNotes = getScaleNotes(selectedKey, isMinor)
 
   return (
-    <div className="pb-32">
-      <PageHeader title="Key Reference" subtitle="Scale + metronome practice tool" />
+    <div className="max-w-3xl">
+      <PageHeader title="Tools" subtitle="Key reference, tap tempo and metronome" />
 
       <div className="px-4 space-y-4">
 
@@ -226,7 +226,7 @@ export default function ToolsPage() {
                 className={cn(
                   'py-2.5 rounded-xl text-sm font-semibold border transition-all duration-150',
                   selectedKey === k
-                    ? 'bg-gradient-to-b from-accent-500 to-accent-700 border-accent-500 text-white shadow-[0_0_12px_-2px_rgba(124,92,252,0.6)]'
+                    ? 'bg-accent-600 border-accent-500 text-white'
                     : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white hover:border-white/20'
                 )}
               >
@@ -243,7 +243,7 @@ export default function ToolsPage() {
                 className={cn(
                   'flex-1 py-2 rounded-xl text-sm font-semibold border transition-all duration-150',
                   (m === 'Minor') === isMinor
-                    ? 'bg-gradient-to-b from-accent-500 to-accent-700 border-accent-500 text-white'
+                    ? 'bg-accent-600 border-accent-500 text-white'
                     : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-white'
                 )}
               >
@@ -338,6 +338,7 @@ export default function ToolsPage() {
           <div className="flex items-center justify-center gap-5">
             <button
               onClick={() => setBpm(b => Math.max(40, b - 1))}
+              aria-label="Slower: decrease tempo by 1 BPM"
               className="w-11 h-11 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center text-white/50 hover:text-white transition-colors"
             >
               <Minus className="w-4 h-4" />
@@ -348,6 +349,7 @@ export default function ToolsPage() {
             </div>
             <button
               onClick={() => setBpm(b => Math.min(220, b + 1))}
+              aria-label="Faster: increase tempo by 1 BPM"
               className="w-11 h-11 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center text-white/50 hover:text-white transition-colors"
             >
               <Plus className="w-4 h-4" />
@@ -383,7 +385,7 @@ export default function ToolsPage() {
                     'rounded-full transition-all duration-75',
                     activeBeat === i
                       ? i === 0
-                        ? 'w-4 h-4 bg-accent-400 shadow-[0_0_10px_2px_rgba(139,92,246,0.6)]'
+                        ? 'w-4 h-4 bg-accent-400'
                         : 'w-3.5 h-3.5 bg-white/70'
                       : i === 0
                         ? 'w-3.5 h-3.5 bg-accent-500/30 border border-accent-500/40'
@@ -400,7 +402,7 @@ export default function ToolsPage() {
               'w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-3 transition-all duration-200',
               isPlaying
                 ? 'bg-red-500/15 border border-red-500/35 text-red-400 hover:bg-red-500/25'
-                : 'bg-gradient-to-b from-accent-500 to-accent-700 text-white shadow-[0_0_24px_-4px_rgba(124,92,252,0.55)] hover:from-accent-400 hover:to-accent-600'
+                : 'bg-accent-600 text-white hover:from-accent-400 hover:to-accent-600'
             )}
           >
             {isPlaying

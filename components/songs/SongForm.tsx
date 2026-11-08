@@ -27,6 +27,9 @@ interface LyricEntry {
   is_default: boolean
 }
 
+/** Serialised form state, used to detect unsaved changes */
+const snapshot = (fm: unknown, tg: string[], le: LyricEntry[]) => JSON.stringify({ fm, tg, le })
+
 interface SongFormProps {
   song?: Song
   /** Page heading shown in the toolbar ("New song" / "Edit song") */
@@ -92,7 +95,6 @@ export function SongForm({ song, heading }: SongFormProps) {
   }
 
   // ── Unsaved-changes tracking ──
-  const snapshot = (fm: typeof form, tg: string[], le: LyricEntry[]) => JSON.stringify({ fm, tg, le })
   const initialRef = useRef<string | null>(null)
   if (initialRef.current === null) initialRef.current = snapshot(form, tags, lyricEntries)
   const [saved, setSaved] = useState(false)
@@ -242,7 +244,7 @@ export function SongForm({ song, heading }: SongFormProps) {
     )}
     {leaveDialog}
     <form onSubmit={handleSubmit} noValidate className="px-4 pt-6 max-w-2xl space-y-8">
-      <input ref={imgInputRef} type="file" accept="image/*" className="hidden" aria-hidden tabIndex={-1} onChange={handleOcrImage} />
+      <input ref={imgInputRef} type="file" accept="image/*" hidden aria-hidden tabIndex={-1} onChange={handleOcrImage} />
       <p className="text-sm text-[var(--fg-muted)]">Fields marked <span aria-hidden className="text-[var(--danger)]">*</span><span className="sr-only">with an asterisk</span> are required.</p>
 
       {/* ── Basic Info ── */}
@@ -309,7 +311,7 @@ export function SongForm({ song, heading }: SongFormProps) {
                       onClick={() => updateLyric(idx, 'is_default', true)}
                     >
                       {LANGUAGE_NAMES[entry.language] ?? entry.language.toUpperCase()}
-                      {entry.is_default && <span className="ml-1 opacity-70">★</span>}
+                      {entry.is_default && <><span aria-hidden className="ml-1">★</span><span className="sr-only"> (default)</span></>}
                     </button>
                     {lyricEntries.length > 1 && (
                       <button

@@ -322,7 +322,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
                 >
                   <span className="block text-sm font-medium leading-tight">{d.name}</span>
                   {(d.kind || lyric.is_default) && (
-                    <span className="block text-[11px] leading-tight opacity-80">
+                    <span className="block text-[11px] leading-tight">
                       {[d.kind ? KIND_LABEL[d.kind] : null, lyric.is_default ? 'Default' : null].filter(Boolean).join(' · ')}
                     </span>
                   )}

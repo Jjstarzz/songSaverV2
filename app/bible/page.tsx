@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toaster'
 import { useSupabase } from '@/hooks/useSupabase'
 import { BIBLE_BOOKS } from '@/lib/bibleData'
-import { ScriptureController } from '@/components/presentation/ScriptureController'
+import { ScripturePresentButton } from '@/components/presentation/ScripturePresentButton'
 import { cn } from '@/lib/utils'
 
 interface Verse {
@@ -165,11 +165,11 @@ export default function BiblePage() {
   }
 
   return (
-    <div>
+    <div className="max-w-3xl">
       <PageHeader
         title="Scripture"
         subtitle="Search and browse Bible verses"
-        action={<ScriptureController />}
+        action={<ScripturePresentButton />}
       />
 
       <div className="px-4 space-y-4">
@@ -200,12 +200,13 @@ export default function BiblePage() {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && search()}
-                  placeholder='Reference (John 3:16) or keyword (peace)'
+                  placeholder='John 3:16 or a keyword'
+                  aria-label='Search by reference or keyword'
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.07] border border-white/10 text-white text-sm placeholder:text-white/30 outline-none focus:border-accent-500/50"
                 />
               </div>
-              <Button onClick={search} loading={searching} size="md" className="shrink-0">
-                <Search className="w-4 h-4" />
+              <Button onClick={search} loading={searching} size="icon" className="shrink-0" aria-label="Search scripture">
+                <Search aria-hidden className="w-4 h-4" />
               </Button>
             </div>
 

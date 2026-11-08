@@ -36,7 +36,9 @@ export function BackHeader({ title, action, children, hideTitle }: BackHeaderPro
     <div className="sticky-header-bg sticky top-0 z-40 border-b border-[var(--border)]">
       <div className="flex items-center gap-1 px-2 h-14">
         {children}
-        <p className={cn('flex-1 min-w-0 text-[15px] font-semibold text-[var(--fg)] truncate', hideTitle && 'sr-only')}>{title}</p>
+        {hideTitle
+          ? <p className="sr-only">{title}</p>
+          : <h1 className="flex-1 min-w-0 text-[15px] font-semibold text-[var(--fg)] truncate">{title}</h1>}
         {hideTitle && <span className="flex-1" />}
         {action && <div className="flex items-center gap-1 shrink-0">{action}</div>}
       </div>

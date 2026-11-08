@@ -76,7 +76,7 @@ function NextService({ service }: { service: ServiceWithPreview }) {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const supabase = useSupabase()
   const { songs, loading: songsLoading } = useSongs()
   const { services, loading: servicesLoading } = useServices()
@@ -235,6 +235,8 @@ export default function DashboardPage() {
               </div>
               {songsLoading ? (
                 <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)}</div>
+              ) : recentSongs.length === 0 && !user && !authLoading ? (
+                <p role="alert" className="surface p-5 text-sm text-[var(--fg-muted)]">Couldn&apos;t connect to your library. Check your connection and reload.</p>
               ) : recentSongs.length === 0 ? (
                 <p className="surface p-5 text-sm text-[var(--fg-muted)]">No songs yet — add your first one.</p>
               ) : (

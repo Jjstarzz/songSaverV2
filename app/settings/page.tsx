@@ -205,20 +205,22 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="px-4 pb-12">
-      <PageHeader title="Settings" />
+    <div className="px-4 pb-12 max-w-2xl">
+      <PageHeader className="px-0" title="Settings" />
 
       {/* Section tabs */}
-      <div className="flex gap-1 mb-6 p-1 bg-white/[0.04] rounded-xl border border-white/[0.06]">
+      <div role="tablist" aria-label="Settings sections" className="flex gap-1 mb-6 p-1 bg-[var(--bg-input)] rounded-xl border border-[var(--border)]">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
+            role="tab"
+            aria-selected={activeSection === key}
             onClick={() => setActiveSection(key)}
             className={cn(
-              'flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+              'flex-1 min-h-[40px] rounded-lg text-sm font-medium transition-colors',
               activeSection === key
-                ? 'bg-accent-600 text-white shadow-glow-sm'
-                : 'text-white/50 hover:text-white/80'
+                ? 'bg-accent-600 text-white'
+                : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
             )}
           >
             {label}
@@ -231,7 +233,7 @@ export default function SettingsPage() {
         <div className="space-y-5 animate-fade-in">
           {/* Avatar card */}
           <div className="glass-card p-5 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-600 to-purple-700 flex items-center justify-center shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-accent-600 flex items-center justify-center shrink-0">
               <User className="w-8 h-8 text-white" />
             </div>
             <div className="min-w-0">

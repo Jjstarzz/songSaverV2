@@ -9,6 +9,7 @@ import { useSongs } from '@/hooks/useSongs'
 import { useUserSongKeys } from '@/hooks/useUserSongKeys'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
+import { useAuth } from '@/hooks/useAuth'
 
 function relativeTime(d: Date) {
   const mins = Math.round((Date.now() - d.getTime()) / 60000)
@@ -29,6 +30,9 @@ export function SongsClient() {
   const userKeys = useUserSongKeys()
   const online = useOnlineStatus()
   const { syncing, lastSynced } = useOfflineSync()
+  const { user, loading: authLoading } = useAuth()
+  // Online but no session (e.g. sign-in was refused): say so instead of showing an empty library
+  const noSession = online && !authLoading && !user
 
   return (
     <div className="px-4">
@@ -58,11 +62,21 @@ export function SongsClient() {
         ) : null}
       </p>
 
+      {noSession && (
+        <div role="alert" className="surface p-4 mb-3">
+          <p className="text-sm font-medium text-[var(--fg)]">Couldn&apos;t connect to your library</p>
+          <p className="text-sm text-[var(--fg-muted)] mt-1">SongSaver couldn&apos;t start a session. Check your connection and try again.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 h-10 px-4 rounded-xl border border-[var(--border-strong)] text-sm font-medium text-[var(--fg)]">
+            Try again
+          </button>
+        </div>
+      )}
+
       {error && online && (
         <p role="alert" className="surface p-3 mb-3 text-sm text-[var(--danger)]">Couldn&apos;t load songs: {error}</p>
       )}
 
-      <SongList songs={songs} loading={loading} userKeys={userKeys} />
+      {!noSession && <SongList songs={songs} loading={loading} userKeys={userKeys} />}
     </div>
   )
 }

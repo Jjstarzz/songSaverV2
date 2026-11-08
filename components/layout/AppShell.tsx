@@ -58,6 +58,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70] focus:px-4 focus:py-2.5 focus:rounded-xl focus:bg-accent-600 focus:text-white focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside
         className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-60 flex-col border-r border-[var(--border)] bg-[var(--bg-surface)]"
@@ -77,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div id="app-shell" className="min-h-dvh lg:pl-60">
-        <main className="pb-nav mx-auto w-full max-w-[1200px] lg:px-4">{children}</main>
+        <main id="main" tabIndex={-1} className="pb-nav mx-auto w-full max-w-[1200px] lg:px-4 outline-none">{children}</main>
       </div>
 
       {/* Mobile bottom navigation */}

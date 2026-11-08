@@ -151,7 +151,7 @@ export function AudioRecorder() {
             className={cn(
               'relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95',
               recording
-                ? 'bg-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)] text-white'
+                ? 'bg-red-500 text-white'
                 : 'bg-white/[0.08] border-2 border-white/20 text-white/70 hover:bg-white/[0.14] hover:text-white'
             )}
           >

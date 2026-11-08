@@ -105,7 +105,7 @@ export function Metronome() {
             className={cn(
               'w-3 h-3 rounded-full transition-all duration-75',
               running && beat === i
-                ? i === 0 ? 'bg-accent-400 scale-125 shadow-glow-sm' : 'bg-white/70 scale-110'
+                ? i === 0 ? 'bg-accent-400 scale-125' : 'bg-white/70 scale-110'
                 : 'bg-white/20'
             )}
           />
@@ -125,8 +125,8 @@ export function Metronome() {
 
       {/* BPM controls */}
       <div className="flex items-center justify-center gap-3">
-        <button onClick={() => adjustBpm(-10)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95 text-xs font-bold">-10</button>
-        <button onClick={() => adjustBpm(-1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95">
+        <button onClick={() => adjustBpm(-10)} aria-label="Decrease tempo by 10 BPM" className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95 text-xs font-bold">-10</button>
+        <button onClick={() => adjustBpm(-1)} aria-label="Decrease tempo by 1 BPM" className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95">
           <ChevronDown className="w-4 h-4" />
         </button>
         <button
@@ -135,10 +135,10 @@ export function Metronome() {
         >
           Tap
         </button>
-        <button onClick={() => adjustBpm(1)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95">
+        <button onClick={() => adjustBpm(1)} aria-label="Increase tempo by 1 BPM" className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95">
           <ChevronUp className="w-4 h-4" />
         </button>
-        <button onClick={() => adjustBpm(10)} className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95 text-xs font-bold">+10</button>
+        <button onClick={() => adjustBpm(10)} className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.10] transition-all active:scale-95 text-xs font-bold">+10</button>
       </div>
 
       {/* BPM slider */}
@@ -182,8 +182,10 @@ export function Metronome() {
       <div className="flex justify-center">
         <button
           onClick={running ? stop : start}
+          aria-label={running ? 'Stop metronome' : 'Start metronome'}
+          aria-pressed={running}
           className={cn(
-            'w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 shadow-glow-purple active:scale-95',
+            'w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95',
             running
               ? 'bg-red-500/20 border-2 border-red-500/50 text-red-400 hover:bg-red-500/30'
               : 'bg-accent-600 border-2 border-accent-400/30 text-white hover:bg-accent-500'
