@@ -95,7 +95,7 @@ function StageDisplay() {
         {/* Now */}
         <section aria-label="Now on screen" className="flex-[2] min-h-0 flex flex-col border-b lg:border-b-0 lg:border-r border-white/10">
           <div className="px-6 pt-4 flex items-baseline gap-3">
-            <span className="text-[0.8em] font-bold uppercase tracking-[0.25em] text-accent-300">{blank ? 'Screen blank' : sectionName || 'Now'}</span>
+            <span className="text-[0.8em] font-bold uppercase tracking-[0.25em] text-violet-300">{blank ? 'Screen blank' : sectionName || 'Now'}</span>
             {state?.title && <span className="text-[0.85em] text-white/60 truncate">{state.title}</span>}
           </div>
           <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center px-6 py-4">
@@ -115,7 +115,7 @@ function StageDisplay() {
         {/* Next */}
         <section aria-label="Up next" className="flex-1 min-h-0 flex flex-col">
           {nextIsNewSong && (
-            <div className="px-6 py-3 bg-accent-600 text-white">
+            <div className="px-6 py-3 bg-violet-600 text-white">
               <p className="text-[0.75em] font-bold uppercase tracking-[0.25em]">Next song</p>
               <p className="text-[1.5em] font-semibold leading-tight">{next!.title}</p>
             </div>

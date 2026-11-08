@@ -125,7 +125,7 @@ export function ServiceForm({ service, heading }: ServiceFormProps) {
             {templates.rows.map((t) => (
               <li key={t.id} className="flex items-center gap-2">
                 <label className={cn('flex-1 flex items-start gap-3 p-3 rounded-xl border cursor-pointer', templateId === t.id ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]' : 'border-[var(--border)]')}>
-                  <input type="radio" name="template" checked={templateId === t.id} onChange={() => chooseTemplate(t.id)} className="mt-1 accent-[#236653]" />
+                  <input type="radio" name="template" checked={templateId === t.id} onChange={() => chooseTemplate(t.id)} className="mt-1 accent-[#7c3aed]" />
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-[var(--fg)]">{t.name}</span>
                     <span className="block text-xs text-[var(--fg-muted)] truncate">

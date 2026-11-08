@@ -36,12 +36,12 @@ export function ServiceCard({ service, past, currentUserId }: ServiceCardProps) 
       <span
         aria-hidden
         className={cn(
-          'w-12 shrink-0 flex flex-col items-center justify-center py-0.5 border-r border-[var(--border)] pr-3',
-          past ? 'text-[var(--fg-subtle)]' : 'text-[var(--fg)]'
+          'w-14 shrink-0 rounded-xl flex flex-col items-center justify-center py-1.5 border',
+          past ? 'border-[var(--border)] text-[var(--fg-subtle)]' : 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent-fg)]'
         )}
       >
         <span className="text-[10px] font-semibold uppercase leading-tight">{weekday}</span>
-        <span className={cn('font-display text-[26px] font-medium leading-none my-0.5 tabular', !past && 'text-[var(--accent-fg)]')}>{day}</span>
+        <span className="text-xl font-semibold leading-tight tabular">{day}</span>
         <span className="text-[10px] font-medium uppercase leading-tight">{month}</span>
       </span>
 

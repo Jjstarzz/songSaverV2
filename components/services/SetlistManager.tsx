@@ -217,7 +217,7 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
           )}
         </div>
       ) : (
-        <div className="border-t border-[var(--border)]">
+        <div className="space-y-2">
           {list.map((item, idx) => {
             const displayKey = item.key_override
               ? formatKey(item.key_override, item.songs.mode)
@@ -233,11 +233,11 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
               <div key={item.id}>
                 <div
                   ref={(el) => { rowRefs.current[idx] = el }}
-                  className="border-b border-[var(--border)] transition-opacity"
-                  style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== null && dragIdx !== idx ? '2px solid rgba(35,102,83,0.6)' : 'none', outlineOffset: -2 }}
+                  className="glass-card transition-opacity overflow-hidden"
+                  style={{ opacity: dragIdx === idx ? 0.4 : 1, outline: dragOverIdx === idx && dragIdx !== null && dragIdx !== idx ? '2px solid rgba(124,58,237,0.6)' : 'none', borderRadius: 12 }}
                 >
                   {/* Main row */}
-                  <div className="flex items-center gap-3 py-3 px-1">
+                  <div className="flex items-center gap-3 p-3">
                     {/* Order number */}
                     <span className="w-6 text-right text-sm font-semibold tabular text-[var(--fg-subtle)] shrink-0" aria-hidden>
                       {idx + 1}

@@ -23,7 +23,7 @@ const FONT_STACK = ['NotoMalayalam', 'NotoTamil']
 // Don't hyphenate lyrics
 Font.registerHyphenationCallback((word) => [word])
 
-const ACCENT = '#1c5244'
+const ACCENT = '#6d28d9'
 
 function makeStyles(base: number) {
   return StyleSheet.create({

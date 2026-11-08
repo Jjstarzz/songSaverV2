@@ -494,7 +494,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
 
       {/* Desktop column headings */}
       {!loading && filteredSongs.length > 0 && (
-        <div aria-hidden className="hidden md:grid song-row-grid px-2 pb-2 text-xs font-medium text-[var(--fg-subtle)]">
+        <div aria-hidden className="hidden md:grid song-row-grid px-3 border border-transparent text-xs font-medium text-[var(--fg-subtle)]">
           <span>Key</span><span>Song</span><span>Time · BPM</span><span>Languages</span><span>Last sung</span><span />
         </div>
       )}
@@ -511,7 +511,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
           action={anyFilter ? <button type="button" onClick={resetAll} className="h-10 px-4 rounded-xl border border-[var(--border-strong)] text-sm font-medium text-[var(--fg)]">Reset search &amp; filters</button> : undefined}
         />
       ) : (
-        <ul className="list-group" data-song-list>
+        <ul className="space-y-1.5" data-song-list>
           {filteredSongs.slice(0, visibleCount).map((song, i) => (
             <li key={song.id}>
               {i === firstLyricOnlyIdx && <p className="section-label pt-3 pb-1.5">Found in lyrics</p>}

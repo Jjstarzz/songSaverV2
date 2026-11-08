@@ -201,7 +201,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <h2 id="favs" className="section-label flex items-center gap-1.5"><Heart aria-hidden className="w-3.5 h-3.5" /> Favourites</h2>
               </div>
-              <ul className="list-group">
+              <ul className="space-y-1.5">
                 {favoriteSongs.map((song) => <li key={song.id}><SongCard song={song} compact /></li>)}
               </ul>
             </section>
@@ -240,7 +240,7 @@ export default function DashboardPage() {
               ) : recentSongs.length === 0 ? (
                 <p className="surface p-5 text-sm text-[var(--fg-muted)]">No songs yet — add your first one.</p>
               ) : (
-                <ul className="list-group">
+                <ul className="space-y-1.5">
                   {recentSongs.map((song) => <li key={song.id}><SongCard song={song} compact /></li>)}
                 </ul>
               )}

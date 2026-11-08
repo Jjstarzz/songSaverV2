@@ -122,7 +122,7 @@ export function ServiceTeam({ serviceId, canEdit }: { serviceId: string; canEdit
           </div>
           <Input label="Name" value={f.person} onChange={(e) => setF({ ...f, person: e.target.value })} placeholder={f.singerId ? 'Uses the singer’s name if empty' : 'e.g. Joel'} />
           <label className="flex items-center gap-2 text-sm text-[var(--fg)] min-h-[44px]">
-            <input type="checkbox" checked={f.isMe} onChange={(e) => setF({ ...f, isMe: e.target.checked })} className="w-4 h-4 accent-[#236653]" />
+            <input type="checkbox" checked={f.isMe} onChange={(e) => setF({ ...f, isMe: e.target.checked })} className="w-4 h-4 accent-[#7c3aed]" />
             This is me (I can confirm my own availability)
           </label>
           <Textarea label="What to prepare (optional)" value={f.tasks} onChange={(e) => setF({ ...f, tasks: e.target.value })} rows={2} className="min-h-[72px]" placeholder="e.g. Lead songs 2 and 4; harmony on the chorus" />

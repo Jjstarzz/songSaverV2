@@ -7,78 +7,79 @@
    Text levels are chosen to meet WCAG AA (≥ 4.5:1) on --bg and --bg-card.
    ───────────────────────────────────────────── */
 :root {
-  /* dark — warm charcoal */
-  --bg:            #121211;
-  --bg-surface:    #161615;
-  --bg-elevated:   #1c1c1a;
-  --bg-card:       #171716;
-  --bg-card-hover: #1d1d1b;
-  --bg-input:      #1c1c1a;
-  --bg-hover:      rgba(255,255,255,0.05);
-  --fg:            #ededea;
-  --fg-muted:      #b1b1aa;
-  --fg-subtle:     #8f8f88;
-  --border:        rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.15);
-  --border-focus:  #8cc9b3;
-  --accent-fg:     #8cc9b3;
-  --accent-soft:   rgba(140,201,179,0.11);
-  --accent-border: rgba(140,201,179,0.38);
-  --danger:        #f08a7e;
-  --success:       #8cc9b3;
-  --warning:       #e5b567;
-  --shadow-card:   none;
+  /* dark (default) — lifted off pure black and text softened from pure white,
+     which cuts glare and the "halo" effect around bright text on black */
+  --bg:            #15151b;
+  --bg-surface:    #191920;
+  --bg-elevated:   #23232c;
+  --bg-card:       #1c1c24;
+  --bg-card-hover: #22222b;
+  --bg-input:      #20202a;
+  --bg-hover:      rgba(255,255,255,0.045);
+  --fg:            #e6e6ec;
+  --fg-muted:      #a9a9b7;
+  --fg-subtle:     #8c8c9b;
+  --border:        rgba(255,255,255,0.075);
+  --border-strong: rgba(255,255,255,0.14);
+  --border-focus:  #9a85ff;
+  --accent-fg:     #b2a2ff;
+  --accent-soft:   rgba(140,115,255,0.14);
+  --accent-border: rgba(140,115,255,0.40);
+  --danger:        #f19393;
+  --success:       #5fd3a8;
+  --warning:       #f0c066;
+  --shadow-card:   0 1px 2px rgba(0,0,0,0.25);
   --nav-h:         64px;
   color-scheme: dark;
 }
 
-/* paper — warm off-white (default; key kept as "cream") */
+/* paper — soft linen: less yellow, less glare, warm charcoal text */
 html.cream {
-  --bg:            #f3f1ec;
-  --bg-surface:    #ebe8e1;
-  --bg-elevated:   #fcfbf9;
-  --bg-card:       #faf9f6;
-  --bg-card-hover: #ffffff;
-  --bg-input:      #fdfcfa;
-  --bg-hover:      rgba(28,26,22,0.05);
-  --fg:            #1a1915;
-  --fg-muted:      #54524b;
-  --fg-subtle:     #67655d;
-  --border:        rgba(28,26,22,0.10);
-  --border-strong: rgba(28,26,22,0.18);
-  --border-focus:  #2f7d66;
-  --accent-fg:     #1c5244;
-  --accent-soft:   rgba(35,102,83,0.08);
-  --accent-border: rgba(35,102,83,0.35);
-  --danger:        #a63a2b;
-  --success:       #1c5244;
-  --warning:       #7f4f0c;
-  --shadow-card:   none;
+  --bg:            #f1ede6;
+  --bg-surface:    #e9e4da;
+  --bg-elevated:   #fbf9f5;
+  --bg-card:       #f8f5ef;
+  --bg-card-hover: #fbf9f5;
+  --bg-input:      #fbf9f5;
+  --bg-hover:      rgba(70,55,35,0.05);
+  --fg:            #2e2922;
+  --fg-muted:      #5d5549;
+  --fg-subtle:     #6c6457;
+  --border:        rgba(70,55,35,0.11);
+  --border-strong: rgba(70,55,35,0.20);
+  --border-focus:  #6d4fe0;
+  --accent-fg:     #5232c4;
+  --accent-soft:   rgba(109,79,224,0.09);
+  --accent-border: rgba(109,79,224,0.32);
+  --danger:        #a8362a;
+  --success:       #17714f;
+  --warning:       #84500e;
+  --shadow-card:   0 1px 2px rgba(70,55,35,0.05), 0 2px 8px rgba(70,55,35,0.04);
   color-scheme: light;
 }
 
-/* light — clean white */
+/* white — soft cool grey page with gentle off-white cards instead of stark #fff */
 html.light {
-  --bg:            #ffffff;
-  --bg-surface:    #f7f7f6;
+  --bg:            #f3f4f7;
+  --bg-surface:    #eaecf0;
   --bg-elevated:   #ffffff;
-  --bg-card:       #ffffff;
-  --bg-card-hover: #fafaf9;
+  --bg-card:       #fbfbfd;
+  --bg-card-hover: #ffffff;
   --bg-input:      #ffffff;
-  --bg-hover:      rgba(0,0,0,0.04);
-  --fg:            #131313;
-  --fg-muted:      #4d4d4b;
-  --fg-subtle:     #686866;
-  --border:        rgba(0,0,0,0.09);
-  --border-strong: rgba(0,0,0,0.17);
-  --border-focus:  #2f7d66;
-  --accent-fg:     #1c5244;
-  --accent-soft:   rgba(35,102,83,0.07);
-  --accent-border: rgba(35,102,83,0.32);
-  --danger:        #a63a2b;
-  --success:       #1c5244;
-  --warning:       #7f4f0c;
-  --shadow-card:   none;
+  --bg-hover:      rgba(25,30,45,0.045);
+  --fg:            #23252d;
+  --fg-muted:      #4d505c;
+  --fg-subtle:     #626572;
+  --border:        rgba(25,30,45,0.09);
+  --border-strong: rgba(25,30,45,0.17);
+  --border-focus:  #6d4fe0;
+  --accent-fg:     #5232c4;
+  --accent-soft:   rgba(109,79,224,0.08);
+  --accent-border: rgba(109,79,224,0.30);
+  --danger:        #a8362a;
+  --success:       #17714f;
+  --warning:       #84500e;
+  --shadow-card:   0 1px 2px rgba(25,30,45,0.04), 0 2px 8px rgba(25,30,45,0.04);
   color-scheme: light;
 }
 
@@ -114,13 +115,10 @@ html.light {
   *:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
-  ::selection { background: color-mix(in srgb, var(--accent-fg) 28%, transparent); color: var(--fg); }
-
-  /* Editorial serif for page and song titles */
-  h1 { font-family: var(--font-display), Georgia, serif; font-weight: 500; letter-spacing: -0.015em; }
+  ::selection { background: color-mix(in srgb, var(--accent-fg) 25%, transparent); color: var(--fg); }
 }
 
 /* Short, subtle motion — and none for people who ask for less */
@@ -158,18 +156,13 @@ html.light {
     border-color: var(--border-strong);
   }
 
-  /* Lists: hairline-divided rows instead of stacked boxes */
-  .list-group { border-top: 1px solid var(--border); }
-  .list-group > li { border-bottom: 1px solid var(--border); }
-  .row-link { @apply transition-colors duration-150; }
-  .row-link:hover { background: var(--bg-hover); }
-
-  /* Section label — quiet, sentence case */
+  /* Section label */
   .section-label {
-    font-size: 0.8125rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0;
-    color: var(--fg-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-subtle);
   }
 
   /* Input base */
@@ -177,7 +170,7 @@ html.light {
     width: 100%;
     background: var(--bg-input);
     border: 1px solid var(--border-strong);
-    @apply rounded-lg px-3.5 py-3 text-sm transition-colors duration-150;
+    @apply rounded-xl px-4 py-3 text-sm transition-colors duration-150;
     color: var(--fg);
     font-size: 16px; /* Prevents iOS zoom */
     min-height: 44px;
@@ -186,7 +179,7 @@ html.light {
   .input-base:focus {
     outline: none;
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 1px var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .input-base[aria-invalid="true"] { border-color: var(--danger); }
   @media (min-width: 640px) {
@@ -195,14 +188,14 @@ html.light {
 
   /* Tag pill */
   .tag-pill {
-    @apply inline-flex items-center gap-1 px-1.5 py-px rounded text-[11px] font-medium;
-    border: 1px solid var(--border-strong);
-    color: var(--fg-muted);
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
   }
 
   /* Status / visibility chips */
   .chip {
-    @apply inline-flex items-center gap-1 px-1.5 py-px rounded text-[11px] font-medium border;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border;
     border-color: var(--border-strong);
     color: var(--fg-muted);
   }
@@ -235,12 +228,14 @@ html.light {
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
     border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--bg-surface);
   }
 
   /* Sticky top bars: solid background + clear the iOS status bar / notch */
   .sticky-header-bg {
-    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     padding-top: env(safe-area-inset-top, 0px);
   }
   .sticky-search-bg { background: var(--bg); }
@@ -326,7 +321,7 @@ html.light .text-white, html.cream .text-white { color: var(--fg); }
 .text-emerald-400 { color: var(--success); }
 .text-red-400 { color: var(--danger); }
 .text-amber-400 { color: var(--warning); }
-
+html.light .text-purple-300, html.cream .text-purple-300 { color: var(--accent-fg); }
 
 /* …but white text on solid coloured buttons/chips stays white
    (exact class tokens, so tinted backgrounds like bg-accent-500/15 aren't affected) */

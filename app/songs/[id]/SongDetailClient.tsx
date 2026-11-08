@@ -34,9 +34,9 @@ interface Props {
 
 function Meta({ label, children, quiet }: { label: string; children: React.ReactNode; quiet?: boolean }) {
   return (
-    <div className="min-w-[64px]">
-      <dt className="text-xs text-[var(--fg-subtle)]">{label}</dt>
-      <dd className={cn('text-[15px] font-medium tabular mt-0.5', quiet ? 'text-[var(--fg-subtle)] font-normal' : 'text-[var(--fg)]')}>{children}</dd>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 min-w-[84px]">
+      <dt className="text-[11px] font-medium text-[var(--fg-subtle)]">{label}</dt>
+      <dd className={cn('text-[15px] font-semibold tabular', quiet ? 'text-[var(--fg-subtle)] font-normal' : 'text-[var(--fg)]')}>{children}</dd>
     </div>
   )
 }
@@ -203,7 +203,7 @@ export function SongDetailClient({ id }: Props) {
         {/* Main column: title, compact details, lyrics */}
         <article className="min-w-0 max-w-[70ch] space-y-5">
           <header>
-            <h1 className="text-[30px] lg:text-[40px] leading-[1.1] font-medium text-[var(--fg)] break-words text-balance">{song.title}</h1>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-[var(--fg)] break-words">{song.title}</h1>
             {song.artist && <p className="text-base text-[var(--fg-muted)] mt-1">{song.artist}</p>}
             {song.tags.length > 0 && (
               <div className="flex gap-1.5 mt-2.5 flex-wrap">
@@ -212,17 +212,17 @@ export function SongDetailClient({ id }: Props) {
             )}
           </header>
 
-          <dl className="flex flex-wrap gap-x-8 gap-y-3 border-y border-[var(--border)] py-3">
+          <dl className="flex flex-wrap gap-2">
             <Meta label="Song key" quiet={!songKey}>{songKey ? formatKey(songKey, song.mode) : 'Not set'}</Meta>
-            <div className="min-w-[64px]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] min-w-[84px]">
               <button
                 type="button"
                 onClick={() => setKeyPickerOpen(true)}
-                className="text-left -mx-1.5 px-1.5 -my-1 py-1 rounded-md hover:bg-[var(--bg-hover)]"
+                className="w-full h-full text-left px-3 py-2 rounded-xl hover:bg-[var(--bg-hover)]"
                 aria-label={userKey ? `Your key: ${userKey}. Change` : 'Your key: not set. Set your key'}
               >
-                <dt className="text-xs text-[var(--fg-subtle)]">Your key</dt>
-                <dd className={cn('text-[15px] mt-0.5', userKey ? 'font-semibold text-[var(--accent-fg)]' : 'font-medium text-[var(--accent-fg)] underline underline-offset-4 decoration-[var(--accent-border)]')}>
+                <dt className="text-[11px] font-medium text-[var(--fg-subtle)]">Your key</dt>
+                <dd className={cn('text-[15px] font-semibold', userKey ? 'text-[var(--success)]' : 'text-[var(--accent-fg)] font-medium')}>
                   {userKey ?? 'Set key'}
                 </dd>
               </button>
