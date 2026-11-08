@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Pencil, Trash2, Music2,
-  ExternalLink, Youtube, Music, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  ArrowLeft, Pencil, Trash2, ExternalLink, Youtube, Music, ChevronLeft, ChevronRight, CalendarDays,
 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/Button'
+import { Button, buttonVariants } from '@/components/ui/Button'
 import { LyricsViewer } from '@/components/songs/LyricsViewer'
 import { KeySuggester } from '@/components/songs/KeySuggester'
 import { SongTransitions } from '@/components/songs/SongTransitions'
-import { ConfirmModal } from '@/components/ui/Modal'
+import { ConfirmModal, Modal } from '@/components/ui/Modal'
+import { Menu } from '@/components/ui/Menu'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { PresentButton } from '@/components/presentation/PresentButton'
 import { useSong } from '@/hooks/useSongs'
 import { useService } from '@/hooks/useServices'
 import { useSupabase } from '@/hooks/useSupabase'
@@ -25,10 +26,27 @@ import { useRole } from '@/hooks/useRole'
 import { MUSICAL_KEYS, formatKey, LANGUAGE_NAMES, SERVICE_TYPES } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
-import { PresentationController } from '@/components/presentation/PresentationController'
 
 interface Props {
   id: string
+}
+
+function Meta({ label, children, quiet }: { label: string; children: React.ReactNode; quiet?: boolean }) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 min-w-[84px]">
+      <dt className="text-[11px] font-medium text-[var(--fg-subtle)]">{label}</dt>
+      <dd className={cn('text-[15px] font-semibold tabular', quiet ? 'text-[var(--fg-subtle)] font-normal' : 'text-[var(--fg)]')}>{children}</dd>
+    </div>
+  )
+}
+
+function SidePanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={`side-${title}`} className="space-y-3">
+      <h2 id={`side-${title}`} className="section-label">{title}</h2>
+      {children}
+    </section>
+  )
 }
 
 export function SongDetailClient({ id }: Props) {
@@ -42,12 +60,12 @@ export function SongDetailClient({ id }: Props) {
   const { isAdmin } = useRole()
   const isOwner = !!user && !!song && song.created_by === user.id
   const canEdit = isOwner || isAdmin
-  const canDelete = isOwner || isAdmin
   const creatorName = useCreatorName(song?.created_by)
   const { track } = useRecentlyViewed()
   const { userKey, setKey: setUserKey } = useUserSongKey(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [keyPickerOpen, setKeyPickerOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [serviceHistory, setServiceHistory] = useState<{ service_id: string; date: string; theme: string | null; type: string }[]>([])
 
   useEffect(() => {
@@ -57,20 +75,17 @@ export function SongDetailClient({ id }: Props) {
       .eq('song_id', id)
       .then(({ data }) => {
         if (!data) return
-        const history = (data as any[])
+        const history = (data as unknown as { service_id: string; services: { date: string; theme: string | null; type: string } | null }[])
           .flatMap((ss) => ss.services ? [{ service_id: ss.service_id, ...ss.services }] : [])
-          .sort((a: any, b: any) => b.date.localeCompare(a.date))
+          .sort((a, b) => b.date.localeCompare(a.date))
         setServiceHistory(history)
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [id, supabase])
 
   useEffect(() => {
     if (song) track({ id: song.id, title: song.title, artist: song.artist })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song?.id])
-  const [deleting, setDeleting] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const handleDelete = async () => {
     setDeleting(true)
@@ -84,16 +99,28 @@ export function SongDetailClient({ id }: Props) {
     router.push('/songs')
   }
 
+  const chooseKey = async (key: string | null) => {
+    const err = await setUserKey(key)
+    if (err) toast.error('Could not save your key')
+    else toast.success(key ? `Your key set to ${key}` : 'Your key cleared')
+    setKeyPickerOpen(false)
+  }
+
+  const back = (
+    <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
+      <ArrowLeft className="w-5 h-5" />
+    </Button>
+  )
+
   if (loading) {
     return (
       <>
-        <BackHeader title="">
-          <div className="w-8 h-8" />
-        </BackHeader>
-        <div className="px-4 pt-6 space-y-4">
+        <BackHeader title="Loading song">{back}</BackHeader>
+        <div className="px-4 pt-6 space-y-4 max-w-3xl" aria-busy="true">
           <Skeleton className="h-8 w-3/4" />
           <Skeleton className="h-5 w-1/2" />
-          <Skeleton className="h-40 w-full" />
+          <div className="flex gap-2"><Skeleton className="h-14 w-24" /><Skeleton className="h-14 w-24" /><Skeleton className="h-14 w-24" /></div>
+          <Skeleton className="h-64 w-full" />
         </div>
       </>
     )
@@ -101,11 +128,10 @@ export function SongDetailClient({ id }: Props) {
 
   if (!song) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-white/50">Song not found</p>
-        <Link href="/songs">
-          <Button variant="secondary">Back to songs</Button>
-        </Link>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-6 text-center">
+        <h1 className="text-lg font-semibold text-[var(--fg)]">Song not found</h1>
+        <p className="text-sm text-[var(--fg-muted)]">It may have been deleted, or it isn&apos;t saved on this device for offline use.</p>
+        <Link href="/songs" className={buttonVariants({ variant: 'secondary' })}>Back to songs</Link>
       </div>
     )
   }
@@ -116,300 +142,193 @@ export function SongDetailClient({ id }: Props) {
   const prevInService = navIdx > 0 ? serviceSongs[navIdx - 1] : null
   const nextInService = navIdx >= 0 && navIdx < serviceSongs.length - 1 ? serviceSongs[navIdx + 1] : null
 
+  const songKey = song.preferred_key || song.default_key
+  const defaultLyric = song.song_lyrics?.find((l) => l.is_default) ?? song.song_lyrics?.[0]
+  const hasDetails = !!(song.notes || song.youtube_url || song.spotify_url || song.original_language || creatorName)
+
   return (
     <>
       <BackHeader
         title={song.title}
+        hideTitle
         action={
-          <div className="flex items-center gap-1.5">
-            {(() => {
-              const defaultLyric = song.song_lyrics?.find(l => l.is_default) ?? song.song_lyrics?.[0]
-              return defaultLyric ? (
-                <PresentationController
-                  title={song.title}
-                  lyricsText={defaultLyric.lyrics}
-                  availableLyrics={(song.song_lyrics ?? []).map(l => ({ id: l.id, language: l.language, lyrics: l.lyrics }))}
-                />
-              ) : null
-            })()}
-            {canEdit && (
-              <Link href={`/songs/${id}/edit`}>
-                <Button variant="ghost" size="icon-sm">
-                  <Pencil className="w-4 h-4" />
-                </Button>
-              </Link>
+          <>
+            {defaultLyric && (
+              <PresentButton
+                title={song.title}
+                lyricsText={defaultLyric.lyrics}
+                availableLyrics={(song.song_lyrics ?? []).map((l) => ({ id: l.id, language: l.language, lyrics: l.lyrics }))}
+              />
             )}
-            {canDelete && (
-              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="w-4 h-4 text-red-400" />
-              </Button>
-            )}
-          </div>
+            <Menu
+              items={[
+                { label: 'Edit song', icon: Pencil, href: `/songs/${id}/edit`, hidden: !canEdit },
+                { label: 'Delete song', icon: Trash2, onSelect: () => setDeleteOpen(true), destructive: true, hidden: !canEdit },
+              ]}
+            />
+          </>
         }
       >
-        <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
+        {back}
       </BackHeader>
 
-      {/* Prev/next navigation within the service this song was opened from */}
+      {/* Prev/next within the service this song was opened from */}
       {navService && navIdx !== -1 && (
-        <div className="px-4 pt-3 flex items-center gap-2">
+        <nav aria-label="Songs in this service" className="px-4 pt-3 flex items-center gap-2 max-w-3xl">
           <button
             onClick={() => prevInService && router.push(`/songs/${prevInService.song_id}?serviceId=${serviceId}`)}
             disabled={!prevInService}
             aria-label="Previous song in service"
-            className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+            className="w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--fg-muted)] disabled:opacity-35"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft aria-hidden className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0 text-center">
-            <p className="text-[10px] text-white/30 uppercase tracking-wider truncate">{navService.theme || 'Service'}</p>
-            <p className="text-[10px] text-white/40">Song {navIdx + 1} of {serviceSongs.length}</p>
+            <p className="text-xs font-medium text-[var(--fg-muted)] truncate">{navService.theme || 'Service'}</p>
+            <p className="text-xs text-[var(--fg-subtle)]">Song {navIdx + 1} of {serviceSongs.length}</p>
           </div>
           <button
             onClick={() => nextInService && router.push(`/songs/${nextInService.song_id}?serviceId=${serviceId}`)}
             disabled={!nextInService}
             aria-label="Next song in service"
-            className="flex items-center justify-center w-11 h-11 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 border border-white/10 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+            className="w-11 h-11 flex items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--fg-muted)] disabled:opacity-35"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight aria-hidden className="w-5 h-5" />
           </button>
-        </div>
+        </nav>
       )}
 
-      <div className="px-4 pt-6 pb-10 space-y-6">
-        {/* Hero */}
-        <div>
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-600 to-purple-700 flex items-center justify-center shrink-0">
-              <Music2 className="w-7 h-7 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold text-white leading-tight">{song.title}</h1>
-              {song.artist && (
-                <p className="text-sm text-white/50 mt-0.5">{song.artist}</p>
-              )}
-              {song.tags.length > 0 && (
-                <div className="flex gap-1.5 mt-2 flex-wrap">
-                  {song.tags.map((tag) => (
-                    <span key={tag} className="tag-pill">{tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {(song.preferred_key || song.default_key) && (
-            <div className="glass-card p-3 text-center">
-              <p className="section-label text-[10px] mb-1">Song Key</p>
-              <p className="text-base font-bold text-accent-400">
-                {formatKey(song.preferred_key || song.default_key, song.mode)}
-              </p>
-            </div>
-          )}
-          {song.bpm && (
-            <div className="glass-card p-3 text-center">
-              <p className="section-label text-[10px] mb-1">BPM</p>
-              <p className="text-base font-bold text-white">{song.bpm}</p>
-            </div>
-          )}
-          {song.time_signature && (
-            <div className="glass-card p-3 text-center">
-              <p className="section-label text-[10px] mb-1">Time</p>
-              <p className="text-base font-bold text-white">{song.time_signature}</p>
-            </div>
-          )}
-          {song.verseview_number && (
-            <div className="glass-card p-3 text-center">
-              <p className="section-label text-[10px] mb-1">VerseView #</p>
-              <p className="text-base font-bold text-white">{song.verseview_number}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Per-user key preference */}
-        <div className="glass-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="section-label text-[10px] mb-0.5">Your Key</p>
-              <p className={cn('text-lg font-bold', userKey ? 'text-emerald-400' : 'text-[var(--fg-subtle)]')}>
-                {userKey ?? 'Not set'}
-              </p>
-              {userKey && song.default_key && userKey !== song.default_key && (
-                <p className="text-[10px] text-[var(--fg-subtle)] mt-0.5">
-                  Song key: {formatKey(song.preferred_key || song.default_key, song.mode)}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => setKeyPickerOpen((v) => !v)}
-              className="text-xs text-accent-400 hover:text-accent-300 transition-colors py-3 -my-3 px-2 -mx-2"
-            >
-              {keyPickerOpen ? 'Cancel' : userKey ? 'Change' : 'Set key'}
-            </button>
-          </div>
-
-          {keyPickerOpen && (
-            <div className="mt-3 animate-fade-in">
-              <div className="flex gap-1.5 flex-wrap">
-                {userKey && (
-                  <button
-                    onClick={async () => { await setUserKey(null); setKeyPickerOpen(false) }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--border)] bg-[var(--bg-input)] text-red-400 hover:bg-red-500/10 transition-all"
-                  >
-                    Clear
-                  </button>
-                )}
-                {MUSICAL_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={async () => { await setUserKey(key); setKeyPickerOpen(false) }}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                      userKey === key
-                        ? 'bg-emerald-600 border-emerald-500 text-white'
-                        : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                    )}
-                  >
-                    {key}
-                  </button>
-                ))}
+      <div className="px-4 pt-5 lg:pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+        {/* Main column: title, compact details, lyrics */}
+        <article className="min-w-0 max-w-[70ch] space-y-5">
+          <header>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-[var(--fg)] break-words">{song.title}</h1>
+            {song.artist && <p className="text-base text-[var(--fg-muted)] mt-1">{song.artist}</p>}
+            {song.tags.length > 0 && (
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                {song.tags.filter((t) => /\p{L}/u.test(t)).map((tag) => <span key={tag} className="tag-pill">{tag}</span>)}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </header>
 
-        {/* Lyrics */}
-        <section>
+          <dl className="flex flex-wrap gap-2">
+            <Meta label="Song key" quiet={!songKey}>{songKey ? formatKey(songKey, song.mode) : 'Not set'}</Meta>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] min-w-[84px]">
+              <button
+                type="button"
+                onClick={() => setKeyPickerOpen(true)}
+                className="w-full h-full text-left px-3 py-2 rounded-xl hover:bg-[var(--bg-hover)]"
+                aria-label={userKey ? `Your key: ${userKey}. Change` : 'Your key: not set. Set your key'}
+              >
+                <dt className="text-[11px] font-medium text-[var(--fg-subtle)]">Your key</dt>
+                <dd className={cn('text-[15px] font-semibold', userKey ? 'text-[var(--success)]' : 'text-[var(--accent-fg)] font-medium')}>
+                  {userKey ?? 'Set key'}
+                </dd>
+              </button>
+            </div>
+            {song.time_signature && <Meta label="Time">{song.time_signature}</Meta>}
+            {song.bpm ? <Meta label="Tempo">{song.bpm} BPM</Meta> : null}
+            {song.verseview_number ? <Meta label="VerseView">#{song.verseview_number}</Meta> : null}
+          </dl>
+
           <LyricsViewer
             songId={id}
             lyrics={song.song_lyrics ?? []}
             onUpdate={refetch}
-            isOwner={isOwner || isAdmin}
+            isOwner={canEdit}
+            originalLanguage={song.original_language}
           />
-        </section>
+        </article>
 
-        {/* Song Transitions */}
-        <section>
-          <SongTransitions songId={id} songTitle={song.title} />
-        </section>
-
-        {/* Key Suggester */}
-        <section>
-          <KeySuggester songKey={song.default_key} />
-        </section>
-
-        {/* Service history */}
-        {serviceHistory.length > 0 && (
-          <section>
-            <p className="section-label mb-3">Service History</p>
-            <div className="space-y-2">
-              {serviceHistory.map((s) => (
-                <a
-                  key={s.service_id}
-                  href={`/services/${s.service_id}`}
-                  className="glass-card flex items-center gap-3 px-4 py-3 hover:bg-white/[0.06] transition-colors"
-                >
-                  <div className="w-2 h-2 rounded-full bg-accent-500/60 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white/80 font-medium">
-                      {new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
-                    <p className="text-xs text-white/40">
-                      {s.theme ? s.theme : SERVICE_TYPES[s.type as keyof typeof SERVICE_TYPES] ?? s.type}
-                    </p>
-                  </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-white/20 -rotate-90 shrink-0" />
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Original language */}
-        {song.original_language && (
-          <section>
-            <p className="section-label mb-2">Original Language</p>
-            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              {LANGUAGE_NAMES[song.original_language] ?? song.original_language}
-            </span>
-          </section>
-        )}
-
-        {/* Details accordion */}
-        <section>
-          <button
-            onClick={() => setDetailsOpen(!detailsOpen)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <span className="section-label">Details</span>
-            {detailsOpen ? (
-              <ChevronUp className="w-4 h-4 text-white/30" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-white/30" />
-            )}
-          </button>
-
-          {detailsOpen && (
-            <div className="mt-3 glass-card p-4 space-y-3 animate-fade-in">
-              {song.notes && (
-                <div>
-                  <p className="section-label text-[10px] mb-1">Notes</p>
-                  <p className="text-sm text-white/70 whitespace-pre-wrap">{song.notes}</p>
-                </div>
-              )}
-              {song.youtube_url && (
-                <a
-                  href={song.youtube_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"
-                >
-                  <Youtube className="w-4 h-4" />
-                  Watch on YouTube
-                  <ExternalLink className="w-3 h-3 ml-auto" />
-                </a>
-              )}
-              {song.spotify_url && (
-                <a
-                  href={song.spotify_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
-                >
-                  <Music className="w-4 h-4" />
-                  Open in Spotify
-                  <ExternalLink className="w-3 h-3 ml-auto" />
-                </a>
-              )}
-              <div className="pt-1 border-t border-white/[0.06] space-y-0.5">
-                <p className="text-xs text-white/30">
-                  Added {new Date(song.created_at).toLocaleDateString()}
-                </p>
-                {creatorName && (
-                  <p className="text-xs text-white/30">
-                    Added by{' '}
-                    <span className={isOwner ? 'text-white/50' : 'text-accent-400'}>
-                      {isOwner ? 'you' : creatorName}
-                    </span>
-                  </p>
+        {/* Secondary details: side panel on desktop, below the lyrics on phones */}
+        <aside className="mt-10 lg:mt-0 space-y-8 lg:sticky lg:top-20 lg:self-start" aria-label="Song details">
+          {hasDetails && (
+            <SidePanel title="About">
+              <div className="surface p-4 space-y-3 text-sm">
+                {song.original_language && (
+                  <p><span className="text-[var(--fg-subtle)]">Original language: </span><span className="text-[var(--fg)]">{LANGUAGE_NAMES[song.original_language] ?? song.original_language}</span></p>
                 )}
+                {song.notes && <p className="text-[var(--fg-muted)] whitespace-pre-wrap">{song.notes}</p>}
+                {song.youtube_url && (
+                  <a href={song.youtube_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-h-[44px] text-[var(--fg)] hover:text-[var(--accent-fg)]">
+                    <Youtube aria-hidden className="w-4 h-4" /> Watch on YouTube <ExternalLink aria-hidden className="w-3.5 h-3.5 ml-auto text-[var(--fg-subtle)]" />
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                )}
+                {song.spotify_url && (
+                  <a href={song.spotify_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-h-[44px] text-[var(--fg)] hover:text-[var(--accent-fg)]">
+                    <Music aria-hidden className="w-4 h-4" /> Open in Spotify <ExternalLink aria-hidden className="w-3.5 h-3.5 ml-auto text-[var(--fg-subtle)]" />
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                )}
+                <p className="text-xs text-[var(--fg-subtle)] pt-2 border-t border-[var(--border)]">
+                  Added {new Date(song.created_at).toLocaleDateString()}{creatorName ? ` by ${isOwner ? 'you' : creatorName}` : ''}
+                </p>
               </div>
-            </div>
+            </SidePanel>
           )}
-        </section>
+
+          <SongTransitions songId={id} songTitle={song.title} />
+
+          {serviceHistory.length > 0 && (
+            <SidePanel title={`Sung in ${serviceHistory.length} ${serviceHistory.length === 1 ? 'service' : 'services'}`}>
+              <ul className="surface divide-y divide-[var(--border)]">
+                {serviceHistory.slice(0, 8).map((s) => (
+                  <li key={s.service_id}>
+                    <Link href={`/services/${s.service_id}`} className="flex items-center gap-3 px-4 min-h-[52px] py-2 hover:bg-[var(--bg-hover)] first:rounded-t-2xl last:rounded-b-2xl">
+                      <CalendarDays aria-hidden className="w-4 h-4 text-[var(--fg-subtle)] shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm text-[var(--fg)] truncate">{s.theme || SERVICE_TYPES[s.type as keyof typeof SERVICE_TYPES] || 'Service'}</span>
+                        <span className="block text-xs text-[var(--fg-subtle)]">
+                          {new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </span>
+                      <ChevronRight aria-hidden className="w-4 h-4 text-[var(--fg-subtle)]" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SidePanel>
+          )}
+
+          <KeySuggester songKey={song.default_key} />
+        </aside>
       </div>
+
+      <Modal open={keyPickerOpen} onClose={() => setKeyPickerOpen(false)} title="Your key for this song" variant="sheet">
+        <p className="text-sm text-[var(--fg-muted)] mb-4">
+          Only you see this. {songKey ? `The song is written in ${formatKey(songKey, song.mode)}.` : ''}
+        </p>
+        <div className="grid grid-cols-5 sm:grid-cols-6 gap-2" role="group" aria-label="Choose a key">
+          {MUSICAL_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => chooseKey(key)}
+              aria-pressed={userKey === key}
+              className={cn(
+                'h-11 rounded-xl border text-sm font-semibold transition-colors',
+                userKey === key
+                  ? 'bg-accent-600 border-accent-600 text-white'
+                  : 'bg-[var(--bg-input)] border-[var(--border-strong)] text-[var(--fg)] hover:bg-[var(--bg-hover)]'
+              )}
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+        {userKey && (
+          <Button variant="ghost" className="mt-4 w-full" onClick={() => chooseKey(null)}>Clear my key</Button>
+        )}
+      </Modal>
 
       <ConfirmModal
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Song"
-        description={`Are you sure you want to delete "${song.title}"? This will remove all lyrics and recordings associated with this song.`}
+        title="Delete song?"
+        description={`"${song.title}" and all its lyrics will be permanently deleted. It will also be removed from any setlists.`}
+        confirmLabel="Delete song"
         loading={deleting}
       />
     </>

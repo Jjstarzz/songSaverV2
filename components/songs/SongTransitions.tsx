@@ -54,16 +54,16 @@ export function SongTransitions({ songId, songTitle }: SongTransitionsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="section-label flex items-center gap-1.5">
-          <ArrowLeftRight className="w-3.5 h-3.5" />
+        <h2 className="section-label flex items-center gap-1.5">
+          <ArrowLeftRight aria-hidden className="w-3.5 h-3.5" />
           Transitions
-        </p>
+        </h2>
         {!adding && (
           <button
             onClick={() => setAdding(true)}
             className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1 py-3 -my-3 px-2 -mx-2"
           >
-            <Plus className="w-3 h-3" /> Add
+            <Plus aria-hidden className="w-3 h-3" /> Add<span className="sr-only"> transition</span>
           </button>
         )}
       </div>

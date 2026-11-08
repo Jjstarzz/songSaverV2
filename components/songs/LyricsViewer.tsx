@@ -12,6 +12,7 @@ import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
 import { resizeImage } from '@/lib/resizeImage'
 import { cn } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
+import { describeLyrics, KIND_LABEL } from '@/lib/lyricsLanguage'
 import { useWakeLock } from '@/hooks/useWakeLock'
 
 const SCALES = [0.85, 1, 1.15, 1.3, 1.5, 1.75, 2]
@@ -92,6 +93,8 @@ interface LyricsViewerProps {
   lyrics: SongLyrics[]
   onUpdate?: () => void
   isOwner?: boolean
+  /** The song's original language, used to label versions as original / translation / transliteration */
+  originalLanguage?: string | null
 }
 
 const SUPPORTED_LANGUAGES = Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({
@@ -101,25 +104,25 @@ const SUPPORTED_LANGUAGES = Object.entries(LANGUAGE_NAMES).map(([value, label]) 
 
 
 /** Renders raw lyrics text with [Section] labels styled as headers. */
-const LyricsDisplay = memo(function LyricsDisplay({ text }: { text: string }) {
+const LyricsDisplay = memo(function LyricsDisplay({ text, lang }: { text: string; lang?: string }) {
   const sections = useMemo(() => parseLyrics(text), [text])
   return (
-    <div className="space-y-5">
+    <div className="space-y-6" lang={lang}>
       {sections.map((section, i) => (
-        <div key={i}>
+        <section key={i} aria-label={section.label ?? undefined}>
           {section.label && (
-            <p className="text-[10px] font-bold tracking-widest uppercase text-accent-400/80 mb-1.5">
+            <h3 className="text-xs font-semibold tracking-wide uppercase text-[var(--accent-fg)] mb-1.5" lang="en">
               {section.label}
-            </p>
+            </h3>
           )}
-          <p className="lyrics-text">{section.content}</p>
-        </div>
+          <p className="lyrics-text" lang={lang}>{section.content}</p>
+        </section>
       ))}
     </div>
   )
 })
 
-export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: LyricsViewerProps) {
+export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, originalLanguage }: LyricsViewerProps) {
   const supabase = useSupabase()
   const [activeLang, setActiveLang] = useState<string>('')
   const [editing, setEditing] = useState(false)
@@ -300,26 +303,35 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
       {/* Language switcher */}
       {lyrics.length > 0 && (
         <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[var(--fg-subtle)] shrink-0" />
-          <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1">
-            {lyrics.map((lyric) => (
-              <button
-                key={lyric.language}
-                onClick={() => { setActiveLang(lyric.language); setEditing(false) }}
-                className={cn(
-                  'shrink-0 px-3.5 py-2 rounded-full text-xs font-medium border transition-all duration-200',
-                  activeLang === lyric.language
-                    ? 'bg-accent-600 border-accent-500 text-white'
-                    : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                )}
-              >
-                {LANGUAGE_NAMES[lyric.language] ?? lyric.language.toUpperCase()}
-                {lyric.is_default && <span className="ml-1 opacity-60">★</span>}
-              </button>
-            ))}
+          <div role="tablist" aria-label="Lyrics language" className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
+            {lyrics.map((lyric) => {
+              const d = describeLyrics(lyric.language, lyric.lyrics, originalLanguage)
+              const selected = activeLang === lyric.language
+              return (
+                <button
+                  key={lyric.language}
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => { setActiveLang(lyric.language); setEditing(false) }}
+                  className={cn(
+                    'shrink-0 min-h-[44px] px-3.5 py-1.5 rounded-xl text-left border transition-colors',
+                    selected
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-fg)]'
+                      : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
+                  )}
+                >
+                  <span className="block text-sm font-medium leading-tight">{d.name}</span>
+                  {(d.kind || lyric.is_default) && (
+                    <span className="block text-[11px] leading-tight opacity-80">
+                      {[d.kind ? KIND_LABEL[d.kind] : null, lyric.is_default ? 'Default' : null].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
           {isOwner && (
-            <Button variant="ghost" size="icon-sm" onClick={openAdding} title="Add language">
+            <Button variant="ghost" size="icon" onClick={openAdding} aria-label="Add lyrics in another language">
               <Plus className="w-4 h-4" />
             </Button>
           )}
@@ -465,9 +477,9 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
           {activeLyric ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="section-label">
-                  {LANGUAGE_NAMES[activeLyric.language] ?? activeLyric.language.toUpperCase()} lyrics
-                </span>
+                <h2 className="sr-only">
+                  {describeLyrics(activeLyric.language, activeLyric.lyrics, originalLanguage).name} lyrics
+                </h2>
                 {isOwner && (
                   <div className="flex gap-1.5">
                     {!activeLyric.is_default && (
@@ -478,12 +490,12 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                     <Button
                       variant="ghost" size="icon-sm"
                       onClick={() => setDeleteLangOpen(true)}
-                      title="Delete lyrics"
+                      aria-label="Delete these lyrics"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-red-400" />
                     </Button>
                     {!editing ? (
-                      <Button variant="ghost" size="icon-sm" onClick={startEdit}>
+                      <Button variant="ghost" size="icon-sm" onClick={startEdit} aria-label="Edit lyrics">
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     ) : (
@@ -492,16 +504,16 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
                           variant="ghost" size="icon-sm"
                           onClick={() => triggerOcr('edit')}
                           disabled={ocrLoading || saving}
-                          title="Scan image to replace lyrics"
+                          aria-label="Scan a photo to replace these lyrics"
                         >
                           {ocrLoading && ocrTarget === 'edit'
                             ? <span className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
                             : <Camera className="w-3.5 h-3.5" />}
                         </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={requestCancelEdit} disabled={saving}>
+                        <Button variant="ghost" size="icon-sm" onClick={requestCancelEdit} disabled={saving} aria-label="Cancel editing">
                           <X className="w-3.5 h-3.5" />
                         </Button>
-                        <Button size="icon-sm" onClick={saveLyrics} loading={saving}>
+                        <Button size="icon-sm" onClick={saveLyrics} loading={saving} aria-label="Save lyrics">
                           <Check className="w-3.5 h-3.5" />
                         </Button>
                       </>
@@ -520,8 +532,8 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true }: Lyric
               ) : (
                 <div className="space-y-2.5">
                   <ReadingControls />
-                  <div className="glass-card p-5">
-                    <LyricsDisplay text={activeLyric.lyrics} />
+                  <div role="tabpanel" className="surface px-4 py-5 sm:px-6">
+                    <LyricsDisplay text={activeLyric.lyrics} lang={describeLyrics(activeLyric.language, activeLyric.lyrics, originalLanguage).langAttr} />
                   </div>
                 </div>
               )}

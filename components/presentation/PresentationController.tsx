@@ -30,6 +30,10 @@ interface Props {
   lyricsText: string
   availableLyrics?: LyricsEntry[]
   playlist?: { title: string; lyricsText: string; availableLyrics?: LyricsEntry[] }[]
+  /** Open the controller on mount (used by the lazy PresentButton) */
+  defaultOpen?: boolean
+  /** Called when the controller is closed */
+  onClose?: () => void
 }
 
 interface Slide {
@@ -37,9 +41,10 @@ interface Slide {
   content: string
 }
 
-export function PresentationController({ title, lyricsText, availableLyrics, playlist }: Props) {
+export function PresentationController({ title, lyricsText, availableLyrics, playlist, defaultOpen = false, onClose }: Props) {
   const supabase = useSupabase()
-  const [open, setOpen] = useState(false)
+  const [open, setOpenState] = useState(defaultOpen)
+  const setOpen = (v: boolean) => { setOpenState(v); if (!v) onClose?.() }
   const [inlineOpen, setInlineOpen] = useState(false)
   const [showSections, setShowSections] = useState(false)
   const [code, setCode] = useState('')
@@ -619,6 +624,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
             )}
             <button
               onClick={() => setOpen(false)}
+              aria-label="Close presenter"
               style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             >
               <X className="w-4 h-4" />

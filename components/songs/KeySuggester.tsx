@@ -34,10 +34,11 @@ export function KeySuggester({ songKey }: KeySuggesterProps) {
     <div className="space-y-3">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-accent-400 hover:text-accent-300 transition-colors"
+        aria-expanded={open}
+        className="flex items-center gap-2 min-h-[44px] text-sm font-medium text-[var(--accent-fg)] hover:underline"
       >
-        <Sliders className="w-4 h-4" />
-        Key Suggester
+        <Sliders aria-hidden className="w-4 h-4" />
+        Suggest a key for my voice
       </button>
 
       {open && (

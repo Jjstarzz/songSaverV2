@@ -216,7 +216,7 @@ html.light {
     overflow-wrap: anywhere;
   }
   /* Indic scripts need a little more line height for stacked vowel signs */
-  .lyrics-text:lang(ml), .lyrics-text:lang(ta), .lyrics-text:lang(hi), .lyrics-text:lang(te) { line-height: 1.95; }
+  .lyrics-text:is(:lang(ml), :lang(ta), :lang(hi), :lang(te)):not(:lang(ml-Latn), :lang(ta-Latn), :lang(hi-Latn), :lang(te-Latn)) { line-height: 1.95; }
 
   /* Bottom nav (mobile) */
   .bottom-nav {
