@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X, Youtube, Music, Globe, ChevronDown, ChevronUp, Search, Camera } from 'lucide-react'
+import { Plus, X, Youtube, Music, Globe, ChevronDown, ChevronUp, Search, Camera, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { MUSICAL_KEYS, LANGUAGE_NAMES, Song } from '@/types/database'
@@ -11,8 +11,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toaster'
 import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
 import { resizeImage } from '@/lib/resizeImage'
-import { cn } from '@/lib/utils'
+import { cn, goBack } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
+import { BackHeader } from '@/components/layout/PageHeader'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
 const PRESET_TAGS = ['Praise', 'Worship', 'Fast', 'Slow', 'Thanksgiving', 'Easter', 'Christmas', 'Advent', 'Communion', 'Offering', 'Opening', 'Closing']
 const TIME_SIGS = ['4/4', '3/4', '6/8', '2/4', '12/8']
@@ -27,9 +29,11 @@ interface LyricEntry {
 
 interface SongFormProps {
   song?: Song
+  /** Page heading shown in the toolbar ("New song" / "Edit song") */
+  heading?: string
 }
 
-export function SongForm({ song }: SongFormProps) {
+export function SongForm({ song, heading }: SongFormProps) {
   const router = useRouter()
   const supabase = useSupabase()
   const { user } = useAuth()
@@ -87,6 +91,25 @@ export function SongForm({ song }: SongFormProps) {
     setOcrIdx(null)
   }
 
+  // ── Unsaved-changes tracking ──
+  const snapshot = (fm: typeof form, tg: string[], le: LyricEntry[]) => JSON.stringify({ fm, tg, le })
+  const initialRef = useRef<string | null>(null)
+  if (initialRef.current === null) initialRef.current = snapshot(form, tags, lyricEntries)
+  const [saved, setSaved] = useState(false)
+  const dirty = useMemo(() => !saved && snapshot(form, tags, lyricEntries) !== initialRef.current, [form, tags, lyricEntries, saved])
+  const { guard, dialog: leaveDialog } = useUnsavedChanges(dirty)
+
+  // ── Inline validation ──
+  const [errors, setErrors] = useState<{ title?: string; bpm?: string }>({})
+  const validate = () => {
+    const next: { title?: string; bpm?: string } = {}
+    if (!form.title.trim()) next.title = 'Enter the song title'
+    const b = form.bpm ? parseInt(form.bpm, 10) : null
+    if (b !== null && (!Number.isFinite(b) || b <= 0 || b >= 400)) next.bpm = 'BPM must be between 1 and 399'
+    setErrors(next)
+    return next
+  }
+
   const keyOptions = [
     { value: '', label: '— Select key —' },
     ...MUSICAL_KEYS.map((k) => ({ value: k, label: k })),
@@ -141,12 +164,13 @@ export function SongForm({ song }: SongFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
-    if (!form.title.trim()) { toast.error('Title is required'); return }
-    const bpm = form.bpm ? parseInt(form.bpm, 10) : null
-    if (bpm !== null && (!Number.isFinite(bpm) || bpm <= 0 || bpm >= 400)) {
-      toast.error('BPM must be between 1 and 399')
+    const problems = validate()
+    if (problems.title || problems.bpm) {
+      // Move focus to the first field that needs attention
+      document.getElementById(problems.title ? 'song-title' : 'song-bpm')?.focus()
       return
     }
+    const bpm = form.bpm ? parseInt(form.bpm, 10) : null
 
     setLoading(true)
 
@@ -170,6 +194,7 @@ export function SongForm({ song }: SongFormProps) {
       const { error } = await supabase.from('songs').update(payload).eq('id', song.id)
       if (error) { toast.error('Failed to update song'); setLoading(false); return }
       toast.success('Song updated')
+      setSaved(true)
       router.push(`/songs/${song.id}`)
     } else {
       const { data, error } = await supabase
@@ -194,29 +219,45 @@ export function SongForm({ song }: SongFormProps) {
         if (lyricsError) {
           // The song itself saved — send the user to it so they can re-add lyrics.
           toast.error('Song created, but lyrics failed to save')
+          setSaved(true)
           router.push(`/songs/${data.id}`)
           return
         }
       }
 
       toast.success('Song created')
+      setSaved(true)
       router.push(`/songs/${data.id}`)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-10">
-      <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleOcrImage} />
+    <>
+    {heading && (
+      <BackHeader title={heading}>
+        <Button variant="ghost" size="icon" type="button" onClick={() => guard(() => goBack(router, song ? `/songs/${song.id}` : '/songs'))} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+      </BackHeader>
+    )}
+    {leaveDialog}
+    <form onSubmit={handleSubmit} noValidate className="px-4 pt-6 max-w-2xl space-y-8">
+      <input ref={imgInputRef} type="file" accept="image/*" className="hidden" aria-hidden tabIndex={-1} onChange={handleOcrImage} />
+      <p className="text-sm text-[var(--fg-muted)]">Fields marked <span aria-hidden className="text-[var(--danger)]">*</span><span className="sr-only">with an asterisk</span> are required.</p>
 
       {/* ── Basic Info ── */}
-      <section className="space-y-4">
-        <p className="section-label">Basic Info</p>
+      <section aria-labelledby="sf-basic" className="space-y-4">
+        <h2 id="sf-basic" className="text-base font-semibold text-[var(--fg)]">Basic info</h2>
         <Input
-          label="Song Title *"
+          id="song-title"
+          label="Song title *"
           value={form.title}
-          onChange={(e) => set('title', e.target.value)}
+          onChange={(e) => { set('title', e.target.value); if (errors.title) setErrors((x) => ({ ...x, title: undefined })) }}
+          onBlur={() => { if (!form.title.trim()) setErrors((x) => ({ ...x, title: 'Enter the song title' })) }}
           placeholder="Amazing Grace"
           required
+          aria-required="true"
+          error={errors.title}
         />
         <Input
           label="Artist / Band"
@@ -238,13 +279,14 @@ export function SongForm({ song }: SongFormProps) {
           <button
             type="button"
             onClick={() => setShowLyricsSection((v) => !v)}
-            className="flex items-center justify-between w-full"
+            aria-expanded={showLyricsSection}
+            className="flex items-center justify-between w-full min-h-[44px]"
           >
-            <p className="section-label flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5" />
+            <h2 className="text-base font-semibold text-[var(--fg)] flex items-center gap-2">
+              <Globe aria-hidden className="w-4 h-4 text-[var(--fg-subtle)]" />
               Lyrics
-              <span className="text-white/30 normal-case font-normal tracking-normal text-xs">(optional)</span>
-            </p>
+              <span className="text-[var(--fg-subtle)] font-normal text-sm">(optional)</span>
+            </h2>
             {showLyricsSection
               ? <ChevronUp className="w-4 h-4 text-white/30" />
               : <ChevronDown className="w-4 h-4 text-white/30" />}
@@ -363,7 +405,7 @@ export function SongForm({ song }: SongFormProps) {
               ))}
 
               <p className="text-xs text-white/30">
-                You can add more languages after saving the song.
+                Add each language as its own tab here — or add and edit languages any time later from the song page.
               </p>
             </div>
           )}
@@ -371,8 +413,8 @@ export function SongForm({ song }: SongFormProps) {
       )}
 
       {/* ── Musical Details ── */}
-      <section className="space-y-4">
-        <p className="section-label">Musical Details</p>
+      <section aria-labelledby="sf-music" className="space-y-4">
+        <h2 id="sf-music" className="text-base font-semibold text-[var(--fg)]">Musical details</h2>
         <div className="grid grid-cols-2 gap-3">
           <Select
             label="Default Key"
@@ -389,16 +431,18 @@ export function SongForm({ song }: SongFormProps) {
         </div>
 
         {/* Mode: Major / Minor */}
-        <div>
-          <p className="text-xs text-white/50 mb-2">Mode</p>
+        <div role="radiogroup" aria-labelledby="sf-mode">
+          <p id="sf-mode" className="block text-sm font-medium text-[var(--fg-muted)] mb-1.5">Mode</p>
           <div className="flex gap-2">
             {([['', 'Not set'], ['major', 'Major'], ['minor', 'Minor']] as const).map(([val, label]) => (
               <button
                 key={val}
                 type="button"
+                role="radio"
+                aria-checked={form.mode === val}
                 onClick={() => set('mode', val)}
                 className={cn(
-                  'flex-1 py-2 rounded-xl text-sm font-medium border transition-all duration-200',
+                  'flex-1 min-h-[44px] rounded-xl text-sm font-medium border transition-colors',
                   form.mode === val
                     ? val === 'minor'
                       ? 'bg-purple-600 border-purple-500 text-white'
@@ -415,13 +459,17 @@ export function SongForm({ song }: SongFormProps) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="BPM"
+            id="song-bpm"
+            label="Tempo (BPM)"
             type="number"
+            inputMode="numeric"
             min={40}
             max={300}
             value={form.bpm}
-            onChange={(e) => set('bpm', e.target.value)}
+            onChange={(e) => { set('bpm', e.target.value); if (errors.bpm) setErrors((x) => ({ ...x, bpm: undefined })) }}
+            onBlur={() => validate()}
             placeholder="120"
+            error={errors.bpm}
           />
           <Select
             label="Time Signature"
@@ -440,17 +488,27 @@ export function SongForm({ song }: SongFormProps) {
         />
       </section>
 
-      {/* ── Tags ── */}
-      <section className="space-y-3">
-        <p className="section-label">Tags</p>
+      {/* ── Optional extras ── */}
+      <details className="group surface p-4" open={!!song && (tags.length > 0 || !!form.youtube_url || !!form.spotify_url || !!form.notes)}>
+        <summary className="flex items-center justify-between cursor-pointer list-none min-h-[44px] -m-1 p-1 rounded-lg">
+          <span>
+            <span className="block text-base font-semibold text-[var(--fg)]">More details <span className="font-normal text-sm text-[var(--fg-subtle)]">(optional)</span></span>
+            <span className="block text-sm text-[var(--fg-muted)]">Tags, YouTube / Spotify links and notes</span>
+          </span>
+          <ChevronDown aria-hidden className="w-5 h-5 text-[var(--fg-subtle)] transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="pt-5 space-y-8">
+      <section aria-labelledby="sf-tags" className="space-y-3">
+        <h3 id="sf-tags" className="text-sm font-semibold text-[var(--fg)]">Tags</h3>
         <div className="flex gap-2 flex-wrap">
           {PRESET_TAGS.map((tag) => (
             <button
               key={tag}
               type="button"
               onClick={() => tags.includes(tag) ? removeTag(tag) : addTag(tag)}
+              aria-pressed={tags.includes(tag)}
               className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200',
+                'min-h-[36px] px-3 rounded-full text-sm font-medium border transition-colors',
                 tags.includes(tag)
                   ? 'bg-accent-600 border-accent-500 text-white'
                   : 'bg-white/[0.06] border-white/10 text-white/60 hover:bg-white/[0.10]'
@@ -466,9 +524,10 @@ export function SongForm({ song }: SongFormProps) {
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(tagInput) } }}
             placeholder="Add custom tag..."
+            aria-label="Custom tag"
             className="input-base flex-1"
           />
-          <Button type="button" variant="secondary" size="icon" onClick={() => addTag(tagInput)}>
+          <Button type="button" variant="secondary" size="icon" onClick={() => addTag(tagInput)} aria-label="Add custom tag">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -477,7 +536,7 @@ export function SongForm({ song }: SongFormProps) {
             {tags.map((tag) => (
               <span key={tag} className="tag-pill gap-1.5">
                 {tag}
-                <button type="button" onClick={() => removeTag(tag)} className="hover:text-white/70 transition-colors">
+                <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`} className="w-6 h-6 -mr-1 flex items-center justify-center rounded-full hover:bg-[var(--bg-hover)]">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -487,8 +546,8 @@ export function SongForm({ song }: SongFormProps) {
       </section>
 
       {/* ── Links ── */}
-      <section className="space-y-4">
-        <p className="section-label">Links</p>
+      <section aria-labelledby="sf-links" className="space-y-4">
+        <h3 id="sf-links" className="text-sm font-semibold text-[var(--fg)]">Links</h3>
         <Input
           label="YouTube URL"
           type="url"
@@ -508,8 +567,8 @@ export function SongForm({ song }: SongFormProps) {
       </section>
 
       {/* ── Notes ── */}
-      <section className="space-y-3">
-        <p className="section-label">Notes</p>
+      <section aria-labelledby="sf-notes" className="space-y-3">
+        <h3 id="sf-notes" className="text-sm font-semibold text-[var(--fg)]">Notes</h3>
         <Textarea
           label="Song Notes"
           value={form.notes}
@@ -519,15 +578,22 @@ export function SongForm({ song }: SongFormProps) {
         />
       </section>
 
+        </div>
+      </details>
+
       {/* ── Actions ── */}
       <div className="flex gap-3 pt-2">
-        <Button type="button" variant="secondary" className="flex-1" onClick={() => router.back()} disabled={loading}>
+        <Button type="button" variant="secondary" className="flex-1" onClick={() => guard(() => goBack(router, song ? `/songs/${song.id}` : '/songs'))} disabled={loading}>
           Cancel
         </Button>
         <Button type="submit" className="flex-1" loading={loading}>
-          {song ? 'Save Changes' : 'Add Song'}
+          {loading ? 'Saving…' : song ? 'Save changes' : 'Add song'}
         </Button>
       </div>
+      {Object.values(errors).some(Boolean) && (
+        <p role="alert" className="text-sm text-[var(--danger)]">Please fix the highlighted fields.</p>
+      )}
     </form>
+    </>
   )
 }

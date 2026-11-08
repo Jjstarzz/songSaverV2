@@ -14,22 +14,22 @@ export default function EditServicePage({ params }: Props) {
   const router = useRouter()
   const { service, loading } = useService(params.id)
 
+  if (service && !loading) return <ServiceForm service={service} heading="Edit service" />
+
   return (
     <>
-      <BackHeader title="Edit Service">
-        <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
+      <BackHeader title="Edit service">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
       </BackHeader>
-      <div className="px-4 pt-6">
+      <div className="px-4 pt-6 max-w-2xl">
         {loading ? (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-busy="true">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
-        ) : service ? (
-          <ServiceForm service={service} />
         ) : (
-          <p className="text-white/50 text-center py-8">Service not found</p>
+          <p className="text-[var(--fg-muted)] text-center py-8">Service not found</p>
         )}
       </div>
     </>

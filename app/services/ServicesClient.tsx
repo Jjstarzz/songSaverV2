@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Plus, CalendarDays, Clock, Search, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ServiceCard } from '@/components/services/ServiceCard'
-import { Button } from '@/components/ui/Button'
+import { Button, buttonVariants } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton'
 import { useServices, type ServiceWithPreview } from '@/hooks/useServices'
@@ -71,11 +71,9 @@ export function ServicesClient() {
         title="Services"
         subtitle={loading ? '' : `${services.length} total`}
         action={
-          <Link href="/services/new">
-            <Button size="sm">
-              <Plus className="w-4 h-4" />
-              New
-            </Button>
+          <Link href="/services/new" className={buttonVariants({})}>
+            <Plus aria-hidden className="w-4 h-4" />
+            Plan service
           </Link>
         }
       />
@@ -92,11 +90,9 @@ export function ServicesClient() {
           title="No services yet"
           description="Plan your first worship service and build your setlist"
           action={
-            <Link href="/services/new">
-              <Button>
-                <Plus className="w-4 h-4" />
-                Create Service
-              </Button>
+            <Link href="/services/new" className={buttonVariants({})}>
+              <Plus aria-hidden className="w-4 h-4" />
+              Plan a service
             </Link>
           }
         />
@@ -118,7 +114,7 @@ export function ServicesClient() {
                 <button
                   onClick={() => setQuery('')}
                   aria-label="Clear search"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2.5 text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-[var(--fg-subtle)] hover:text-[var(--fg)]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -128,10 +124,10 @@ export function ServicesClient() {
               onClick={() => setShowMine((v) => !v)}
               aria-pressed={showMine}
               className={cn(
-                'shrink-0 px-4 rounded-xl border text-sm font-medium transition-colors',
+                'shrink-0 px-4 min-h-[44px] rounded-xl border text-sm font-medium transition-colors',
                 showMine
-                  ? 'bg-accent-500/15 border-accent-500/30 text-accent-400'
-                  : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
+                  ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-fg)]'
+                  : 'bg-[var(--bg-input)] border-[var(--border-strong)] text-[var(--fg-muted)]'
               )}
             >
               Mine
@@ -149,11 +145,11 @@ export function ServicesClient() {
           {/* Upcoming */}
           {upcoming.length > 0 && (
             <section>
-              <p className="section-label flex items-center gap-1.5 mb-3">
-                <CalendarDays className="w-3.5 h-3.5" />
+              <h2 className="section-label flex items-center gap-1.5 mb-3">
+                <CalendarDays aria-hidden className="w-3.5 h-3.5" />
                 Upcoming
-              </p>
-              <div className="space-y-2.5">
+              </h2>
+              <div className="grid gap-2.5 lg:grid-cols-2">
                 {upcoming.map((service) => (
                   <ServiceCard key={service.id} service={service} currentUserId={user?.id} />
                 ))}
@@ -164,12 +160,12 @@ export function ServicesClient() {
           {/* Past */}
           {past.length > 0 && (
             <section>
-              <p className="section-label flex items-center gap-1.5 mb-3">
-                <Clock className="w-3.5 h-3.5" />
-                Past Services
+              <h2 className="section-label flex items-center gap-1.5 mb-3">
+                <Clock aria-hidden className="w-3.5 h-3.5" />
+                Past services
                 <span className="normal-case tracking-normal font-normal">· {past.length}</span>
-              </p>
-              <div className="space-y-2.5">
+              </h2>
+              <div className="grid gap-2.5 lg:grid-cols-2">
                 {visiblePast.map((service) => (
                   <ServiceCard key={service.id} service={service} past currentUserId={user?.id} />
                 ))}

@@ -1,37 +1,77 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useMemo, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Music2, CalendarDays, Mic2, Plus, Heart, Clock, ChevronRight, TrendingUp } from 'lucide-react'
+import { Search, CalendarPlus, Plus, Clock, Heart, ChevronRight, CalendarDays, Music2, Globe, Lock } from 'lucide-react'
 import { useSongs } from '@/hooks/useSongs'
-import { useServices } from '@/hooks/useServices'
+import { useServices, type ServiceWithPreview } from '@/hooks/useServices'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import { useAuth } from '@/hooks/useAuth'
 import { useSupabase } from '@/hooks/useSupabase'
 import { SongCard } from '@/components/songs/SongCard'
-import { SERVICE_TYPES, Profile } from '@/types/database'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { buttonVariants } from '@/components/ui/Button'
+import { SERVICE_TYPES, SERVICE_STATUSES, Profile } from '@/types/database'
 import { cn, todayLocal } from '@/lib/utils'
 
-function StatCard({ icon: Icon, label, value, href, color }: {
-  icon: React.ElementType
-  label: string
-  value: number | string
-  href: string
-  color: string
-}) {
+function dayDistance(dateStr: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = Math.round((new Date(dateStr + 'T00:00:00').getTime() - today.getTime()) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Tomorrow'
+  if (diff === -1) return 'Yesterday'
+  if (diff < 0) return `${-diff} days ago`
+  if (diff < 7) return `In ${diff} days`
+  return `In ${Math.round(diff / 7)} week${diff >= 14 ? 's' : ''}`
+}
+
+function longDate(dateStr: string) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+/** The next service, prominently, with its first songs and quick actions. */
+function NextService({ service }: { service: ServiceWithPreview }) {
+  const songs = [...(service.service_songs ?? [])].sort((a, b) => a.order_index - b.order_index)
+  const typeLabel = SERVICE_TYPES[service.type]
   return (
-    <Link href={href} className="glass-card-hover p-4 flex flex-col gap-2">
-      <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', color)}>
-        <Icon className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+    <section aria-labelledby="next-service" className="surface p-5">
+      <p className="text-sm font-medium text-[var(--accent-fg)]">
+        {dayDistance(service.date)} · {longDate(service.date)}
+      </p>
+      <h2 id="next-service" className="mt-1 text-xl font-semibold text-[var(--fg)] break-words">
+        {service.theme || typeLabel}
+      </h2>
+      <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--fg-muted)]">
+        {service.theme && <span>{typeLabel}</span>}
+        <span className={cn('chip', service.status === 'confirmed' && 'chip-success', service.status === 'completed' && 'chip-accent')}>
+          {SERVICE_STATUSES[service.status]}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          {service.is_public ? <Globe aria-hidden className="w-3.5 h-3.5" /> : <Lock aria-hidden className="w-3.5 h-3.5" />}
+          {service.is_public ? 'Public' : 'Private'}
+        </span>
+      </p>
+      {songs.length > 0 ? (
+        <ol className="mt-4 space-y-1.5">
+          {songs.slice(0, 5).map((ss, i) => (
+            <li key={ss.id} className="flex items-baseline gap-3 text-[15px]">
+              <span aria-hidden className="w-5 text-right text-sm tabular text-[var(--fg-subtle)]">{i + 1}</span>
+              <span className="min-w-0 truncate text-[var(--fg)]">{ss.songs?.title}</span>
+            </li>
+          ))}
+          {songs.length > 5 && <li className="pl-8 text-sm text-[var(--fg-subtle)]">and {songs.length - 5} more</li>}
+        </ol>
+      ) : (
+        <p className="mt-4 text-sm text-[var(--fg-muted)]">No songs in the setlist yet.</p>
+      )}
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Link href={`/services/${service.id}`} className={buttonVariants({})}>
+          Open service
+        </Link>
       </div>
-      <div>
-        <p className="text-2xl font-bold text-[var(--fg)]">{value}</p>
-        <p className="text-xs text-[var(--fg-muted)]">{label}</p>
-      </div>
-    </Link>
+    </section>
   )
 }
 
@@ -40,7 +80,7 @@ export default function DashboardPage() {
   const supabase = useSupabase()
   const { songs, loading: songsLoading } = useSongs()
   const { services, loading: servicesLoading } = useServices()
-  const { favorites, isFavorite } = useFavorites()
+  const { isFavorite } = useFavorites()
   const { items: recentItems } = useRecentlyViewed()
   const [firstName, setFirstName] = useState<string | null>(null)
 
@@ -48,243 +88,163 @@ export default function DashboardPage() {
     if (!user) return
     supabase.from('profiles').select('display_name').eq('id', user.id).single()
       .then(({ data }: { data: Pick<Profile, 'display_name'> | null }) => {
-        if (data?.display_name) {
-          // Take only the first word as the first name
-          setFirstName(data.display_name.trim().split(/\s+/)[0])
-        }
+        const name = data?.display_name?.trim()
+        if (name && name !== 'Worshiper') setFirstName(name.split(/\s+/)[0])
       })
   }, [user, supabase])
 
   const greeting = useMemo(() => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 17) return 'Good afternoon'
-    return 'Good evening'
+    return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   }, [])
 
-  const upcomingServices = useMemo(() => {
-    const now = todayLocal()
-    return services
-      .filter((s) => s.date >= now && s.status !== 'completed')
+  const { upcoming, latest } = useMemo(() => {
+    const today = todayLocal()
+    const upcoming = services
+      .filter((s) => s.date >= today && s.status !== 'completed')
       .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(0, 3)
+    const latest = services
+      .filter((s) => s.date < today)
+      .reduce<ServiceWithPreview | null>((best, s) => (!best || s.date > best.date ? s : best), null)
+    return { upcoming, latest }
   }, [services])
 
-  // When nothing is scheduled, surface the most recent service so it's one tap away
-  const latestService = useMemo(() => {
-    if (upcomingServices.length > 0) return null
-    const today = todayLocal()
-    return services
-      .filter((s) => s.date < today)
-      .reduce<(typeof services)[number] | null>((best, s) => (!best || s.date > best.date ? s : best), null)
-  }, [services, upcomingServices.length])
+  const favoriteSongs = useMemo(() => songs.filter((s) => isFavorite(s.id)).slice(0, 5), [songs, isFavorite])
+  const recentSongs = useMemo(() => songs.slice(0, 5), [songs])
 
-  const favoriteSongs = useMemo(
-    () => songs.filter((s) => isFavorite(s.id)).slice(0, 5),
-    [songs, isFavorite]
-  )
-
-  const recentSongs = useMemo(
-    () => songs.slice(0, 5),
-    [songs]
-  )
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00')
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  }
-
-  const daysUntil = (dateStr: string) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const target = new Date(dateStr + 'T00:00:00')
-    const diff = Math.round((target.getTime() - today.getTime()) / 86400000)
-    if (diff === 0) return 'Today'
-    if (diff === 1) return 'Tomorrow'
-    if (diff === -1) return 'Yesterday'
-    if (diff < 0) return `${-diff} days ago`
-    return `In ${diff} days`
-  }
+  const quickActions = [
+    { href: '/songs', label: 'Find a song', icon: Search },
+    { href: '/services/new', label: 'Plan a service', icon: CalendarPlus },
+    { href: '/songs/new', label: 'Add a song', icon: Plus },
+  ]
 
   return (
-    <div className="px-4 pb-8">
-      {/* Header */}
-      <div className="page-top pb-6">
-        <p className="text-sm text-[var(--fg-muted)]">
-          {greeting}{firstName ? `, ${firstName}` : ''}
-        </p>
-        <h1 className="text-2xl font-bold text-[var(--fg)] mt-0.5">SongSaver</h1>
-      </div>
+    <div className="px-4">
+      <header className="page-top pb-5">
+        <p className="text-sm text-[var(--fg-muted)]">{greeting}{firstName ? `, ${firstName}` : ''}</p>
+        <h1 className="text-2xl lg:text-[28px] font-semibold tracking-tight text-[var(--fg)]">Home</h1>
+      </header>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard
-          icon={Music2}
-          label="Songs"
-          value={songsLoading ? '…' : songs.length}
-          href="/songs"
-          color="bg-accent-500/15 text-accent-400"
-        />
-        <StatCard
-          icon={CalendarDays}
-          label="Upcoming"
-          value={servicesLoading ? '…' : upcomingServices.length}
-          href="/services"
-          color="bg-emerald-500/15 text-emerald-400"
-        />
-        <StatCard
-          icon={Heart}
-          label="Favourites"
-          value={favorites.size}
-          href="/songs"
-          color="bg-red-500/15 text-red-400"
-        />
-      </div>
-
-      {/* Upcoming services */}
-      {!servicesLoading && upcomingServices.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label">Upcoming Services</p>
-            <Link href="/services" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
-          </div>
-          <div className="space-y-2">
-            {upcomingServices.map((service) => (
-              <Link
-                key={service.id}
-                href={`/services/${service.id}`}
-                className="glass-card-hover flex items-center gap-3 p-3.5"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <CalendarDays className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--fg)] truncate">
-                    {service.theme || SERVICE_TYPES[service.type]}
-                  </p>
-                  <p className="text-xs text-[var(--fg-muted)]">{formatDate(service.date)}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-xs text-emerald-400 font-medium">{daysUntil(service.date)}</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-[var(--fg-subtle)]" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Latest service (when nothing is upcoming) */}
-      {!servicesLoading && latestService && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label">Latest Service</p>
-            <Link href="/services/new" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">Plan next</Link>
-          </div>
-          <Link
-            href={`/services/${latestService.id}`}
-            className="glass-card-hover flex items-center gap-3 p-3.5"
-          >
-            <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] flex items-center justify-center shrink-0">
-              <CalendarDays className="w-5 h-5 text-[var(--fg-muted)]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[var(--fg)] truncate">
-                {latestService.theme || SERVICE_TYPES[latestService.type]}
-              </p>
-              <p className="text-xs text-[var(--fg-muted)] truncate">
-                {formatDate(latestService.date)} · {(latestService.service_songs ?? []).length} songs
-              </p>
-            </div>
-            <span className="text-xs text-[var(--fg-subtle)] shrink-0">{daysUntil(latestService.date)}</span>
-            <ChevronRight className="w-4 h-4 text-[var(--fg-subtle)]" />
-          </Link>
-        </section>
-      )}
-
-      {/* Favourite songs */}
-      {favoriteSongs.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label">Favourites</p>
-            <Link href="/songs" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
-          </div>
-          <div className="space-y-2">
-            {favoriteSongs.map((song) => (
-              <SongCard key={song.id} song={song} compact />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recently viewed */}
-      {recentItems.length > 0 && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label flex items-center gap-1.5">
-              <Clock className="w-3 h-3" /> Recently Viewed
-            </p>
-          </div>
-          <div className="space-y-2">
-            {recentItems.slice(0, 5).map((item) => (
-              <Link
-                key={item.id}
-                href={`/songs/${item.id}`}
-                className="glass-card-hover flex items-center gap-3 p-3"
-              >
-                <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
-                  <Music2 className="w-4 h-4 text-accent-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--fg)] truncate">{item.title}</p>
-                  {item.artist && (
-                    <p className="text-xs text-[var(--fg-muted)] truncate">{item.artist}</p>
-                  )}
-                </div>
-                <ChevronRight className="w-4 h-4 text-[var(--fg-subtle)]" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recent songs (fallback when nothing above) */}
-      {favoriteSongs.length === 0 && recentItems.length === 0 && !songsLoading && (
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="section-label flex items-center gap-1.5">
-              <TrendingUp className="w-3 h-3" /> Recent Songs
-            </p>
-            <Link href="/songs" className="text-xs text-accent-400 py-3 -my-3 px-2 -mx-2">See all</Link>
-          </div>
-          {recentSongs.length === 0 ? (
-            <div className="glass-card p-6 text-center">
-              <Music2 className="w-8 h-8 text-[var(--fg-subtle)] mx-auto mb-3" />
-              <p className="text-sm font-medium text-[var(--fg)]">No songs yet</p>
-              <p className="text-xs text-[var(--fg-muted)] mt-1">Add your first song to get started</p>
-              <Link href="/songs/new" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-accent-600 text-white text-sm font-medium">
-                <Plus className="w-4 h-4" /> Add Song
-              </Link>
-            </div>
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-8 space-y-8 lg:space-y-0">
+        {/* Left: what's next + actions */}
+        <div className="space-y-6">
+          {servicesLoading ? (
+            <Skeleton className="h-56 w-full rounded-2xl" />
+          ) : upcoming[0] ? (
+            <NextService service={upcoming[0]} />
           ) : (
-            <div className="space-y-2">
-              {recentSongs.map((song) => (
-                <SongCard key={song.id} song={song} compact />
-              ))}
-            </div>
+            <section aria-labelledby="no-upcoming" className="surface p-5">
+              <CalendarDays aria-hidden className="w-6 h-6 text-[var(--fg-subtle)]" />
+              <h2 id="no-upcoming" className="mt-3 text-lg font-semibold text-[var(--fg)]">No upcoming service</h2>
+              <p className="mt-1 text-sm text-[var(--fg-muted)]">
+                Plan the next one to build its setlist, set keys and present it on Sunday.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href="/services/new" className={buttonVariants({})}>
+                  <CalendarPlus aria-hidden className="w-4 h-4" /> Plan a service
+                </Link>
+                {latest && (
+                  <Link href={`/services/${latest.id}`} className={buttonVariants({ variant: 'secondary' })}>
+                    Open last service
+                  </Link>
+                )}
+              </div>
+              {latest && (
+                <p className="mt-3 text-xs text-[var(--fg-subtle)]">
+                  Last service: {latest.theme || SERVICE_TYPES[latest.type]} · {dayDistance(latest.date)}
+                </p>
+              )}
+            </section>
           )}
-        </section>
-      )}
 
-      {/* Quick actions FAB row */}
-      <div className="fixed right-4 flex flex-col gap-2 z-40" style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Link
-          href="/songs/new"
-          className="w-14 h-14 rounded-full bg-accent-600 shadow-lg flex items-center justify-center text-white active:scale-95 transition-transform"
-          aria-label="Add song"
-        >
-          <Plus className="w-6 h-6" />
-        </Link>
+          {upcoming.length > 1 && (
+            <section aria-labelledby="later">
+              <div className="flex items-center justify-between mb-2">
+                <h2 id="later" className="section-label">Later</h2>
+                <Link href="/services" className="text-sm font-medium text-[var(--accent-fg)] min-h-[44px] flex items-center">All services</Link>
+              </div>
+              <ul className="surface divide-y divide-[var(--border)]">
+                {upcoming.slice(1, 4).map((s) => (
+                  <li key={s.id}>
+                    <Link href={`/services/${s.id}`} className="flex items-center gap-3 px-4 min-h-[56px] py-2 hover:bg-[var(--bg-hover)] first:rounded-t-2xl last:rounded-b-2xl">
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium text-[var(--fg)] truncate">{s.theme || SERVICE_TYPES[s.type]}</span>
+                        <span className="block text-xs text-[var(--fg-subtle)]">{longDate(s.date)} · {s.service_songs?.length ?? 0} songs</span>
+                      </span>
+                      <span className="text-xs text-[var(--fg-muted)]">{dayDistance(s.date)}</span>
+                      <ChevronRight aria-hidden className="w-4 h-4 text-[var(--fg-subtle)]" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2">
+            {quickActions.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="surface flex flex-col items-center justify-center gap-2 px-2 py-4 min-h-[88px] text-center text-sm font-medium text-[var(--fg)] hover:bg-[var(--bg-card-hover)] transition-colors"
+              >
+                <Icon aria-hidden className="w-5 h-5 text-[var(--accent-fg)]" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* Right: songs you'll likely want */}
+        <div className="space-y-8">
+          {favoriteSongs.length > 0 && (
+            <section aria-labelledby="favs">
+              <div className="flex items-center justify-between mb-2">
+                <h2 id="favs" className="section-label flex items-center gap-1.5"><Heart aria-hidden className="w-3.5 h-3.5" /> Favourites</h2>
+              </div>
+              <ul className="space-y-1.5">
+                {favoriteSongs.map((song) => <li key={song.id}><SongCard song={song} compact /></li>)}
+              </ul>
+            </section>
+          )}
+
+          {recentItems.length > 0 && (
+            <section aria-labelledby="recent">
+              <h2 id="recent" className="section-label flex items-center gap-1.5 mb-2"><Clock aria-hidden className="w-3.5 h-3.5" /> Recently viewed</h2>
+              <ul className="surface divide-y divide-[var(--border)]">
+                {recentItems.slice(0, 5).map((item) => (
+                  <li key={item.id}>
+                    <Link href={`/songs/${item.id}`} className="flex items-center gap-3 px-4 min-h-[56px] py-2 hover:bg-[var(--bg-hover)] first:rounded-t-2xl last:rounded-b-2xl">
+                      <Music2 aria-hidden className="w-4 h-4 text-[var(--fg-subtle)] shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-medium text-[var(--fg)] truncate">{item.title}</span>
+                        {item.artist && <span className="block text-xs text-[var(--fg-subtle)] truncate">{item.artist}</span>}
+                      </span>
+                      <ChevronRight aria-hidden className="w-4 h-4 text-[var(--fg-subtle)]" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {favoriteSongs.length === 0 && recentItems.length === 0 && (
+            <section aria-labelledby="recent-songs">
+              <div className="flex items-center justify-between mb-2">
+                <h2 id="recent-songs" className="section-label">Recently updated songs</h2>
+                <Link href="/songs" className="text-sm font-medium text-[var(--accent-fg)] min-h-[44px] flex items-center">All songs</Link>
+              </div>
+              {songsLoading ? (
+                <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)}</div>
+              ) : recentSongs.length === 0 ? (
+                <p className="surface p-5 text-sm text-[var(--fg-muted)]">No songs yet — add your first one.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {recentSongs.map((song) => <li key={song.id}><SongCard song={song} compact /></li>)}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
       </div>
     </div>
   )

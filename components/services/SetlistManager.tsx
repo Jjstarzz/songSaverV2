@@ -168,9 +168,9 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="section-label">
-          Setlist {list.length > 0 && `(${list.length} songs)`}
-        </p>
+        <h2 className="text-base font-semibold text-[var(--fg)]">
+          Setlist {list.length > 0 && <span className="text-[var(--fg-subtle)] font-normal">· {list.length} {list.length === 1 ? 'song' : 'songs'}</span>}
+        </h2>
         <div className="flex items-center gap-3">
           {items.length > 1 && !adding && (
             <button
@@ -180,21 +180,19 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                 localStorage.setItem('songsaver-show-transitions', String(next))
               }}
               title="Show transition notes between songs"
+              aria-pressed={showTransitions}
               className={cn(
                 'text-xs transition-colors flex items-center gap-1 py-3 -my-3 px-2 -mx-2',
                 showTransitions ? 'text-accent-400 hover:text-accent-300' : 'text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]'
               )}
             >
-              <ArrowLeftRight className="w-3 h-3" /> Transitions
+              <ArrowLeftRight aria-hidden className="w-3 h-3" /> Transitions
             </button>
           )}
           {!readOnly && !adding && (
-            <button
-              onClick={() => setAdding(true)}
-              className="text-xs text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" /> Add Song
-            </button>
+            <Button size="sm" variant="secondary" onClick={() => setAdding(true)}>
+              <Plus aria-hidden className="w-4 h-4" /> Add songs
+            </Button>
           )}
         </div>
       </div>
@@ -235,13 +233,13 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                   {/* Main row */}
                   <div className="flex items-center gap-3 p-3">
                     {/* Order number */}
-                    <span className="w-5 text-center text-xs font-bold text-[var(--fg-subtle)] shrink-0">
+                    <span className="w-6 text-right text-sm font-semibold tabular text-[var(--fg-subtle)] shrink-0" aria-hidden>
                       {idx + 1}
                     </span>
 
                     {/* Song info — tappable link */}
                     <Link href={`/songs/${item.song_id}?serviceId=${serviceId}`} className="flex-1 min-w-0 group/link">
-                      <p className="text-sm font-medium text-[var(--fg)] truncate group-hover/link:text-accent-400 transition-colors">
+                      <p className="text-[15px] font-medium text-[var(--fg)] line-clamp-2 break-words group-hover/link:text-[var(--accent-fg)] transition-colors">
                         {item.songs.title}
                       </p>
                       {item.songs.artist && (
@@ -253,8 +251,10 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                     {!readOnly ? (
                       <button
                         onClick={() => setEditingKeyId(isEditingKey ? null : item.id)}
+                        aria-expanded={isEditingKey}
+                        aria-label={`Key for ${item.songs.title}: ${displayKey || 'not set'}${item.key_override ? ' (set for this service)' : ''}. Change`}
                         className={cn(
-                          'text-xs font-medium shrink-0 px-2 py-1 rounded-lg border transition-all',
+                          'text-sm font-semibold tabular shrink-0 min-w-[72px] h-9 px-2 rounded-lg border text-center transition-colors',
                           isEditingKey
                             ? 'bg-accent-600 border-accent-500 text-white'
                             : item.key_override

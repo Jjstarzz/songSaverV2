@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Globe, Lock } from 'lucide-react'
+import { ArrowLeft, Globe, Lock } from 'lucide-react'
+import { BackHeader } from '@/components/layout/PageHeader'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Service, SERVICE_TYPES } from '@/types/database'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ui/Toaster'
-import { cn, todayLocal } from '@/lib/utils'
+import { cn, todayLocal, goBack } from '@/lib/utils'
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -21,9 +23,10 @@ const TYPE_OPTIONS = Object.entries(SERVICE_TYPES).map(([value, label]) => ({ va
 
 interface ServiceFormProps {
   service?: Service
+  heading?: string
 }
 
-export function ServiceForm({ service }: ServiceFormProps) {
+export function ServiceForm({ service, heading }: ServiceFormProps) {
   const router = useRouter()
   const supabase = useSupabase()
   const { user } = useAuth()
@@ -40,9 +43,16 @@ export function ServiceForm({ service }: ServiceFormProps) {
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }))
 
+  const initial = useRef(JSON.stringify(form))
+  const [saved, setSaved] = useState(false)
+  const dirty = useMemo(() => !saved && JSON.stringify(form) !== initial.current, [form, saved])
+  const { guard, dialog: leaveDialog } = useUnsavedChanges(dirty)
+  const [dateError, setDateError] = useState<string | undefined>()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+    if (!form.date) { setDateError('Choose the service date'); document.getElementById('service-date')?.focus(); return }
     setLoading(true)
 
     const payload = {
@@ -58,6 +68,7 @@ export function ServiceForm({ service }: ServiceFormProps) {
       const { error } = await supabase.from('services').update(payload).eq('id', service.id)
       if (error) { toast.error('Failed to update service'); setLoading(false); return }
       toast.success('Service updated')
+      setSaved(true)
       router.push(`/services/${service.id}`)
     } else {
       const { data, error } = await supabase
@@ -67,21 +78,33 @@ export function ServiceForm({ service }: ServiceFormProps) {
         .single()
       if (error) { toast.error('Failed to create service'); setLoading(false); return }
       toast.success('Service created')
+      setSaved(true)
       router.push(`/services/${data.id}`)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-8">
-      <section className="space-y-4">
-        <p className="section-label">Service Details</p>
-
+    <>
+    {heading && (
+      <BackHeader title={heading}>
+        <Button variant="ghost" size="icon" type="button" onClick={() => guard(() => goBack(router, service ? `/services/${service.id}` : '/services'))} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+      </BackHeader>
+    )}
+    {leaveDialog}
+    <form onSubmit={handleSubmit} noValidate className="px-4 pt-6 max-w-2xl space-y-8">
+      <section aria-labelledby="svc-details" className="space-y-4">
+        <h2 id="svc-details" className="text-base font-semibold text-[var(--fg)]">Service details</h2>
         <Input
-          label="Date"
+          id="service-date"
+          label="Date *"
           type="date"
           value={form.date}
-          onChange={(e) => set('date', e.target.value)}
+          onChange={(e) => { set('date', e.target.value); setDateError(undefined) }}
           required
+          aria-required="true"
+          error={dateError}
         />
 
         <div className="grid grid-cols-2 gap-3">
@@ -142,8 +165,8 @@ export function ServiceForm({ service }: ServiceFormProps) {
         </button>
       </section>
 
-      <section className="space-y-3">
-        <p className="section-label">Notes</p>
+      <section aria-labelledby="svc-notes" className="space-y-3">
+        <h2 id="svc-notes" className="text-base font-semibold text-[var(--fg)]">Notes <span className="font-normal text-sm text-[var(--fg-subtle)]">(optional)</span></h2>
         <Textarea
           label="Service Notes"
           value={form.notes}
@@ -154,13 +177,14 @@ export function ServiceForm({ service }: ServiceFormProps) {
       </section>
 
       <div className="flex gap-3 pt-2">
-        <Button type="button" variant="secondary" className="flex-1" onClick={() => router.back()} disabled={loading}>
+        <Button type="button" variant="secondary" className="flex-1" onClick={() => guard(() => goBack(router, service ? `/services/${service.id}` : '/services'))} disabled={loading}>
           Cancel
         </Button>
         <Button type="submit" className="flex-1" loading={loading}>
-          {service ? 'Save Changes' : 'Create Service'}
+          {loading ? 'Saving…' : service ? 'Save changes' : 'Create service'}
         </Button>
       </div>
     </form>
+    </>
   )
 }

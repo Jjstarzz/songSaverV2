@@ -3,21 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Trash2, CalendarDays, Globe, Lock, FileDown, Share2, Check, UserRound } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Globe, Lock, FileDown, Link2 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
-import { Button } from '@/components/ui/Button'
+import { Button, buttonVariants } from '@/components/ui/Button'
+import { Menu } from '@/components/ui/Menu'
 import { SetlistManager } from '@/components/services/SetlistManager'
 import { ConfirmModal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useService, useServices } from '@/hooks/useServices'
+import { useService } from '@/hooks/useServices'
 import { useCreatorName } from '@/hooks/useCreatorName'
 import { useAuth } from '@/hooks/useAuth'
 import { useRole } from '@/hooks/useRole'
 import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { SERVICE_TYPES, SERVICE_STATUSES } from '@/types/database'
-import { PresentationController } from '@/components/presentation/PresentationController'
-import { formatDate, todayLocal } from '@/lib/utils'
+import { PresentButton } from '@/components/presentation/PresentButton'
+import { formatDate, todayLocal, goBack } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 interface Props { id: string }
@@ -29,13 +30,14 @@ export function ServiceDetailClient({ id }: Props) {
   const { service, loading, refetch } = useService(id)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [copied, setCopied] = useState(false)
-
   const copyPublicLink = async () => {
     const url = `${window.location.origin}/services/${id}/view`
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Public link copied')
+    } catch {
+      toast.info(url)
+    }
   }
 
   const { isAdmin } = useRole()
@@ -64,14 +66,20 @@ export function ServiceDetailClient({ id }: Props) {
     router.push('/services')
   }
 
+  const back = (
+    <Button variant="ghost" size="icon" onClick={() => goBack(router, '/services')} aria-label="Back">
+      <ArrowLeft className="w-5 h-5" />
+    </Button>
+  )
+
   if (loading) {
     return (
       <>
-        <BackHeader title=""><div className="w-8 h-8" /></BackHeader>
-        <div className="px-4 pt-6 space-y-4">
+        <BackHeader title="Loading service">{back}</BackHeader>
+        <div className="px-4 pt-6 space-y-4 max-w-3xl" aria-busy="true">
           <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </>
     )
@@ -80,11 +88,9 @@ export function ServiceDetailClient({ id }: Props) {
   if (!service) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-6 text-center">
-        <p className="text-white/50">Service not found</p>
-        <p className="text-xs text-[var(--fg-subtle)] max-w-xs">It may have been deleted, or it&apos;s a private service from another account.</p>
-        <Link href="/services">
-          <Button variant="secondary">Back to services</Button>
-        </Link>
+        <h1 className="text-lg font-semibold text-[var(--fg)]">Service not found</h1>
+        <p className="text-sm text-[var(--fg-muted)] max-w-xs">It may have been deleted, or it&apos;s a private service from another account.</p>
+        <Link href="/services" className={buttonVariants({ variant: 'secondary' })}>Back to services</Link>
       </div>
     )
   }
@@ -99,136 +105,76 @@ export function ServiceDetailClient({ id }: Props) {
       return {
         title: ss.songs.title as string,
         lyricsText: defaultLyric?.lyrics ?? '',
-        availableLyrics: songLyrics.map(l => ({ id: l.id, language: l.language, lyrics: l.lyrics })),
+        availableLyrics: songLyrics.map((l) => ({ id: l.id, language: l.language, lyrics: l.lyrics })),
       }
     })
     .filter((item) => item.lyricsText)
 
+  const typeLabel = SERVICE_TYPES[service.type]
+  const statusLabel = SERVICE_STATUSES[service.status]
+
   return (
     <>
       <BackHeader
-        title={service.theme || formatDate(service.date)}
+        title={service.theme || typeLabel}
+        hideTitle
         action={
-          <div className="flex gap-1.5 items-center">
+          <>
             {servicePlaylist.length > 0 && (
-              <PresentationController
-                title=""
-                lyricsText=""
-                playlist={servicePlaylist}
-              />
+              <PresentButton title="" lyricsText="" playlist={servicePlaylist} label="Present" />
             )}
-            {service.is_public && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={copyPublicLink}
-                title={copied ? 'Link copied!' : 'Copy public link'}
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-              </Button>
-            )}
-            <Link href={`/services/${id}/print`}>
-              <Button variant="ghost" size="icon-sm" title="Export PDF">
-                <FileDown className="w-4 h-4" />
-              </Button>
-            </Link>
-            {canEdit && (
-              <Link href={`/services/${id}/edit`}>
-                <Button variant="ghost" size="icon-sm"><Pencil className="w-4 h-4" /></Button>
-              </Link>
-            )}
-            {canDelete && (
-              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="w-4 h-4 text-red-400" />
-              </Button>
-            )}
-          </div>
+            <Menu
+              items={[
+                { label: 'Copy public link', icon: Link2, onSelect: copyPublicLink, hidden: !service.is_public },
+                { label: 'Print / PDF', icon: FileDown, href: `/services/${id}/print` },
+                { label: 'Edit service', icon: Pencil, href: `/services/${id}/edit`, hidden: !canEdit },
+                { label: service.is_public ? 'Make private' : 'Make public', icon: service.is_public ? Lock : Globe, onSelect: toggleVisibility, hidden: !canEdit },
+                { label: 'Delete service', icon: Trash2, onSelect: () => setDeleteOpen(true), destructive: true, hidden: !canDelete },
+              ]}
+            />
+          </>
         }
       >
-        <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
+        {back}
       </BackHeader>
 
-      <div className="px-4 pt-6 pb-10 space-y-6">
-        {/* Info card */}
-        <div className="glass-card p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl bg-accent-500/15 border border-accent-500/20 flex items-center justify-center shrink-0">
-              <CalendarDays className="w-5 h-5 text-accent-400" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">
-                {service.theme || 'Untitled Service'}
-              </h1>
-              <p className="text-sm text-white/50">{formatDate(service.date)}</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-xs px-2.5 py-1 rounded-full bg-white/[0.08] text-white/60 border border-white/10">
-              {SERVICE_TYPES[service.type]}
-            </span>
-            <span className={cn(
-              'text-xs px-2.5 py-1 rounded-full border font-medium',
-              service.status === 'draft' && 'bg-white/[0.06] text-white/50 border-white/10',
-              service.status === 'confirmed' && 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-              service.status === 'completed' && 'bg-accent-500/15 text-accent-400 border-accent-500/20'
-            )}>
-              {SERVICE_STATUSES[service.status]}
-            </span>
-            {(isOwner || isAdmin) ? (
-              <button
-                onClick={toggleVisibility}
-                className={cn(
-                  'inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors',
-                  service.is_public
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25'
-                    : 'bg-white/[0.06] text-white/50 border-white/10 hover:bg-white/10'
-                )}
-              >
-                {service.is_public
-                  ? <><Globe className="w-3 h-3" /> Public</>
-                  : <><Lock className="w-3 h-3" /> Private</>}
-              </button>
-            ) : (
-              <span className={cn(
-                'inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border',
-                service.is_public
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
-                  : 'bg-white/[0.06] text-white/50 border-white/10'
-              )}>
-                {service.is_public ? <><Globe className="w-3 h-3" /> Public</> : <><Lock className="w-3 h-3" /> Private</>}
-              </span>
+      <div className="px-4 pt-5 lg:pt-8 max-w-3xl space-y-6">
+        <header className="space-y-2">
+          <p className="text-sm font-medium text-[var(--accent-fg)]">{formatDate(service.date)}</p>
+          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-[var(--fg)] break-words">
+            {service.theme || typeLabel}
+          </h1>
+          <dl className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            {service.theme && (
+              <div className="flex gap-1.5"><dt className="sr-only">Type</dt><dd className="text-[var(--fg-muted)]">{typeLabel}</dd></div>
             )}
-          </div>
-
-          {/* Creator */}
-          {creatorName && (
-            <div className="flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
-              <UserRound className="w-3 h-3 text-white/30 shrink-0" />
-              <p className="text-xs text-white/40">
-                Created by{' '}
-                <span className={isOwner ? 'text-white/60' : 'text-accent-400 font-medium'}>
-                  {isOwner ? 'you' : creatorName}
-                </span>
-              </p>
+            {creatorName && (
+              <div className="flex gap-1.5"><dt className="text-[var(--fg-subtle)]">Leader</dt><dd className="text-[var(--fg)]">{isOwner ? 'You' : creatorName}</dd></div>
+            )}
+            <div className="flex gap-1.5 items-center">
+              <dt className="sr-only">Status</dt>
+              <dd className={cn('chip', service.status === 'confirmed' && 'chip-success', service.status === 'completed' && 'chip-accent')}>
+                {isPast && service.status === 'draft' ? 'Not confirmed' : statusLabel}
+              </dd>
             </div>
-          )}
-
+            <div className="flex gap-1.5 items-center">
+              <dt className="sr-only">Visibility</dt>
+              <dd className="inline-flex items-center gap-1 text-[var(--fg-muted)]">
+                {service.is_public ? <Globe aria-hidden className="w-3.5 h-3.5" /> : <Lock aria-hidden className="w-3.5 h-3.5" />}
+                {service.is_public ? 'Public' : 'Private'}
+              </dd>
+            </div>
+          </dl>
           {service.notes && (
-            <p className="text-sm text-white/60 pt-1 border-t border-white/[0.06] whitespace-pre-wrap">
-              {service.notes}
-            </p>
+            <p className="text-sm text-[var(--fg-muted)] whitespace-pre-wrap pt-1">{service.notes}</p>
           )}
-        </div>
+        </header>
 
-        {/* Setlist */}
         <SetlistManager
           serviceId={id}
           items={setlistItems}
           onUpdate={refetch}
-          readOnly={!isOwner && !isAdmin}
+          readOnly={!canEdit}
         />
       </div>
 
@@ -236,8 +182,9 @@ export function ServiceDetailClient({ id }: Props) {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Service"
-        description={`Delete this service? The songs in your library will not be affected.`}
+        title="Delete service?"
+        description="This removes the service and its setlist. The songs stay in your library."
+        confirmLabel="Delete service"
         loading={deleting}
       />
     </>

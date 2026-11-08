@@ -25,7 +25,7 @@ import { useCreatorName } from '@/hooks/useCreatorName'
 import { useRole } from '@/hooks/useRole'
 import { MUSICAL_KEYS, formatKey, LANGUAGE_NAMES, SERVICE_TYPES } from '@/types/database'
 import { toast } from '@/components/ui/Toaster'
-import { cn } from '@/lib/utils'
+import { cn, goBack } from '@/lib/utils'
 
 interface Props {
   id: string
@@ -107,7 +107,7 @@ export function SongDetailClient({ id }: Props) {
   }
 
   const back = (
-    <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
+    <Button variant="ghost" size="icon" onClick={() => goBack(router, '/songs')} aria-label="Back">
       <ArrowLeft className="w-5 h-5" />
     </Button>
   )

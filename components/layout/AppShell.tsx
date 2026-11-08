@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
-import { cn } from '@/lib/utils'
+import { cn, recordNavigation } from '@/lib/utils'
 
 interface NavItem { href: string; label: string; icon: LucideIcon; description?: string }
 
@@ -41,7 +41,14 @@ function isActive(pathname: string, href: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '/'
   const [moreOpen, setMoreOpen] = useState(false)
-  useEffect(() => { setMoreOpen(false) }, [pathname])
+  const lastPath = useRef<string | null>(null)
+  useEffect(() => {
+    setMoreOpen(false)
+    // Count real in-app page changes so Back buttons know whether there's a page to return to
+    // (compare paths rather than counting effect runs — effects can run twice on mount)
+    if (lastPath.current !== null && lastPath.current !== pathname) recordNavigation()
+    lastPath.current = pathname
+  }, [pathname])
 
   if (isChromeless(pathname)) {
     return <div id="app-shell" className="min-h-dvh">{children}</div>

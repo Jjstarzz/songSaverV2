@@ -66,14 +66,14 @@ export const SongCard = memo(function SongCard({ song, compact, userKey, onOpen 
         href={`/songs/${song.id}`}
         onClick={onOpen}
         className={cn(
-          'glass-card-hover flex items-center gap-3 md:song-row-grid',
-          compact ? 'p-2.5 pr-3' : 'p-3 pr-14 md:pr-3'
+          'glass-card-hover flex items-center gap-3',
+          compact ? 'p-2.5 pr-3' : 'p-3 pr-14 md:song-row-grid md:pr-3'
         )}
       >
         {keyTile}
 
         {/* Song: title, artist, then (on phones) musical details */}
-        <span className="min-w-0 flex-1 md:flex-none">
+        <span className={cn('min-w-0 flex-1', !compact && 'md:flex-none')}>
           <span className="block text-[15px] font-semibold leading-snug text-[var(--fg)] line-clamp-2 break-words">
             {song.title}
           </span>

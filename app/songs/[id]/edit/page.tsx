@@ -16,24 +16,22 @@ export default function EditSongPage({ params }: Props) {
   const router = useRouter()
   const { song, loading } = useSong(params.id)
 
+  if (song && !loading) return <SongForm song={song} heading="Edit song" />
+
   return (
     <>
-      <BackHeader title="Edit Song">
-        <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
+      <BackHeader title="Edit song">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
       </BackHeader>
-      <div className="px-4 pt-6">
+      <div className="px-4 pt-6 max-w-2xl">
         {loading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
+          <div className="space-y-4" aria-busy="true">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
           </div>
-        ) : song ? (
-          <SongForm song={song} />
         ) : (
-          <p className="text-white/50 text-center py-8">Song not found</p>
+          <p className="text-[var(--fg-muted)] text-center py-8">Song not found</p>
         )}
       </div>
     </>

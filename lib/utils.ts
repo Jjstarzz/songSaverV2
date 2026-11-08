@@ -86,3 +86,17 @@ export function todayLocal(): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
+
+/** Number of in-app page changes this tab has made (set by the app shell). */
+let inAppNavigations = 0
+export function recordNavigation() { inAppNavigations++ }
+
+/**
+ * Go back if this tab navigated within the app before, otherwise go to
+ * `fallback` (e.g. the page was opened from a bookmark or a shared link,
+ * where "back" would leave the app or do nothing).
+ */
+export function goBack(router: { back: () => void; push: (href: string) => void }, fallback: string) {
+  if (inAppNavigations > 0) router.back()
+  else router.push(fallback)
+}
