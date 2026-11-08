@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Camera, ImagePlus, Loader2, CheckCircle2, RotateCcw } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { goBack } from '@/lib/utils'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { MUSICAL_KEYS, LANGUAGE_NAMES } from '@/types/database'
 import { useSupabase } from '@/hooks/useSupabase'
@@ -113,9 +114,9 @@ export default function ImportPhotoPage() {
 
   return (
     <>
-      <BackHeader title="Import from Photo">
-        <Button variant="ghost" size="icon-sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
+      <BackHeader title="Add song from photo">
+        <Button variant="ghost" size="icon" onClick={() => goBack(router, '/songs')} aria-label="Back">
+          <ArrowLeft className="w-5 h-5" />
         </Button>
       </BackHeader>
 

@@ -19,23 +19,13 @@ interface SongTransitionsProps {
 export function SongTransitions({ songId, songTitle }: SongTransitionsProps) {
   const { user } = useAuth()
   const { transitions, loading, addTransition, removeTransition } = useSongTransitions(songId)
-  const { songs } = useSongs()
 
   const [adding, setAdding] = useState(false)
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
 
   // IDs already linked (either direction)
-  const linkedIds = new Set(transitions.map((t) => t.other_song?.id).filter(Boolean))
-
-  const availableSongs = songs.filter(
-    (s) =>
-      s.id !== songId &&
-      !linkedIds.has(s.id) &&
-      (search === '' ||
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.artist?.toLowerCase().includes(search.toLowerCase()))
-  )
+  const linkedIds = new Set(transitions.map((t) => t.other_song?.id).filter(Boolean) as string[])
 
   const handleAdd = async (otherSongId: string) => {
     setSaving(true)
@@ -111,58 +101,84 @@ export function SongTransitions({ songId, songTitle }: SongTransitionsProps) {
         </p>
       )}
 
-      {/* Add transition picker */}
+      {/* Add transition picker — only mounted (and the song list only loaded) when opened */}
       {adding && (
-        <div className="glass-card p-3 space-y-3 animate-fade-in">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--fg-subtle)] pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search songs..."
-              className="input-base pl-9 text-sm py-2"
-              autoFocus
-            />
-          </div>
-
-          <div className="max-h-52 overflow-y-auto space-y-1.5 no-scrollbar">
-            {availableSongs.length === 0 ? (
-              <p className="text-xs text-[var(--fg-subtle)] text-center py-3">
-                {search ? 'No songs match' : 'All songs already linked'}
-              </p>
-            ) : (
-              availableSongs.slice(0, 20).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => handleAdd(s.id)}
-                  disabled={saving}
-                  className={cn(
-                    'w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all',
-                    'bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)]'
-                  )}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
-                    <Music2 className="w-3.5 h-3.5 text-accent-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--fg)] truncate">{s.title}</p>
-                    {s.artist && <p className="text-xs text-[var(--fg-muted)] truncate">{s.artist}</p>}
-                  </div>
-                  {(s.preferred_key || s.default_key) && (
-                    <span className="text-xs text-accent-400 font-medium shrink-0">
-                      {formatKey(s.preferred_key || s.default_key, s.mode)}
-                    </span>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-
-          <Button variant="secondary" size="sm" onClick={() => { setAdding(false); setSearch('') }}>
-            Cancel
-          </Button>
-        </div>
+        <TransitionPicker
+          songId={songId}
+          linkedIds={linkedIds}
+          search={search}
+          onSearch={setSearch}
+          onPick={handleAdd}
+          saving={saving}
+          onCancel={() => { setAdding(false); setSearch('') }}
+        />
       )}
+    </div>
+  )
+}
+
+function TransitionPicker({ songId, linkedIds, search, onSearch, onPick, saving, onCancel }: {
+  songId: string
+  linkedIds: Set<string>
+  search: string
+  onSearch: (v: string) => void
+  onPick: (id: string) => void
+  saving: boolean
+  onCancel: () => void
+}) {
+  const { songs, loading } = useSongs()
+  const q = search.toLowerCase()
+  const availableSongs = songs.filter(
+    (s) => s.id !== songId && !linkedIds.has(s.id) &&
+      (q === '' || s.title.toLowerCase().includes(q) || s.artist?.toLowerCase().includes(q))
+  )
+
+  return (
+    <div className="surface p-3 space-y-3 animate-fade-in">
+      <div className="relative">
+        <Search aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-subtle)] pointer-events-none" />
+        <input
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Search songs..."
+          aria-label="Search songs to link"
+          className="input-base pl-9"
+          autoFocus
+        />
+      </div>
+
+      <div className="max-h-60 overflow-y-auto space-y-1.5">
+        {loading ? (
+          <p className="text-sm text-[var(--fg-subtle)] text-center py-3">Loading songs…</p>
+        ) : availableSongs.length === 0 ? (
+          <p className="text-sm text-[var(--fg-subtle)] text-center py-3">
+            {search ? 'No songs match' : 'All songs already linked'}
+          </p>
+        ) : (
+          availableSongs.slice(0, 20).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPick(s.id)}
+              disabled={saving}
+              className="w-full flex items-center gap-3 p-2.5 min-h-[48px] rounded-xl text-left bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)]"
+            >
+              <Music2 aria-hidden className="w-4 h-4 text-[var(--fg-subtle)] shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-[var(--fg)] truncate">{s.title}</span>
+                {s.artist && <span className="block text-xs text-[var(--fg-muted)] truncate">{s.artist}</span>}
+              </span>
+              {(s.preferred_key || s.default_key) && (
+                <span className="text-xs text-[var(--accent-fg)] font-medium shrink-0">
+                  {formatKey(s.preferred_key || s.default_key, s.mode)}
+                </span>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+
+      <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
     </div>
   )
 }

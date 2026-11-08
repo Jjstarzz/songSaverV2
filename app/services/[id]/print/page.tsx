@@ -234,7 +234,7 @@ export default function PrintPage() {
         .pv-sheet .pv-song-head { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; margin-bottom: calc(var(--pv) * 0.6); border-bottom: 0.5px solid #e2e2e2; break-after: avoid; }
         .pv-sheet .pv-num { width: 1.8em; height: 1.8em; border-radius: 50%; background: #6d28d9; color: #fff; font-size: 0.8em; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .pv-sheet .pv-song-title { font-size: 1.25em; font-weight: 700; line-height: 1.2; }
-        .pv-sheet .pv-artist { font-size: 0.8em; color: #777; }
+        .pv-sheet .pv-artist { font-size: 0.8em; color: #666; }
         .pv-sheet .pv-key { margin-left: auto; font-size: 0.78em; font-weight: 700; color: #6d28d9; background: #efe9fd; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
         .pv-sheet .pv-cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
         .pv-sheet .pv-section { margin-bottom: calc(var(--pv) * 0.75); break-inside: avoid; }

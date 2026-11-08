@@ -24,6 +24,11 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 40
 
+/** Stable (module-level) so memoised SongCards don't re-render on every keystroke */
+function markReturn() {
+  try { sessionStorage.setItem(RETURN_FLAG, '1') } catch { /* ignore */ }
+}
+
 /** Lowercase, strip accents and punctuation so "Lord, I lift" matches "lord i lift". */
 function normalise(s: string) {
   return s
@@ -206,10 +211,24 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     [songs]
   )
 
-  const filteredSongs = useMemo(() => {
+  // Normalise each song's title/artist once per library load — not on every keystroke
+  const searchText = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const s of songs) m.set(s.id, normalise(s.title) + '\n' + (s.artist ? normalise(s.artist) : ''))
+    return m
+  }, [songs])
+
+  const filtered = useMemo(() => {
     const q = deferredQuery ? normalise(deferredQuery) : ''
-    const matchesText = (s: SongWithLanguages) =>
-      normalise(s.title).includes(q) || (!!s.artist && normalise(s.artist).includes(q))
+    const direct = new Set<string>()
+    const matchesText = (s: SongWithLanguages) => {
+      if (direct.has(s.id)) return true
+      const t = searchText.get(s.id)
+      // title and artist are separated by a newline so a query can't match across them
+      const hit = !!t && t.split('\n').some((part) => part.includes(q))
+      if (hit) direct.add(s.id)
+      return hit
+    }
 
     const result = songs.filter((song) => {
       if (q && !matchesText(song) && !lyricMatches.has(song.id)) return false
@@ -238,8 +257,12 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     })
 
     // When searching, title/artist matches come before lyric-only matches
-    return q ? [...result.filter(matchesText), ...result.filter((s) => !matchesText(s))] : result
-  }, [songs, deferredQuery, lyricMatches, f, favorites, user?.id, userKeys])
+    if (!q) return { list: result, firstLyricOnly: -1 }
+    const directHits = result.filter((s) => direct.has(s.id))
+    const lyricOnly = result.filter((s) => !direct.has(s.id))
+    return { list: [...directHits, ...lyricOnly], firstLyricOnly: lyricOnly.length ? directHits.length : -1 }
+  }, [songs, searchText, deferredQuery, lyricMatches, f, favorites, user?.id, userKeys])
+  const filteredSongs = filtered.list
 
   // Persist filters as they change
   useEffect(() => {
@@ -297,11 +320,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     return () => io.disconnect()
   }, [filteredSongs, visibleCount])
 
-  const firstLyricOnlyIdx = useMemo(() => {
-    if (!deferredQuery) return -1
-    const q = normalise(deferredQuery)
-    return filteredSongs.findIndex((s) => !normalise(s.title).includes(q) && !(s.artist && normalise(s.artist).includes(q)))
-  }, [filteredSongs, deferredQuery])
+  const firstLyricOnlyIdx = filtered.firstLyricOnly
 
   // Active filters as removable chips (search box and the Mine/Favourites toggles are visible already)
   const chips: { label: string; clear: () => void }[] = [
@@ -499,7 +518,7 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
               <SongCard
                 song={song}
                 userKey={userKeys[song.id]}
-                onOpen={() => { try { sessionStorage.setItem(RETURN_FLAG, '1') } catch { /* ignore */ } }}
+                onOpen={markReturn}
               />
             </li>
           ))}

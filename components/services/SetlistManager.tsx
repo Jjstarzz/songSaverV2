@@ -23,10 +23,7 @@ interface SetlistManagerProps {
 
 export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }: SetlistManagerProps) {
   const supabase = useSupabase()
-  const { songs } = useSongs()
   const [adding, setAdding] = useState(false)
-  const [search, setSearch] = useState('')
-  const [selectedKey, setSelectedKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
@@ -67,33 +64,23 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     return () => { cancelled = true }
   }, [supabase, showTransitions, songIdsKey, items.length])
 
-  const availableSongs = songs.filter(
-    (s) =>
-      !list.some((item) => item.song_id === s.id) &&
-      (search === '' ||
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.artist?.toLowerCase().includes(search.toLowerCase()))
-  )
-
-  const addSong = async (songId: string) => {
+  /** Returns true when added. The panel stays open so several songs can be added in a row. */
+  const addSong = async (songId: string, title: string, keyOverride: string | null) => {
     setSaving(true)
     const { error } = await supabase.from('service_songs').insert({
       service_id: serviceId,
       song_id: songId,
       order_index: list.length,
-      key_override: selectedKey || null,
+      key_override: keyOverride,
     })
+    setSaving(false)
     if (error) {
       toast.error('Failed to add song')
-    } else {
-      const title = songs.find((s) => s.id === songId)?.title
-      toast.success(title ? `Added "${title}"` : 'Song added to setlist')
-      // Keep the panel open so several songs can be added in a row
-      setSearch('')
-      setSelectedKey('')
-      onUpdate()
+      return false
     }
-    setSaving(false)
+    toast.success(`Added "${title}"`)
+    onUpdate()
+    return true
   }
 
   const removeSong = async (itemId: string, title: string) => {
@@ -367,84 +354,112 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
         </div>
       )}
 
-      {/* Add song panel */}
+      {/* Add song panel — mounted (and the song library loaded) only when opened */}
       {adding && (
-        <div className="glass-card p-3 space-y-3 animate-fade-in">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--fg-subtle)] pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search songs..."
-              className="input-base pl-9 text-sm py-2"
-              autoFocus
-            />
-          </div>
-
-          {/* Key override */}
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            <button
-              onClick={() => setSelectedKey('')}
-              className={cn(
-                'shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
-                !selectedKey
-                  ? 'bg-accent-600 border-accent-500 text-white'
-                  : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
-              )}
-            >
-              Original
-            </button>
-            {MUSICAL_KEYS.map((k) => (
-              <button
-                key={k}
-                onClick={() => setSelectedKey(k === selectedKey ? '' : k)}
-                className={cn(
-                  'shrink-0 w-8 py-1 rounded-lg text-xs font-medium border transition-all text-center',
-                  selectedKey === k
-                    ? 'bg-accent-600 border-accent-500 text-white'
-                    : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
-                )}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-
-          <div className="max-h-52 overflow-y-auto space-y-1.5 no-scrollbar">
-            {availableSongs.length === 0 ? (
-              <p className="text-xs text-[var(--fg-subtle)] text-center py-3">
-                {search ? 'No songs match' : 'All songs already added'}
-              </p>
-            ) : (
-              availableSongs.slice(0, 25).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => addSong(s.id)}
-                  disabled={saving}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border)] transition-all"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
-                    <Music2 className="w-3.5 h-3.5 text-accent-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--fg)] truncate">{s.title}</p>
-                    {s.artist && <p className="text-xs text-[var(--fg-muted)] truncate">{s.artist}</p>}
-                  </div>
-                  {(s.preferred_key || s.default_key) && (
-                    <span className="text-xs text-accent-400 font-medium shrink-0">
-                      {formatKey(s.preferred_key || s.default_key, s.mode)}
-                    </span>
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-
-          <Button variant="secondary" size="sm" onClick={() => { setAdding(false); setSearch('') }}>
-            Cancel
-          </Button>
-        </div>
+        <AddSongsPanel
+          inSetlist={new Set(list.map((i) => i.song_id))}
+          saving={saving}
+          onAdd={addSong}
+          onClose={() => setAdding(false)}
+        />
       )}
+    </div>
+  )
+}
+
+function AddSongsPanel({ inSetlist, saving, onAdd, onClose }: {
+  inSetlist: Set<string>
+  saving: boolean
+  onAdd: (songId: string, title: string, keyOverride: string | null) => Promise<boolean>
+  onClose: () => void
+}) {
+  const { songs, loading } = useSongs()
+  const [search, setSearch] = useState('')
+  const [selectedKey, setSelectedKey] = useState('')
+  const q = search.toLowerCase()
+  const availableSongs = songs.filter(
+    (s) => !inSetlist.has(s.id) && (q === '' || s.title.toLowerCase().includes(q) || s.artist?.toLowerCase().includes(q))
+  )
+
+  const add = async (id: string, title: string) => {
+    if (await onAdd(id, title, selectedKey || null)) { setSearch(''); setSelectedKey('') }
+  }
+
+  return (
+    <div className="surface p-3 space-y-3 animate-fade-in">
+      <div className="relative">
+        <Search aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-subtle)] pointer-events-none" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search songs..."
+          aria-label="Search songs to add"
+          className="input-base pl-9"
+          autoFocus
+        />
+      </div>
+
+      {/* Key for this service (optional) */}
+      <div role="group" aria-label="Key for this service" className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+        <button
+          type="button"
+          onClick={() => setSelectedKey('')}
+          aria-pressed={!selectedKey}
+          className={cn(
+            'shrink-0 h-9 px-3 rounded-lg text-sm font-medium border transition-colors',
+            !selectedKey ? 'bg-accent-600 border-accent-600 text-white' : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
+          )}
+        >
+          Song&apos;s key
+        </button>
+        {MUSICAL_KEYS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setSelectedKey(k === selectedKey ? '' : k)}
+            aria-pressed={selectedKey === k}
+            className={cn(
+              'shrink-0 w-10 h-9 rounded-lg text-sm font-medium border transition-colors text-center',
+              selectedKey === k ? 'bg-accent-600 border-accent-600 text-white' : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
+            )}
+          >
+            {k}
+          </button>
+        ))}
+      </div>
+
+      <div className="max-h-64 overflow-y-auto space-y-1.5">
+        {loading ? (
+          <p className="text-sm text-[var(--fg-subtle)] text-center py-3">Loading songs…</p>
+        ) : availableSongs.length === 0 ? (
+          <p className="text-sm text-[var(--fg-subtle)] text-center py-3">
+            {search ? 'No songs match' : 'All songs already added'}
+          </p>
+        ) : (
+          availableSongs.slice(0, 25).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => add(s.id, s.title)}
+              disabled={saving}
+              className="w-full flex items-center gap-3 p-2.5 min-h-[48px] rounded-xl text-left bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)]"
+            >
+              <Music2 aria-hidden className="w-4 h-4 text-[var(--fg-subtle)] shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-[var(--fg)] truncate">{s.title}</span>
+                {s.artist && <span className="block text-xs text-[var(--fg-muted)] truncate">{s.artist}</span>}
+              </span>
+              {(s.preferred_key || s.default_key) && (
+                <span className="text-xs text-[var(--accent-fg)] font-medium shrink-0 tabular">
+                  {formatKey(s.preferred_key || s.default_key, s.mode)}
+                </span>
+              )}
+            </button>
+          ))
+        )}
+      </div>
+
+      <Button variant="secondary" size="sm" onClick={onClose}>Done</Button>
     </div>
   )
 }

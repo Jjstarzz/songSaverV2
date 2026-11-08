@@ -51,7 +51,7 @@ function makeStyles(base: number) {
     },
     songTitleWrap: { flex: 1 },
     songTitle: { fontSize: base * 1.25, fontWeight: 700 },
-    artist: { fontSize: base * 0.8, color: '#777777', marginTop: 1 },
+    artist: { fontSize: base * 0.8, color: '#666666', marginTop: 1 },
     keyBadge: {
       fontSize: base * 0.78, fontWeight: 700, color: ACCENT, backgroundColor: '#efe9fd',
       paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3, marginLeft: 8,

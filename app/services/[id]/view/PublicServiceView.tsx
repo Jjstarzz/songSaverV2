@@ -129,7 +129,7 @@ export function PublicServiceView({ id }: Props) {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-[#09090b] flex items-center justify-center">
+      <div className="min-h-dvh bg-[var(--bg)] flex items-center justify-center">
         <div className="w-6 h-6 rounded-full border-2 border-accent-500 border-t-transparent animate-spin" />
       </div>
     )
@@ -137,7 +137,7 @@ export function PublicServiceView({ id }: Props) {
 
   if (notFound || !service) {
     return (
-      <div className="min-h-dvh bg-[#09090b] flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="min-h-dvh bg-[var(--bg)] flex flex-col items-center justify-center gap-4 px-6 text-center">
         <CalendarDays className="w-10 h-10 text-white/20" />
         <p className="text-white/50 text-sm">This service is not available.</p>
         <p className="text-white/30 text-xs">It may be private or the link may have changed.</p>
@@ -148,7 +148,7 @@ export function PublicServiceView({ id }: Props) {
   const sortedSongs = [...service.service_songs].sort((a, b) => a.order_index - b.order_index)
 
   return (
-    <div className="min-h-dvh bg-[#09090b] text-[var(--fg)]">
+    <div className="min-h-dvh bg-[var(--bg)] text-[var(--fg)]">
       {/* Header */}
       <div className="page-top px-4 pb-6 border-b border-white/[0.06]">
         <div className="max-w-xl mx-auto">
