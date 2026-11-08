@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Pencil, Trash2, Globe, Lock, FileDown, Link2 } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Globe, Lock, FileDown, Link2, Headphones, CloudDownload, LayoutTemplate } from 'lucide-react'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { Button, buttonVariants } from '@/components/ui/Button'
 import { Menu } from '@/components/ui/Menu'
@@ -18,6 +18,8 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { toast } from '@/components/ui/Toaster'
 import { SERVICE_TYPES, SERVICE_STATUSES } from '@/types/database'
 import { PresentButton } from '@/components/presentation/PresentButton'
+import { ServiceTeam, ServiceFeedbackSection } from '@/components/services/ServiceExtras'
+import { OfflinePackStatus, SaveTemplateModal, useOfflinePack } from '@/components/services/ServiceTools'
 import { formatDate, todayLocal, goBack } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +48,8 @@ export function ServiceDetailClient({ id }: Props) {
   const canDelete = isOwner || isAdmin
   const creatorName = useCreatorName(service?.created_by)
   const isPast = !!service && service.date < todayLocal()
+  const offlinePack = useOfflinePack(service)
+  const [templateOpen, setTemplateOpen] = useState(false)
 
   const toggleVisibility = async () => {
     if (!service) return
@@ -123,8 +127,16 @@ export function ServiceDetailClient({ id }: Props) {
             {servicePlaylist.length > 0 && (
               <PresentButton title="" lyricsText="" playlist={servicePlaylist} label="Present" />
             )}
+            {setlistItems.length > 0 && (
+              <Link href={`/services/${id}/rehearse`} className={buttonVariants({ variant: 'secondary', size: 'sm' }) + ' hidden sm:inline-flex'}>
+                <Headphones aria-hidden className="w-4 h-4" /> Rehearse
+              </Link>
+            )}
             <Menu
               items={[
+                { label: 'Rehearse', icon: Headphones, href: `/services/${id}/rehearse`, hidden: setlistItems.length === 0 },
+                { label: 'Save for offline', icon: CloudDownload, onSelect: offlinePack.save, hidden: offlinePack.isReady || setlistItems.length === 0 },
+                { label: 'Save as template', icon: LayoutTemplate, onSelect: () => setTemplateOpen(true), hidden: setlistItems.length === 0 },
                 { label: 'Copy public link', icon: Link2, onSelect: copyPublicLink, hidden: !service.is_public },
                 { label: 'Print / PDF', icon: FileDown, href: `/services/${id}/print` },
                 { label: 'Edit service', icon: Pencil, href: `/services/${id}/edit`, hidden: !canEdit },
@@ -138,7 +150,7 @@ export function ServiceDetailClient({ id }: Props) {
         {back}
       </BackHeader>
 
-      <div className="px-4 pt-5 lg:pt-8 max-w-3xl space-y-6">
+      <div className="px-4 pt-5 lg:pt-8 max-w-3xl space-y-10">
         <header className="space-y-2">
           <p className="text-sm font-medium text-[var(--accent-fg)]">{formatDate(service.date)}</p>
           <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-[var(--fg)] break-words">
@@ -168,6 +180,7 @@ export function ServiceDetailClient({ id }: Props) {
           {service.notes && (
             <p className="text-sm text-[var(--fg-muted)] whitespace-pre-wrap pt-1">{service.notes}</p>
           )}
+          <OfflinePackStatus pack={offlinePack} />
         </header>
 
         <SetlistManager
@@ -176,7 +189,17 @@ export function ServiceDetailClient({ id }: Props) {
           onUpdate={refetch}
           readOnly={!canEdit}
         />
+
+        <ServiceTeam serviceId={id} canEdit={canEdit} />
+
+        <ServiceFeedbackSection
+          serviceId={id}
+          isPast={isPast}
+          songs={setlistItems.filter((r: any) => r.songs).map((r: any) => ({ id: r.song_id, title: r.songs.title }))}
+        />
       </div>
+
+      <SaveTemplateModal open={templateOpen} onClose={() => setTemplateOpen(false)} service={service} rows={setlistItems} />
 
       <ConfirmModal
         open={deleteOpen}

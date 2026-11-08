@@ -4,8 +4,9 @@
  */
 
 const DB_NAME = 'songsaver-offline'
-const DB_VERSION = 1
+const DB_VERSION = 2 // v2 adds the 'services' store (offline service packs)
 const STORE = 'songs'
+const SERVICES = 'services'
 
 export interface OfflineSongLyric {
   id: string
@@ -43,6 +44,9 @@ function openDB(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result
+      if (!db.objectStoreNames.contains(SERVICES)) {
+        db.createObjectStore(SERVICES, { keyPath: 'id' })
+      }
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE, { keyPath: 'id' })
       }
@@ -117,4 +121,38 @@ export async function removeOfflineSong(id: string): Promise<void> {
 export async function isOfflineSaved(id: string): Promise<boolean> {
   const song = await getOfflineSong(id)
   return !!song
+}
+
+/* ─── Offline service packs ─── */
+
+/** A whole service (with its setlist, songs and lyrics) saved for offline use. */
+export async function saveOfflineService(service: { id: string } & Record<string, unknown>): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SERVICES, 'readwrite')
+    tx.objectStore(SERVICES).put({ ...service, savedAt: Date.now() })
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function getOfflineService<T = Record<string, unknown>>(id: string): Promise<(T & { savedAt: number }) | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(SERVICES, 'readonly').objectStore(SERVICES).get(id)
+    req.onsuccess = () => resolve(req.result ?? null)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+/** How many of the given song ids are saved on this device (with lyrics). */
+export async function countOfflineSongs(ids: string[]): Promise<number> {
+  const db = await openDB()
+  const store = db.transaction(STORE, 'readonly').objectStore(STORE)
+  const results = await Promise.all(ids.map((id) => new Promise<boolean>((resolve) => {
+    const req = store.get(id)
+    req.onsuccess = () => resolve(!!req.result && (req.result.song_lyrics?.length ?? 0) > 0)
+    req.onerror = () => resolve(false)
+  })))
+  return results.filter(Boolean).length
 }

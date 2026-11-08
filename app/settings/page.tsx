@@ -472,7 +472,7 @@ export default function SettingsPage() {
               <SettingRow
                 icon={Trash2}
                 label="Delete All Data"
-                description="Permanently remove all your songs, services, and recordings"
+                description="Permanently remove all your songs and services"
                 danger
               >
                 <Button variant="destructive" size="sm" onClick={() => toast.error('Contact support to delete your account')}>

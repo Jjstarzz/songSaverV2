@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Home, Music2, CalendarDays, BookOpen, Gauge, Mic2, Settings2, MoreHorizontal, ChevronRight,
+  Home, Music2, CalendarDays, BookOpen, Gauge, Drum, Settings2, MoreHorizontal, ChevronRight, BarChart3, Users,
   type LucideIcon,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
@@ -22,14 +22,16 @@ const PRIMARY: NavItem[] = [
 
 /** Under "More" on phones; listed in the sidebar on desktop */
 const SECONDARY: NavItem[] = [
+  { href: '/insights', label: 'Song rotation', icon: BarChart3, description: 'Recently sung, on repeat, forgotten, duplicates' },
+  { href: '/singers', label: 'Singers', icon: Users, description: 'Singers and their keys for each song' },
   { href: '/tools', label: 'Tools', icon: Gauge, description: 'Key reference, tap tempo, metronome' },
-  { href: '/rehearsal', label: 'Rehearsal', icon: Mic2, description: 'Record and play back practice' },
+  { href: '/rehearsal', label: 'Metronome', icon: Drum, description: 'Keep time while you practise' },
   { href: '/settings', label: 'Settings', icon: Settings2, description: 'Account, appearance, team, data' },
 ]
 
 /** Full-screen pages that bring their own chrome (projector, stage, public view, print) */
 function isChromeless(pathname: string) {
-  return pathname === '/present' || pathname === '/stage' || /^\/services\/[^/]+\/(view|print)$/.test(pathname)
+  return pathname === '/present' || pathname === '/stage' || /^\/services\/[^/]+\/(view|print|rehearse)$/.test(pathname)
 }
 
 function isActive(pathname: string, href: string) {

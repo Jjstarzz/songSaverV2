@@ -244,7 +244,7 @@ export default function UsersPage() {
         <div className="glass-card p-4 flex gap-3 border border-red-500/10">
           <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
           <p className="text-xs text-white/40 leading-relaxed">
-            Removing a user permanently deletes their account and all data they&apos;ve added — songs, services, recordings. This cannot be undone.
+            Removing a user permanently deletes their account and all data they&apos;ve added — songs and services. This cannot be undone.
           </p>
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function UsersPage() {
         onClose={() => setRemoveTarget(null)}
         onConfirm={handleRemove}
         title="Remove User"
-        description={`Permanently remove ${removeTarget?.display_name ?? removeTarget?.email ?? 'this user'}? All their songs, services, and recordings will be deleted.`}
+        description={`Permanently remove ${removeTarget?.display_name ?? removeTarget?.email ?? 'this user'}? All their songs and services will be deleted.`}
         loading={removing}
       />
     </>

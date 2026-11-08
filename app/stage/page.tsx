@@ -3,44 +3,43 @@
 import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSupabase } from '@/hooks/useSupabase'
-import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT } from '@/lib/presentationProtocol'
-import { Maximize2, Minimize2 } from 'lucide-react'
+import { Maximize2, Minimize2, Minus, Plus } from 'lucide-react'
+import { presentChannelName, REQUEST_STATE_EVENT, SLIDE_EVENT, type PresentState } from '@/lib/presentationProtocol'
 
-interface SlideInfo {
-  section: string
-  lines: string
-  title: string
-  translationLines?: string
-}
-
-interface StageState {
-  blank: boolean
-  current: SlideInfo
-  upNext: SlideInfo | null
-}
-
-const EMPTY: SlideInfo = { section: '', lines: '', title: '' }
-
+/**
+ * Stage confidence monitor for the band and singers. Shows the current
+ * section (with its name), what's coming next, and the next song — never
+ * mirrored to the congregation's projector.
+ */
 function StageDisplay() {
   const params = useSearchParams()
   const code = params.get('code') ?? ''
   const supabase = useSupabase()
-  const [state, setState] = useState<StageState>({ blank: true, current: EMPTY, upNext: null })
+  const [state, setState] = useState<PresentState | null>(null)
   const [connected, setConnected] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [now, setNow] = useState('')
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement)
-    document.addEventListener('fullscreenchange', handler)
-    return () => document.removeEventListener('fullscreenchange', handler)
+    try { const v = Number(localStorage.getItem('songsaver-stage-scale')); if (v) setScale(v) } catch { /* ignore */ }
+    const tick = () => setNow(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    tick()
+    const t = setInterval(tick, 15000)
+    const fs = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', fs)
+    return () => { clearInterval(t); document.removeEventListener('fullscreenchange', fs) }
   }, [])
 
+  const changeScale = (d: number) => setScale((s) => {
+    const n = Math.min(1.8, Math.max(0.6, +(s + d).toFixed(2)))
+    try { localStorage.setItem('songsaver-stage-scale', String(n)) } catch { /* ignore */ }
+    return n
+  })
+
   const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {})
-    } else {
-      document.exitFullscreen?.().catch(() => {})
-    }
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {})
+    else document.exitFullscreen?.().catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -48,11 +47,7 @@ function StageDisplay() {
     const ch = supabase.channel(presentChannelName(code), { config: { broadcast: { ack: false } } })
     ch.on('broadcast', { event: SLIDE_EVENT }, ({ payload }) => {
       setConnected(true)
-      setState({
-        blank: payload.blank ?? true,
-        current: { section: payload.section || payload.reference || '', lines: payload.lines ?? '', title: payload.title ?? '', translationLines: payload.translationLines ?? '' },
-        upNext: payload.upNext ?? null,
-      })
+      setState(payload as PresentState)
     }).subscribe((status) => {
       // Ask the controller for the current slide when this screen (re)connects
       if (status === 'SUBSCRIBED') ch.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
@@ -62,100 +57,73 @@ function StageDisplay() {
 
   if (!code) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#000', color: 'rgba(255,255,255,0.3)', fontSize: '0.875rem' }}>
-        No code — add ?code=XXXXXX to the URL
+      <div className="flex items-center justify-center h-full bg-black text-white/60 text-base p-6 text-center">
+        Open this screen from the presenter&apos;s Screens tab (it needs a session code).
       </div>
     )
   }
 
-  return (
-    <div style={{ width: '100%', height: '100%', background: '#0a0a0a', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+  const blank = !state || state.blank
+  const sectionName = state?.reference || state?.section || ''
+  const next = state?.upNext ?? null
+  const nextIsNewSong = !!next && !!state && next.title !== state.title && !!next.title
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: '#111', flexShrink: 0 }}>
-        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', letterSpacing: '0.25em', textTransform: 'uppercase' }}>Stage Display · {code}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: '0.65rem', letterSpacing: '0.1em', color: connected ? '#34d399' : '#f87171' }}>
-            {connected ? '● Connected' : '○ Waiting…'}
-          </span>
-          <button
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6, transition: 'color 0.15s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
-          >
-            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-          </button>
-        </div>
+  return (
+    <div className="w-full h-full bg-black text-white flex flex-col font-sans" style={{ fontSize: `${scale}rem` }}>
+      {/* Status bar */}
+      <div className="flex items-center gap-3 px-4 h-12 border-b border-white/10 bg-[#0b0b0f] shrink-0 text-sm">
+        <span className="text-white/70 uppercase tracking-[0.2em] text-xs">Stage · {code}</span>
+        <span className={connected ? 'text-emerald-400' : 'text-amber-400'}>{connected ? '● Live' : '○ Waiting for presenter…'}</span>
+        <span className="ml-auto tabular-nums text-white text-lg font-semibold">{now}</span>
+        <button onClick={() => changeScale(-0.1)} aria-label="Smaller text" className="w-9 h-9 flex items-center justify-center rounded-lg text-white/70 hover:bg-white/10"><Minus className="w-4 h-4" /></button>
+        <button onClick={() => changeScale(0.1)} aria-label="Larger text" className="w-9 h-9 flex items-center justify-center rounded-lg text-white/70 hover:bg-white/10"><Plus className="w-4 h-4" /></button>
+        <button onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} className="w-9 h-9 flex items-center justify-center rounded-lg text-white/70 hover:bg-white/10">
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
       </div>
 
-      {/* Split panels */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-
-        {/* Current — 2/3 width */}
-        <div style={{ flex: 2, display: 'flex', flexDirection: 'column', borderRight: '2px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ padding: '6px 18px', background: 'rgba(124,58,237,0.15)', borderBottom: '1px solid rgba(139,92,246,0.25)', flexShrink: 0 }}>
-            <p style={{ color: '#a78bfa', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>Now on screen</p>
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        {/* Now */}
+        <section aria-label="Now on screen" className="flex-[2] min-h-0 flex flex-col border-b lg:border-b-0 lg:border-r border-white/10">
+          <div className="px-6 pt-4 flex items-baseline gap-3">
+            <span className="text-[0.8em] font-bold uppercase tracking-[0.25em] text-violet-300">{blank ? 'Screen blank' : sectionName || 'Now'}</span>
+            {state?.title && <span className="text-[0.85em] text-white/60 truncate">{state.title}</span>}
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6%', overflowY: 'auto' }}>
-            {state.blank ? (
-              <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '1rem', letterSpacing: '0.15em' }}>SCREEN IS BLANK</p>
+          <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center px-6 py-4">
+            {blank ? (
+              <p className="text-white/40 text-[1.4em] tracking-wide">— nothing on the projector —</p>
             ) : (
-              <>
-                {state.current.section && (
-                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.35em', textTransform: 'uppercase', marginBottom: 20, textAlign: 'center' }}>
-                    {state.current.section}
-                  </p>
+              <div className="text-center">
+                <p className="whitespace-pre-line font-semibold leading-snug" style={{ fontSize: 'clamp(1.6em, 4.6vw, 4.2em)' }}>{state!.lines}</p>
+                {state?.translationLines?.trim() && (
+                  <p className="mt-4 whitespace-pre-line text-white/70 leading-snug" style={{ fontSize: 'clamp(1.1em, 2.8vw, 2.4em)' }}>{state.translationLines}</p>
                 )}
-                <p style={{ color: '#ffffff', fontSize: 'clamp(1.4rem, 4.5vw, 3rem)', fontWeight: 300, lineHeight: 1.65, textAlign: 'center', whiteSpace: 'pre-line' }}>
-                  {state.current.lines}
-                </p>
-                {state.current.translationLines && state.current.translationLines.trim() && (
-                  <>
-                    <div style={{ width: 36, height: 1, background: 'rgba(255,255,255,0.12)', margin: '14px auto' }} />
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'clamp(1rem, 3.2vw, 2rem)', fontWeight: 300, lineHeight: 1.65, textAlign: 'center', whiteSpace: 'pre-line' }}>
-                      {state.current.translationLines}
-                    </p>
-                  </>
-                )}
-                {state.current.title && (
-                  <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.8rem', marginTop: 28, fontStyle: 'italic' }}>
-                    {state.current.title}
-                  </p>
-                )}
-              </>
+              </div>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Up next — 1/3 width */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', opacity: 0.5 }}>
-          <div style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>Up next</p>
+        {/* Next */}
+        <section aria-label="Up next" className="flex-1 min-h-0 flex flex-col">
+          {nextIsNewSong && (
+            <div className="px-6 py-3 bg-violet-600 text-white">
+              <p className="text-[0.75em] font-bold uppercase tracking-[0.25em]">Next song</p>
+              <p className="text-[1.5em] font-semibold leading-tight">{next!.title}</p>
+            </div>
+          )}
+          <div className="px-6 pt-4">
+            <span className="text-[0.8em] font-bold uppercase tracking-[0.25em] text-white/60">
+              {next ? (next.section || (nextIsNewSong ? 'Opening' : 'Next')) : 'Next'}
+            </span>
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8%' }}>
-            {state.upNext ? (
-              <>
-                {state.upNext.section && (
-                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 14, textAlign: 'center' }}>
-                    {state.upNext.section}
-                  </p>
-                )}
-                <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 'clamp(0.9rem, 2.5vw, 1.6rem)', fontWeight: 300, lineHeight: 1.65, textAlign: 'center', whiteSpace: 'pre-line' }}>
-                  {state.upNext.lines}
-                </p>
-                {state.upNext.title && (
-                  <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', marginTop: 16, fontStyle: 'italic' }}>
-                    {state.upNext.title}
-                  </p>
-                )}
-              </>
+          <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center px-6 py-4">
+            {next ? (
+              <p className="whitespace-pre-line text-white/85 text-center leading-snug" style={{ fontSize: 'clamp(1.1em, 2.6vw, 2.2em)' }}>{next.lines}</p>
             ) : (
-              <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '0.85rem', textAlign: 'center' }}>End of presentation</p>
+              <p className="text-white/40 text-[1.1em]">{state ? 'End of the set' : '—'}</p>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   )
