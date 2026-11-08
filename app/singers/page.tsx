@@ -98,7 +98,7 @@ function SingerCard({ singer, keys, canEdit, onChange, onDelete }: {
   return (
     <li className="surface">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="w-full flex items-center gap-3 p-4 text-left min-h-[64px]">
-        <span aria-hidden className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent-fg)] flex items-center justify-center font-semibold">
+        <span aria-hidden className="w-10 h-10 rounded-full border border-[var(--border-strong)] text-[var(--fg-muted)] flex items-center justify-center font-display text-lg">
           {singer.name.trim().charAt(0).toUpperCase()}
         </span>
         <span className="flex-1 min-w-0">

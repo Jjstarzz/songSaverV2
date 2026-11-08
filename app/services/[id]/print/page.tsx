@@ -66,7 +66,7 @@ function Segmented<T extends string | number>({ label, value, options, onChange 
             onClick={() => onChange(o.value)}
             className={cn(
               'flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-              value === o.value ? 'bg-accent-600 text-white shadow-sm' : 'text-[var(--fg-muted)]'
+              value === o.value ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : 'text-[var(--fg-muted)]'
             )}
           >
             {o.label}
@@ -225,20 +225,20 @@ export default function PrintPage() {
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         .pv-sheet { --pv: ${basePt}px; font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1a1a1a; background: #fff; }
-        .pv-sheet .pv-eyebrow { font-size: 0.68em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #6d28d9; }
+        .pv-sheet .pv-eyebrow { font-size: 0.68em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #1c5244; }
         .pv-sheet .pv-title { font-size: calc(var(--pv) * 1.9); font-weight: 700; line-height: 1.15; margin-top: 4px; }
         .pv-sheet .pv-meta { font-size: calc(var(--pv) * 0.82); color: #666; margin-top: 4px; }
         .pv-sheet .pv-notes { font-size: calc(var(--pv) * 0.82); color: #555; margin-top: 8px; padding: 8px 10px; background: #f6f4fb; border-radius: 4px; white-space: pre-wrap; }
         .pv-sheet .pv-rule { border-bottom: 1.5px solid #1a1a1a; margin: 12px 0 16px; }
         .pv-sheet .pv-song { margin-bottom: calc(var(--pv) * 1.4); font-size: var(--pv); }
         .pv-sheet .pv-song-head { display: flex; align-items: center; gap: 8px; padding-bottom: 5px; margin-bottom: calc(var(--pv) * 0.6); border-bottom: 0.5px solid #e2e2e2; break-after: avoid; }
-        .pv-sheet .pv-num { width: 1.8em; height: 1.8em; border-radius: 50%; background: #6d28d9; color: #fff; font-size: 0.8em; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pv-sheet .pv-num { width: 1.8em; height: 1.8em; border-radius: 50%; background: #1c5244; color: #fff; font-size: 0.8em; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .pv-sheet .pv-song-title { font-size: 1.25em; font-weight: 700; line-height: 1.2; }
         .pv-sheet .pv-artist { font-size: 0.8em; color: #666; }
-        .pv-sheet .pv-key { margin-left: auto; font-size: 0.78em; font-weight: 700; color: #6d28d9; background: #efe9fd; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+        .pv-sheet .pv-key { margin-left: auto; font-size: 0.78em; font-weight: 700; color: #1c5244; background: #efe9fd; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
         .pv-sheet .pv-cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
         .pv-sheet .pv-section { margin-bottom: calc(var(--pv) * 0.75); break-inside: avoid; }
-        .pv-sheet .pv-label { font-size: 0.68em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6d28d9; margin-bottom: 2px; }
+        .pv-sheet .pv-label { font-size: 0.68em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #1c5244; margin-bottom: 2px; }
         .pv-sheet .pv-lines { white-space: pre-wrap; line-height: 1.6; }
         .pv-sheet .pv-trans { white-space: pre-wrap; font-size: 0.88em; color: #555; line-height: 1.55; margin-top: 3px; padding-left: 7px; border-left: 1.5px solid #d4c3fb; }
         .pv-sheet .pv-repeat { font-size: 0.85em; color: #888; margin-bottom: calc(var(--pv) * 0.75); }
@@ -298,7 +298,7 @@ export default function PrintPage() {
                         checked={!songOff}
                         onChange={(e) => updateExcluded((s) => { if (e.target.checked) s.delete(String(i)); else s.add(String(i)) })}
                         aria-label={`Include ${item.songs.title}`}
-                        className="w-4 h-4 accent-[#7c3aed] shrink-0"
+                        className="w-4 h-4 accent-[#236653] shrink-0"
                       />
                       <button
                         onClick={() => setOpenSong(open ? null : i)}
@@ -329,7 +329,7 @@ export default function PrintPage() {
                                 type="checkbox"
                                 checked={on}
                                 onChange={(e) => updateExcluded((s) => { if (e.target.checked) s.delete(`${i}:${p}`); else s.add(`${i}:${p}`) })}
-                                className="w-4 h-4 mt-0.5 accent-[#7c3aed] shrink-0"
+                                className="w-4 h-4 mt-0.5 accent-[#236653] shrink-0"
                               />
                               <span className="min-w-0">
                                 <span className="block text-xs font-semibold text-[var(--fg)]">{part.label ?? `Part ${p + 1}`}</span>

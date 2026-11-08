@@ -266,8 +266,8 @@ export default function ToolsPage() {
                   <g key={note}>
                     <rect
                       x={i * 40 + 1} y={1} width={38} height={118} rx={5}
-                      fill={isRoot ? '#7c3aed' : inScale ? '#4c1d95' : 'rgba(255,255,255,0.93)'}
-                      stroke={isRoot ? '#a78bfa' : 'rgba(0,0,0,0.25)'}
+                      fill={isRoot ? '#236653' : inScale ? '#4c1d95' : 'rgba(255,255,255,0.93)'}
+                      stroke={isRoot ? '#8cc9b3' : 'rgba(0,0,0,0.25)'}
                       strokeWidth={1}
                     />
                     <text
@@ -288,8 +288,8 @@ export default function ToolsPage() {
                   <g key={note}>
                     <rect
                       x={x} y={1} width={26} height={76} rx={3}
-                      fill={isRoot ? '#7c3aed' : inScale ? '#5b21b6' : '#12121e'}
-                      stroke={isRoot ? '#a78bfa' : inScale ? '#6d28d9' : 'rgba(255,255,255,0.08)'}
+                      fill={isRoot ? '#236653' : inScale ? '#174237' : '#12121e'}
+                      stroke={isRoot ? '#8cc9b3' : inScale ? '#1c5244' : 'rgba(255,255,255,0.08)'}
                       strokeWidth={1}
                     />
                     {(inScale || isRoot) && (
@@ -359,7 +359,7 @@ export default function ToolsPage() {
           <input
             type="range" min={40} max={220} value={bpm}
             onChange={e => setBpm(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none bg-white/10 accent-violet-500 cursor-pointer"
+            className="w-full h-1.5 rounded-full appearance-none bg-white/10 accent-accent-500 cursor-pointer"
           />
 
           {/* Metronome toggle + beat dots */}

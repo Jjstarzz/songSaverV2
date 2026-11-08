@@ -401,7 +401,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
       <button
         onClick={() => setOpen(true)}
         aria-label={playlist ? 'Present service' : 'Present song'}
-        className="shrink-0 flex items-center gap-1.5 px-3 min-h-[36px] rounded-xl text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:bg-purple-500/25 transition-colors"
+        className="shrink-0 flex items-center gap-1.5 px-3 min-h-[36px] rounded-xl text-xs font-medium bg-accent-500/15 text-accent-300 border border-accent-500/20 hover:bg-accent-500/25 transition-colors"
       >
         <Monitor className="w-3.5 h-3.5" />
         Present
@@ -444,13 +444,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                   onClick={() => { showSlide(i); setShowSections(false) }}
                   style={{
                     textAlign: 'left', padding: '14px 16px', borderRadius: 16,
-                    border: `1px solid ${isActive ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.12)'}`,
-                    background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${isActive ? 'rgba(140,201,179,0.5)' : 'rgba(255,255,255,0.12)'}`,
+                    background: isActive ? 'rgba(35,102,83,0.25)' : 'rgba(255,255,255,0.06)',
                     cursor: 'pointer',
                   }}
                 >
                   {slide.label && (
-                    <p style={{ color: '#a78bfa', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>
+                    <p style={{ color: '#8cc9b3', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>
                       {slide.label}
                     </p>
                   )}
@@ -526,9 +526,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           style={{
             width: 44, height: 48, flexShrink: 0, borderRadius: 14,
             border: logoMode ? 'none' : '1px solid rgba(255,255,255,0.10)',
-            background: logoMode ? '#7c3aed' : 'rgba(255,255,255,0.06)',
+            background: logoMode ? '#236653' : 'rgba(255,255,255,0.06)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: logoMode ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+            boxShadow: logoMode ? '0 0 20px rgba(35,102,83,0.4)' : 'none',
           }}
         >
           <Church style={{ width: 17, height: 17, color: logoMode ? '#fff' : 'rgba(255,255,255,0.45)' }} />
@@ -540,9 +540,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
           style={{
             width: 44, height: 48, flexShrink: 0, borderRadius: 14,
             border: (blank && !logoMode) ? 'none' : '1px solid rgba(255,255,255,0.10)',
-            background: (blank && !logoMode) ? '#7c3aed' : 'rgba(255,255,255,0.06)',
+            background: (blank && !logoMode) ? '#236653' : 'rgba(255,255,255,0.06)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: (blank && !logoMode) ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+            boxShadow: (blank && !logoMode) ? '0 0 20px rgba(35,102,83,0.4)' : 'none',
           }}
         >
           <EyeOff style={{ width: 18, height: 18, color: (blank && !logoMode) ? '#fff' : 'rgba(255,255,255,0.5)' }} />
@@ -595,9 +595,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
   // ── Full-screen controller overlay — z-[100] ──
   const TAB_STYLE = (active: boolean) => ({
     flex: 1, padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer',
-    color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)',
+    color: active ? '#8cc9b3' : 'rgba(255,255,255,0.4)',
     fontSize: '0.72rem', fontWeight: active ? 700 : 500,
-    borderBottom: `2px solid ${active ? '#7c3aed' : 'transparent'}`,
+    borderBottom: `2px solid ${active ? '#236653' : 'transparent'}`,
     transition: 'all 0.15s', letterSpacing: '0.05em',
   })
 
@@ -696,8 +696,8 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                             style={{
                               flexShrink: 0, maxWidth: 200, padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
                               display: 'flex', alignItems: 'center', gap: 6,
-                              background: active ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.05)',
-                              border: `1px solid ${active ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                              background: active ? 'rgba(35,102,83,0.3)' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${active ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.1)'}`,
                               color: active ? '#fff' : 'rgba(255,255,255,0.6)', fontSize: '0.75rem', fontWeight: active ? 600 : 500,
                             }}
                           >
@@ -732,13 +732,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                             onClick={() => showSlide(i)}
                             style={{
                               width: '100%', textAlign: 'left', padding: '10px 10px 10px 12px', borderRadius: 12,
-                              border: `1px solid ${isActive ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                              background: isActive ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${isActive ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                              background: isActive ? 'rgba(35,102,83,0.25)' : 'rgba(255,255,255,0.05)',
                               display: 'block', cursor: 'pointer', overflow: 'hidden', wordBreak: 'break-word',
                             }}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, gap: 6 }}>
-                              <p style={{ color: isActive ? '#c4b5fd' : 'rgba(255,255,255,0.35)', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <p style={{ color: isActive ? '#b5dccd' : 'rgba(255,255,255,0.35)', fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {i + 1}{slide.label ? ` · ${slide.label}` : ''}
                               </p>
                               <button
@@ -749,7 +749,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                 }}
                                 title="Notes"
                                 aria-label="Slide notes"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', margin: '-6px -6px -6px 0', color: hasNote ? '#a78bfa' : 'rgba(255,255,255,0.25)', fontSize: '0.75rem', flexShrink: 0, lineHeight: 1 }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', margin: '-6px -6px -6px 0', color: hasNote ? '#8cc9b3' : 'rgba(255,255,255,0.25)', fontSize: '0.75rem', flexShrink: 0, lineHeight: 1 }}
                               >
                                 ✎
                               </button>
@@ -806,9 +806,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         }}
                         style={{
                           flex: 1, padding: '7px 0', borderRadius: 10,
-                          border: `1px solid ${fontSizeKey === key ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                          background: fontSizeKey === key ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                          color: fontSizeKey === key ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                          border: `1px solid ${fontSizeKey === key ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                          background: fontSizeKey === key ? 'rgba(35,102,83,0.3)' : 'rgba(255,255,255,0.06)',
+                          color: fontSizeKey === key ? '#b5dccd' : 'rgba(255,255,255,0.5)',
                           cursor: 'pointer', fontSize: key === 'sm' ? '0.7rem' : key === 'md' ? '0.8rem' : key === 'lg' ? '0.9rem' : '1rem',
                           fontWeight: 600, transition: 'all 0.15s',
                         }}
@@ -830,9 +830,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         }}
                         style={{
                           flex: 1, padding: '7px 0', borderRadius: 10,
-                          border: `1px solid ${fontFamily === f.id ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                          background: fontFamily === f.id ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                          color: fontFamily === f.id ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                          border: `1px solid ${fontFamily === f.id ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                          background: fontFamily === f.id ? 'rgba(35,102,83,0.3)' : 'rgba(255,255,255,0.06)',
+                          color: fontFamily === f.id ? '#b5dccd' : 'rgba(255,255,255,0.5)',
                           cursor: 'pointer', fontSize: '0.72rem', fontFamily: f.family,
                           fontWeight: 500, transition: 'all 0.15s',
                         }}
@@ -863,11 +863,11 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         }}
                         style={{
                           width: 28, height: 28, borderRadius: '50%', background: color,
-                          border: textColor === color ? '2.5px solid #a78bfa' : '2px solid rgba(255,255,255,0.2)',
+                          border: textColor === color ? '2.5px solid #8cc9b3' : '2px solid rgba(255,255,255,0.2)',
                           cursor: 'pointer', flexShrink: 0,
                           transform: textColor === color ? 'scale(1.15)' : 'scale(1)',
                           transition: 'all 0.15s',
-                          boxShadow: textColor === color ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
+                          boxShadow: textColor === color ? '0 0 10px rgba(140,201,179,0.5)' : 'none',
                         }}
                       />
                     ))}
@@ -901,9 +901,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                             }}
                             style={{
                               padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
-                              background: isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)',
-                              border: `1px solid ${isSelected ? 'rgba(139,92,246,0.55)' : 'rgba(255,255,255,0.12)'}`,
-                              color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                              background: isSelected ? 'rgba(140,201,179,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${isSelected ? 'rgba(140,201,179,0.55)' : 'rgba(255,255,255,0.12)'}`,
+                              color: isSelected ? '#b5dccd' : 'rgba(255,255,255,0.5)',
                               transition: 'all 0.15s',
                             }}
                           >
@@ -938,9 +938,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                               onClick={() => setSecondaryLangId(isSelected ? null : l.id)}
                               style={{
                                 padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
-                                background: isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)',
-                                border: `1px solid ${isSelected ? 'rgba(139,92,246,0.55)' : 'rgba(255,255,255,0.12)'}`,
-                                color: isSelected ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                                background: isSelected ? 'rgba(140,201,179,0.3)' : 'rgba(255,255,255,0.06)',
+                                border: `1px solid ${isSelected ? 'rgba(140,201,179,0.55)' : 'rgba(255,255,255,0.12)'}`,
+                                color: isSelected ? '#b5dccd' : 'rgba(255,255,255,0.5)',
                                 transition: 'all 0.15s',
                               }}
                             >
@@ -964,13 +964,13 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                   <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Projector Screen</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <code style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUrl}</code>
-                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#a78bfa' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="QR code">
+                    <button onClick={() => setShowQr(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: showQr ? '#8cc9b3' : 'rgba(255,255,255,0.5)', flexShrink: 0 }} title="QR code">
                       <QrCode className="w-4 h-4" />
                     </button>
                     <button onClick={copyUrl} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#34d399' : 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </button>
-                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                    <button onClick={openDisplay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8cc9b3', flexShrink: 0 }}>
                       <ExternalLink className="w-4 h-4" />
                     </button>
                   </div>
@@ -986,9 +986,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     onClick={() => setInlineOpen(v => !v)}
                     style={{
                       marginTop: 8, width: '100%', padding: '9px 16px', borderRadius: 10,
-                      background: inlineOpen ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${inlineOpen ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                      color: inlineOpen ? '#a78bfa' : 'rgba(255,255,255,0.55)',
+                      background: inlineOpen ? 'rgba(140,201,179,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${inlineOpen ? 'rgba(140,201,179,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                      color: inlineOpen ? '#8cc9b3' : 'rgba(255,255,255,0.55)',
                       cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}
@@ -1013,7 +1013,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         maxLength={8}
                         style={{ flex: 1, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '0.82rem', outline: 'none', letterSpacing: '0.1em', textTransform: 'uppercase' }}
                       />
-                      <button onClick={joinSession} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                      <button onClick={joinSession} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(140,201,179,0.3)', border: '1px solid rgba(140,201,179,0.5)', color: '#b5dccd', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
                         Join
                       </button>
                     </div>
@@ -1028,7 +1028,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     <button onClick={() => stageUrl && navigator.clipboard.writeText(stageUrl)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
                       <Copy className="w-4 h-4" />
                     </button>
-                    <button onClick={() => stageUrl && window.open(stageUrl, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', flexShrink: 0 }}>
+                    <button onClick={() => stageUrl && window.open(stageUrl, 'songsaver-stage', 'width=1024,height=600,menubar=no,toolbar=no')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8cc9b3', flexShrink: 0 }}>
                       <ExternalLink className="w-4 h-4" />
                     </button>
                   </div>
@@ -1049,7 +1049,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                     />
                     <button
                       onClick={() => { const url = holdingInputVal.trim(); setHoldingImageUrl(url); localStorage.setItem('songsaver-holding-image', url) }}
-                      style={{ padding: '7px 12px', borderRadius: 10, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}
+                      style={{ padding: '7px 12px', borderRadius: 10, flexShrink: 0, background: 'rgba(140,201,179,0.3)', border: '1px solid rgba(140,201,179,0.5)', color: '#b5dccd', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}
                     >
                       Set
                     </button>
@@ -1083,7 +1083,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         localStorage.setItem('songsaver-screensaver-on', String(next))
                         rebroadcast({ screensaverEnabled: next })
                       }}
-                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: screensaverEnabled ? 'rgba(124,58,237,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
+                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', background: screensaverEnabled ? 'rgba(35,102,83,0.75)' : 'rgba(255,255,255,0.12)', flexShrink: 0 }}
                     >
                       <span style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', left: screensaverEnabled ? 22 : 2 }} />
                     </button>
@@ -1098,9 +1098,9 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                             onClick={() => { setScreensaverInterval(secs); localStorage.setItem('songsaver-screensaver-secs', String(secs)); rebroadcast({ screensaverInterval: secs }) }}
                             style={{
                               flex: 1, padding: '7px 4px', borderRadius: 10, fontSize: '0.72rem', cursor: 'pointer',
-                              background: screensaverInterval === secs ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.06)',
-                              border: `1px solid ${screensaverInterval === secs ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
-                              color: screensaverInterval === secs ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                              background: screensaverInterval === secs ? 'rgba(35,102,83,0.3)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${screensaverInterval === secs ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                              color: screensaverInterval === secs ? '#b5dccd' : 'rgba(255,255,255,0.5)',
                               transition: 'all 0.15s',
                             }}
                           >
@@ -1120,7 +1120,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                 {/* Browse / Search toggle */}
                 <div style={{ display: 'flex', gap: 6, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
                   {(['browse', 'search'] as const).map(t => (
-                    <button key={t} onClick={() => setScriptureTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1px solid ${scriptureTab === t ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'}`, background: scriptureTab === t ? 'rgba(124,58,237,0.25)' : 'rgba(255,255,255,0.05)', color: scriptureTab === t ? '#c4b5fd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, textTransform: 'capitalize' }}>
+                    <button key={t} onClick={() => setScriptureTab(t)} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1px solid ${scriptureTab === t ? 'rgba(140,201,179,0.5)' : 'rgba(255,255,255,0.1)'}`, background: scriptureTab === t ? 'rgba(35,102,83,0.25)' : 'rgba(255,255,255,0.05)', color: scriptureTab === t ? '#b5dccd' : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, textTransform: 'capitalize' }}>
                       {t === 'browse' ? 'Browse' : 'Search'}
                     </button>
                   ))}
@@ -1143,7 +1143,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                               setLoadingVerses(true); setBrowseVerses([])
                               fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${book.id}.1`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
                             }}
-                            style={{ width: '100%', textAlign: 'left', padding: '14px 10px', fontSize: '0.85rem', background: browseBook?.id === book.id ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#7c3aed' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            style={{ width: '100%', textAlign: 'left', padding: '14px 10px', fontSize: '0.85rem', background: browseBook?.id === book.id ? 'rgba(35,102,83,0.2)' : 'transparent', color: browseBook?.id === book.id ? '#b5dccd' : 'rgba(255,255,255,0.6)', fontWeight: browseBook?.id === book.id ? 600 : 400, border: 'none', borderLeft: `2px solid ${browseBook?.id === book.id ? '#236653' : 'transparent'}`, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {book.name}
                           </button>
                         ))}
@@ -1164,7 +1164,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                   setLoadingVerses(true); setBrowseVerses([])
                                   fetch(`/api/bible?op=verses&chapter=${encodeURIComponent(`${browseBook.id}.${ch}`)}`).then(r => r.json()).then(d => { setBrowseVerses(d.verses ?? []) }).finally(() => setLoadingVerses(false))
                                 }}
-                                style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseChapter === ch ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseChapter === ch ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseChapter === ch ? 'rgba(35,102,83,0.2)' : 'transparent', color: browseChapter === ch ? '#b5dccd' : 'rgba(255,255,255,0.6)', fontWeight: browseChapter === ch ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                                 {ch}
                               </button>
                             ))
@@ -1192,7 +1192,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                                       if (d.text && d.reference) sendVerse(d.reference, d.text)
                                     } finally { setLoadingPassage(false) }
                                   }}
-                                  style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseVerseIdx === idx ? 'rgba(124,58,237,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#c4b5fd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
+                                  style={{ width: '100%', textAlign: 'center', padding: '14px 0', fontSize: '0.9rem', background: browseVerseIdx === idx ? 'rgba(35,102,83,0.2)' : 'transparent', color: browseVerseIdx === idx ? '#b5dccd' : 'rgba(255,255,255,0.6)', fontWeight: browseVerseIdx === idx ? 600 : 400, border: 'none', cursor: 'pointer' }}>
                                   {num}
                                 </button>
                               )
@@ -1217,7 +1217,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         style={{ flex: 1, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
                       />
                       <button onClick={searchScripture} disabled={scriptureSearching}
-                        style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(139,92,246,0.3)', border: '1px solid rgba(139,92,246,0.5)', color: '#c4b5fd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(140,201,179,0.3)', border: '1px solid rgba(140,201,179,0.5)', color: '#b5dccd', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {scriptureSearching
                           ? <span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                           : <Search style={{ width: 16, height: 16 }} />}
@@ -1228,7 +1228,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
                         {scriptureResults.map((v, i) => (
                           <button key={i} onClick={() => sendVerse(v.reference, v.text)}
                             style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            <span style={{ color: '#a78bfa', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{v.reference}</span>
+                            <span style={{ color: '#8cc9b3', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{v.reference}</span>
                             <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: 300 }}>
                               {v.text.length > 200 ? v.text.slice(0, 200) + '…' : v.text}
                             </span>
@@ -1266,7 +1266,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
               className={cn(
                 'w-14 h-14 flex items-center justify-center rounded-2xl border transition-all duration-150',
                 blank
-                  ? 'bg-purple-600 border-purple-500 shadow-lg shadow-purple-500/30'
+                  ? 'bg-accent-600 border-accent-500'
                   : 'bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.1)]'
               )}
               title={blank ? 'Show slide' : 'Blank screen'}

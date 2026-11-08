@@ -365,7 +365,7 @@ export function SongForm({ song, heading }: SongFormProps) {
                         onClick={() => triggerOcr(idx)}
                         disabled={ocrLoading}
                         title="Scan image for lyrics"
-                        className="w-10 h-10 flex items-center justify-center rounded-xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl text-accent-400 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20 disabled:opacity-50"
                       >
                         {ocrLoading && ocrIdx === idx
                           ? <span className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
@@ -449,7 +449,7 @@ export function SongForm({ song, heading }: SongFormProps) {
                   'flex-1 min-h-[44px] rounded-xl text-sm font-medium border transition-colors',
                   form.mode === val
                     ? val === 'minor'
-                      ? 'bg-purple-600 border-purple-500 text-white'
+                      ? 'bg-accent-600 border-accent-500 text-white'
                       : val === 'major'
                       ? 'bg-accent-600 border-accent-500 text-white'
                       : 'bg-white/10 border-white/20 text-white'
