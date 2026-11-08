@@ -245,6 +245,14 @@ html.light {
     .page-top { padding-top: max(2.25rem, calc(env(safe-area-inset-top, 0px) + 1rem)); }
   }
 
+  /* Song library row: Key | Song | Time·BPM | Languages | Last sung | (favourite) */
+  .song-row-grid {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 120px minmax(120px, 180px) 88px 36px;
+    align-items: center;
+    column-gap: 16px;
+  }
+
   /* Space reserved under page content for the mobile bottom nav */
   .pb-nav { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 1.5rem); }
   @media (min-width: 1024px) { .pb-nav { padding-bottom: 3rem; } }

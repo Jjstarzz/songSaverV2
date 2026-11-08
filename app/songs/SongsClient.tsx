@@ -1,104 +1,68 @@
 'use client'
 
-import { Plus, WifiOff, BookmarkCheck, Camera } from 'lucide-react'
+import { Plus, WifiOff, Camera, CircleCheck, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { SongList } from '@/components/songs/SongList'
-import { Button } from '@/components/ui/Button'
+import { buttonVariants } from '@/components/ui/Button'
 import { useSongs } from '@/hooks/useSongs'
 import { useUserSongKeys } from '@/hooks/useUserSongKeys'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
-import { useOfflineSongs } from '@/hooks/useOfflineSong'
 import { useOfflineSync } from '@/hooks/useOfflineSync'
-import { cn } from '@/lib/utils'
 
+function relativeTime(d: Date) {
+  const mins = Math.round((Date.now() - d.getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return `${hrs} h ago`
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+/**
+ * One library list for online and offline use. useSongs() already falls back
+ * to the on-device copy when offline, so there is no separate "saved offline"
+ * list (it used to repeat the whole library underneath).
+ */
 export function SongsClient() {
-  const { songs, loading } = useSongs()
+  const { songs, loading, error } = useSongs()
   const userKeys = useUserSongKeys()
   const online = useOnlineStatus()
-  const { songs: offlineSongs, loading: offlineLoading } = useOfflineSongs()
-  useOfflineSync() // silently syncs all songs to IndexedDB in the background
-
-  if (!online) {
-    // Offline: show only saved songs
-    return (
-      <div className="px-4">
-        <PageHeader
-          title="Song Library"
-          subtitle={offlineLoading ? '' : `${offlineSongs.length} saved offline`}
-        />
-        {!offlineLoading && offlineSongs.length === 0 ? (
-          <div className="glass-card p-8 text-center space-y-3 mt-4">
-            <WifiOff className="w-8 h-8 text-[var(--fg-subtle)] mx-auto" />
-            <p className="text-sm text-[var(--fg-muted)]">No offline songs saved</p>
-            <p className="text-xs text-[var(--fg-subtle)]">
-              Go online and tap the bookmark icon on any song to save it for offline use.
-            </p>
-          </div>
-        ) : (
-          <SongList
-            songs={offlineSongs as any}
-            loading={offlineLoading}
-            userKeys={userKeys}
-          />
-        )}
-      </div>
-    )
-  }
+  const { syncing, lastSynced } = useOfflineSync()
 
   return (
     <div className="px-4">
       <PageHeader
-        title="Song Library"
-        subtitle={loading ? '' : `${songs.length} songs`}
+        title="Songs"
         action={
-          <div className="flex items-center gap-2">
-            <Link href="/songs/import-photo">
-              <Button variant="secondary" size="icon-sm" title="Import from photo">
-                <Camera className="w-4 h-4" />
-              </Button>
+          <>
+            <Link href="/songs/import-photo" aria-label="Add a song from a photo" className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
+              <Camera aria-hidden className="w-4 h-4" />
             </Link>
-            <Link href="/songs/new">
-              <Button size="sm">
-                <Plus className="w-4 h-4" />
-                Add
-              </Button>
+            <Link href="/songs/new" className={buttonVariants({})}>
+              <Plus aria-hidden className="w-4 h-4" />
+              Add song
             </Link>
-          </div>
+          </>
         }
       />
-      <SongList songs={songs} loading={loading} userKeys={userKeys} />
 
-      {/* Offline-saved songs section */}
-      {!offlineLoading && offlineSongs.length > 0 && (
-        <div className="mt-8 mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <p className="text-xs font-semibold text-[var(--fg-subtle)] uppercase tracking-widest">
-              Saved offline ({offlineSongs.length})
-            </p>
-          </div>
-          <div className="space-y-2">
-            {offlineSongs.map((s) => (
-              <Link key={s.id} href={`/songs/${s.id}`}>
-                <div className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl',
-                  'bg-[var(--bg-card)] border border-[var(--border)]',
-                  'hover:bg-[var(--bg-card-hover)] transition-colors'
-                )}>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--fg)] truncate">{s.title}</p>
-                    {s.artist && (
-                      <p className="text-xs text-[var(--fg-subtle)] truncate">{s.artist}</p>
-                    )}
-                  </div>
-                  <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+      {/* Offline / sync status */}
+      <p className="-mt-2 mb-3 flex items-center gap-1.5 text-xs text-[var(--fg-subtle)]" role="status">
+        {!online ? (
+          <><WifiOff aria-hidden className="w-3.5 h-3.5 text-[var(--warning)]" /> Offline — showing songs saved on this device</>
+        ) : syncing ? (
+          <><RefreshCw aria-hidden className="w-3.5 h-3.5 animate-spin" /> Saving songs for offline use…</>
+        ) : lastSynced ? (
+          <><CircleCheck aria-hidden className="w-3.5 h-3.5 text-[var(--success)]" /> Available offline · updated {relativeTime(lastSynced)}</>
+        ) : null}
+      </p>
+
+      {error && online && (
+        <p role="alert" className="surface p-3 mb-3 text-sm text-[var(--danger)]">Couldn&apos;t load songs: {error}</p>
       )}
+
+      <SongList songs={songs} loading={loading} userKeys={userKeys} />
     </div>
   )
 }

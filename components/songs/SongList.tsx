@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, SlidersHorizontal, X, Heart, ArrowUpDown } from 'lucide-react'
-import { SongWithLanguages, MUSICAL_KEYS, LANGUAGE_NAMES, formatKey } from '@/types/database'
+import { SongWithLanguages, MUSICAL_KEYS, LANGUAGE_NAMES } from '@/types/database'
 import { SongCard } from './SongCard'
 import { SongCardSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -15,11 +15,11 @@ import { cn } from '@/lib/utils'
 const ALL_TAGS = ['Praise', 'Worship', 'Fast', 'Slow', 'Thanksgiving', 'Easter', 'Christmas', 'Advent', 'Communion', 'Offering', 'Opening', 'Closing']
 const TIME_SIGS = ['2/4', '3/4', '4/4', '6/8', '12/8']
 const SORT_OPTIONS = [
-  { value: 'recent', label: 'Recently Updated' },
+  { value: 'recent', label: 'Recent' },
   { value: 'title', label: 'Title A–Z' },
   { value: 'artist', label: 'Artist A–Z' },
-  { value: 'bpm_asc', label: 'BPM ↑' },
-  { value: 'bpm_desc', label: 'BPM ↓' },
+  { value: 'bpm_asc', label: 'Slowest first' },
+  { value: 'bpm_desc', label: 'Fastest first' },
 ]
 
 const PAGE_SIZE = 40
@@ -64,6 +64,99 @@ function useLyricMatches(query: string): Set<string> {
   return ids
 }
 
+
+/* ─── Persisted list state ─────────────────────────────────────────── */
+
+interface Filters {
+  query: string
+  tags: string[]
+  key: string
+  userKey: string
+  mode: '' | 'major' | 'minor'
+  originalLang: string
+  lyricsLang: string
+  timeSig: string
+  bpmMin: string
+  bpmMax: string
+  favs: boolean
+  mine: boolean
+  sort: string
+}
+
+const EMPTY_FILTERS: Filters = {
+  query: '', tags: [], key: '', userKey: '', mode: '', originalLang: '', lyricsLang: '',
+  timeSig: '', bpmMin: '', bpmMax: '', favs: false, mine: false, sort: 'recent',
+}
+
+const STATE_KEY = 'songsaver-library-state'
+/** Set when a song is opened from the list, so coming back restores the scroll position */
+export const RETURN_FLAG = 'songsaver-library-return'
+
+interface SavedState { filters: Filters; scrollY: number; visible: number }
+
+function readState(): SavedState | null {
+  try {
+    const raw = sessionStorage.getItem(STATE_KEY)
+    if (!raw) return null
+    const s = JSON.parse(raw) as SavedState
+    return { ...s, filters: { ...EMPTY_FILTERS, ...s.filters } }
+  } catch { return null }
+}
+function writeState(s: SavedState) {
+  try { sessionStorage.setItem(STATE_KEY, JSON.stringify(s)) } catch { /* private mode */ }
+}
+
+/* ─── Small controls ───────────────────────────────────────────────── */
+
+function ToggleChip({ on, onClick, children, label }: { on: boolean; onClick: () => void; children: React.ReactNode; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      aria-label={label}
+      className={cn(
+        'shrink-0 h-10 px-3.5 rounded-xl border text-sm font-medium flex items-center gap-1.5 transition-colors',
+        on
+          ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-fg)]'
+          : 'bg-[var(--bg-input)] border-[var(--border-strong)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function OptionChip({ on, onClick, children, className }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={cn(
+        'shrink-0 min-h-[36px] px-3 rounded-lg border text-sm font-medium transition-colors',
+        on
+          ? 'bg-accent-600 border-accent-600 text-white'
+          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]',
+        className
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="section-label mb-2">{title}</legend>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </fieldset>
+  )
+}
+
+/* ─── List ─────────────────────────────────────────────────────────── */
+
 interface SongListProps {
   songs: SongWithLanguages[]
   loading: boolean
@@ -74,112 +167,131 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
   const { favorites } = useFavorites()
   const { user } = useAuth()
 
-  const [query, setQuery] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [selectedKey, setSelectedKey] = useState('')
-  const [selectedUserKey, setSelectedUserKey] = useState('')
-  const [selectedMode, setSelectedMode] = useState<'' | 'major' | 'minor'>('')
-  const [selectedLang, setSelectedLang] = useState('')
-  const [selectedOriginalLang, setSelectedOriginalLang] = useState('')
-  const [selectedTimeSig, setSelectedTimeSig] = useState('')
-  const [bpmMin, setBpmMin] = useState('')
-  const [bpmMax, setBpmMax] = useState('')
-  const [sortBy, setSortBy] = useState('recent')
-  const [showFavs, setShowFavs] = useState(false)
-  const [showMine, setShowMine] = useState(false)
+  const [f, setF] = useState<Filters>(EMPTY_FILTERS)
   const [showFilters, setShowFilters] = useState(false)
-  const [filterTab, setFilterTab] = useState<'tags' | 'key' | 'lang' | 'bpm'>('tags')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const restoreRef = useRef<SavedState | null>(null)
+  // State (not a ref) so nothing is saved until the restored filters are actually applied —
+  // otherwise the empty defaults overwrite the saved state on mount.
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restore filters (always, for this browsing session) and scroll (only when coming back from a song)
+  useEffect(() => {
+    const saved = readState()
+    if (saved) {
+      setF(saved.filters)
+      let returning = false
+      try { returning = sessionStorage.getItem(RETURN_FLAG) === '1' } catch { /* ignore */ }
+      if (returning) {
+        restoreRef.current = saved
+        setVisibleCount(Math.max(PAGE_SIZE, saved.visible))
+      }
+    }
+    setHydrated(true)
+  }, [])
+
+  const set = <K extends keyof Filters>(k: K, v: Filters[K]) => setF((prev) => ({ ...prev, [k]: v }))
 
   // Filtering 400+ songs on every keystroke makes typing lag on phones;
   // let React keep the input responsive and filter at lower priority.
-  const deferredQuery = useDeferredValue(query)
+  const deferredQuery = useDeferredValue(f.query)
   const lyricMatches = useLyricMatches(deferredQuery)
 
-  // Collect original languages present in the song library
-  const availableLanguages = useMemo(() => {
-    const langSet = new Set<string>()
-    songs.forEach((s) => { if (s.original_language) langSet.add(s.original_language) })
-    return Array.from(langSet).sort()
-  }, [songs])
-
-  const availableOriginalLanguages = useMemo(() => {
-    const langSet = new Set<string>()
-    songs.forEach((s) => { if (s.original_language) langSet.add(s.original_language) })
-    return Array.from(langSet).sort()
-  }, [songs])
-
-  const activeFilterCount = [
-    selectedTags.length > 0,
-    selectedKey !== '',
-    selectedUserKey !== '',
-    selectedMode !== '',
-    selectedLang !== '',
-    selectedOriginalLang !== '',
-    selectedTimeSig !== '',
-    bpmMin !== '' || bpmMax !== '',
-    showFavs,
-    showMine,
-  ].filter(Boolean).length
+  const originalLanguages = useMemo(
+    () => [...new Set(songs.map((s) => s.original_language).filter(Boolean) as string[])].sort(),
+    [songs]
+  )
+  const lyricsLanguages = useMemo(
+    () => [...new Set(songs.flatMap((s) => s.song_lyrics?.map((l) => l.language) ?? []))].sort(),
+    [songs]
+  )
 
   const filteredSongs = useMemo(() => {
-    let result = songs.filter((song) => {
-      if (deferredQuery) {
-        const q = normalise(deferredQuery)
-        const matchesTitle = normalise(song.title).includes(q)
-        const matchesArtist = song.artist ? normalise(song.artist).includes(q) : false
-        if (!matchesTitle && !matchesArtist && !lyricMatches.has(song.id)) return false
-      }
+    const q = deferredQuery ? normalise(deferredQuery) : ''
+    const matchesText = (s: SongWithLanguages) =>
+      normalise(s.title).includes(q) || (!!s.artist && normalise(s.artist).includes(q))
 
-      if (selectedTags.length > 0 && !selectedTags.every((t) => song.tags.includes(t))) return false
-      if (selectedKey && song.default_key !== selectedKey && song.preferred_key !== selectedKey) return false
-      if (selectedUserKey && userKeys[song.id] !== selectedUserKey) return false
-      if (selectedMode && song.mode !== selectedMode) return false
-      if (selectedTimeSig && song.time_signature !== selectedTimeSig) return false
-
-      if (selectedLang && song.original_language !== selectedLang) return false
-
-      if (selectedOriginalLang && song.original_language !== selectedOriginalLang) return false
-
-      if (bpmMin && song.bpm != null && song.bpm < Number(bpmMin)) return false
-      if (bpmMax && song.bpm != null && song.bpm > Number(bpmMax)) return false
-
-      if (showFavs && !favorites.has(song.id)) return false
-      if (showMine && song.created_by !== user?.id) return false
-
+    const result = songs.filter((song) => {
+      if (q && !matchesText(song) && !lyricMatches.has(song.id)) return false
+      if (f.tags.length > 0 && !f.tags.every((t) => song.tags.includes(t))) return false
+      if (f.key && song.default_key !== f.key && song.preferred_key !== f.key) return false
+      if (f.userKey && userKeys[song.id] !== f.userKey) return false
+      if (f.mode && song.mode !== f.mode) return false
+      if (f.timeSig && song.time_signature !== f.timeSig) return false
+      if (f.originalLang && song.original_language !== f.originalLang) return false
+      if (f.lyricsLang && !song.song_lyrics?.some((l) => l.language === f.lyricsLang)) return false
+      if (f.bpmMin && (song.bpm == null || song.bpm < Number(f.bpmMin))) return false
+      if (f.bpmMax && (song.bpm == null || song.bpm > Number(f.bpmMax))) return false
+      if (f.favs && !favorites.has(song.id)) return false
+      if (f.mine && song.created_by !== user?.id) return false
       return true
     })
 
-    // Sort
     result.sort((a, b) => {
-      switch (sortBy) {
-        case 'title':   return a.title.localeCompare(b.title)
-        case 'artist':  return (a.artist ?? '').localeCompare(b.artist ?? '')
-        case 'bpm_asc': return (a.bpm ?? 0) - (b.bpm ?? 0)
-        case 'bpm_desc':return (b.bpm ?? 0) - (a.bpm ?? 0)
-        default:        return 0 // 'recent' — already ordered by updated_at from DB
+      switch (f.sort) {
+        case 'title':    return a.title.localeCompare(b.title)
+        case 'artist':   return (a.artist ?? '').localeCompare(b.artist ?? '')
+        case 'bpm_asc':  return (a.bpm ?? 0) - (b.bpm ?? 0)
+        case 'bpm_desc': return (b.bpm ?? 0) - (a.bpm ?? 0)
+        default:         return 0 // 'recent' — already ordered by updated_at from the database
       }
     })
 
-    // When searching, songs whose title/artist match come before lyric-only matches
-    if (deferredQuery) {
-      const q = normalise(deferredQuery)
-      const direct = (s: SongWithLanguages) => normalise(s.title).includes(q) || (!!s.artist && normalise(s.artist).includes(q))
-      result = [...result.filter(direct), ...result.filter((s) => !direct(s))]
+    // When searching, title/artist matches come before lyric-only matches
+    return q ? [...result.filter(matchesText), ...result.filter((s) => !matchesText(s))] : result
+  }, [songs, deferredQuery, lyricMatches, f, favorites, user?.id, userKeys])
+
+  // Persist filters as they change
+  useEffect(() => {
+    if (!hydrated) return
+    const prev = readState()
+    writeState({ filters: f, scrollY: prev?.scrollY ?? 0, visible: prev?.visible ?? PAGE_SIZE })
+  }, [f, hydrated])
+
+  // Remember scroll position + how many songs were loaded
+  useEffect(() => {
+    let raf = 0
+    const save = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        if (restoreRef.current || !document.querySelector('[data-song-list]')) return // not while restoring / unmounted
+        const prev = readState()
+        writeState({ filters: prev?.filters ?? f, scrollY: window.scrollY, visible: visibleCountRef.current })
+      })
     }
+    window.addEventListener('scroll', save, { passive: true })
+    return () => { window.removeEventListener('scroll', save); cancelAnimationFrame(raf) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const visibleCountRef = useRef(visibleCount)
+  visibleCountRef.current = visibleCount
 
-    return result
-  }, [songs, deferredQuery, lyricMatches, selectedTags, selectedKey, selectedUserKey, selectedMode, selectedLang, selectedOriginalLang, selectedTimeSig, bpmMin, bpmMax, sortBy, showFavs, showMine, favorites, user?.id, userKeys])
+  // Scroll back to where the user was once the list has rendered
+  useEffect(() => {
+    const r = restoreRef.current
+    if (!r || loading || songs.length === 0) return
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.scrollTo(0, r.scrollY)
+      restoreRef.current = null
+      try { sessionStorage.removeItem(RETURN_FLAG) } catch { /* ignore */ }
+    }))
+  }, [loading, songs.length, filteredSongs])
 
-  // Render in pages; more appear as the user scrolls near the end
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [filteredSongs])
+  // Reset paging when the result set changes (but not during a restore)
+  const firstFilterRun = useRef(true)
+  useEffect(() => {
+    if (firstFilterRun.current) { firstFilterRun.current = false; return }
+    if (!restoreRef.current) setVisibleCount(PAGE_SIZE)
+  }, [deferredQuery, f.tags, f.key, f.userKey, f.mode, f.timeSig, f.originalLang, f.lyricsLang, f.bpmMin, f.bpmMax, f.favs, f.mine, f.sort])
+
+  // Load more as the user nears the end
+  const sentinelRef = useRef<HTMLLIElement>(null)
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const io = new IntersectionObserver(
       (entries) => { if (entries[0].isIntersecting) setVisibleCount((n) => n + PAGE_SIZE) },
-      { rootMargin: '600px' },
+      { rootMargin: '800px' },
     )
     io.observe(el)
     return () => io.disconnect()
@@ -191,368 +303,208 @@ export function SongList({ songs, loading, userKeys = {} }: SongListProps) {
     return filteredSongs.findIndex((s) => !normalise(s.title).includes(q) && !(s.artist && normalise(s.artist).includes(q)))
   }, [filteredSongs, deferredQuery])
 
-  const clearFilters = () => {
-    setQuery('')
-    setSelectedTags([])
-    setSelectedKey('')
-    setSelectedLang('')
-    setSelectedOriginalLang('')
-    setSelectedTimeSig('')
-    setBpmMin('')
-    setBpmMax('')
-    setShowFavs(false)
-    setShowMine(false)
-    setSelectedUserKey('')
-    setSelectedMode('')
-    setSortBy('recent')
-  }
+  // Active filters as removable chips (search box and the Mine/Favourites toggles are visible already)
+  const chips: { label: string; clear: () => void }[] = [
+    ...f.tags.map((t) => ({ label: t, clear: () => set('tags', f.tags.filter((x) => x !== t)) })),
+    ...(f.key ? [{ label: `Key ${f.key}`, clear: () => set('key', '') }] : []),
+    ...(f.userKey ? [{ label: `My key ${f.userKey}`, clear: () => set('userKey', '') }] : []),
+    ...(f.mode ? [{ label: f.mode === 'major' ? 'Major' : 'Minor', clear: () => set('mode', '') }] : []),
+    ...(f.originalLang ? [{ label: `Original: ${LANGUAGE_NAMES[f.originalLang] ?? f.originalLang}`, clear: () => set('originalLang', '') }] : []),
+    ...(f.lyricsLang ? [{ label: `Lyrics in ${LANGUAGE_NAMES[f.lyricsLang] ?? f.lyricsLang}`, clear: () => set('lyricsLang', '') }] : []),
+    ...(f.timeSig ? [{ label: f.timeSig, clear: () => set('timeSig', '') }] : []),
+    ...(f.bpmMin || f.bpmMax ? [{ label: `${f.bpmMin || '…'}–${f.bpmMax || '…'} BPM`, clear: () => setF((p) => ({ ...p, bpmMin: '', bpmMax: '' })) }] : []),
+  ]
+  const panelFilterCount = chips.length
+  const anyFilter = !!f.query || f.favs || f.mine || chips.length > 0
+  const resetAll = () => setF((p) => ({ ...EMPTY_FILTERS, sort: p.sort }))
+  const toggleTag = (tag: string) => set('tags', f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag])
 
-  const hasFilters = query || selectedTags.length > 0 || selectedKey || selectedUserKey || selectedMode || selectedLang || selectedOriginalLang || selectedTimeSig || bpmMin || bpmMax || showFavs || showMine
-
-  const toggleTag = (tag: string) =>
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])
+  const sortSelect = (
+    <label className="relative shrink-0 flex items-center">
+      <span className="sr-only">Sort songs</span>
+      <ArrowUpDown aria-hidden className="absolute left-3 w-4 h-4 text-[var(--fg-subtle)] pointer-events-none" />
+      <select
+        value={f.sort}
+        onChange={(e) => set('sort', e.target.value)}
+        className="h-10 pl-9 pr-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-input)] text-sm text-[var(--fg-muted)] appearance-none cursor-pointer"
+      >
+        {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  )
 
   return (
     <div className="space-y-3">
-      {/* Sticky search + controls */}
-      <div className="sticky-search-bg sticky top-0 z-30 pb-1 px-4 -mx-4" style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}>
-        {/* Search row */}
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-subtle)] pointer-events-none" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search songs & lyrics…"
-              className="input-base pl-10 pr-10"
-            />
-            {query && (
-              <button
-                onClick={() => setQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)] hover:text-[var(--fg-muted)]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+      {/* Search + controls */}
+      <div className="sticky-search-bg sticky top-0 z-30 -mx-4 px-4 pb-2 space-y-2" style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}>
+        <div className="relative">
+          <Search aria-hidden className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-subtle)] pointer-events-none" />
+          <input
+            type="search"
+            value={f.query}
+            onChange={(e) => set('query', e.target.value)}
+            placeholder="Search titles, artists or lyrics"
+            aria-label="Search songs"
+            className="input-base pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {f.query && (
+            <button
+              type="button"
+              onClick={() => set('query', '')}
+              aria-label="Clear search"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-[var(--fg-subtle)] hover:text-[var(--fg)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
-          {/* Added by you toggle */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <ToggleChip on={f.mine} onClick={() => set('mine', !f.mine)}>Mine</ToggleChip>
+          <ToggleChip on={f.favs} onClick={() => set('favs', !f.favs)}>
+            <Heart aria-hidden className={cn('w-4 h-4', f.favs && 'fill-current')} />
+            <span className="sr-only min-[420px]:not-sr-only">Favourites</span>
+          </ToggleChip>
           <button
-            onClick={() => setShowMine(!showMine)}
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            aria-controls="song-filters"
             className={cn(
-              'h-10 px-3 rounded-xl border flex items-center gap-1.5 text-xs font-medium transition-all duration-200 shrink-0',
-              showMine
-                ? 'bg-accent-600 border-accent-500 text-white'
-                : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)]'
+              'shrink-0 h-10 px-3.5 rounded-xl border text-sm font-medium flex items-center gap-1.5 transition-colors',
+              showFilters || panelFilterCount > 0
+                ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-fg)]'
+                : 'bg-[var(--bg-input)] border-[var(--border-strong)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
             )}
-            aria-label="Show songs added by me"
           >
-            Mine
-          </button>
-
-          {/* Favourites toggle */}
-          <button
-            onClick={() => setShowFavs(!showFavs)}
-            className={cn(
-              'w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200',
-              showFavs
-                ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)]'
-            )}
-            aria-label="Show favourites"
-          >
-            <Heart className={cn('w-4 h-4', showFavs && 'fill-current')} />
-          </button>
-
-          {/* Filter button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              'relative w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200',
-              showFilters || activeFilterCount > 0
-                ? 'bg-accent-600 border-accent-500 text-white'
-                : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)]'
-            )}
-            aria-label="Filters"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent-500 text-[9px] text-white flex items-center justify-center font-bold">
-                {activeFilterCount}
+            <SlidersHorizontal aria-hidden className="w-4 h-4" />
+            Filters
+            {panelFilterCount > 0 && (
+              <span className="min-w-[20px] h-5 px-1 rounded-full bg-accent-600 text-white text-xs font-semibold flex items-center justify-center">
+                {panelFilterCount}
+                <span className="sr-only"> active</span>
               </span>
             )}
           </button>
+          <span className="flex-1" />
+          {sortSelect}
         </div>
 
-        {/* Language quick-filters */}
-        {availableLanguages.length > 0 && (
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5">
-            {availableLanguages.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
-                className={cn(
-                  'shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200',
-                  selectedLang === lang
-                    ? 'bg-accent-600 border-accent-500 text-white'
-                    : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-subtle)] hover:text-white hover:border-white/20'
-                )}
-              >
-                {LANGUAGE_NAMES[lang] ?? lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Expanded filters panel */}
         {showFilters && (
-          <div className="mt-2 space-y-2">
-            {/* Sort + filter tabs */}
-            <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
-                <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--fg-subtle)] pointer-events-none" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full input-base py-2 pl-8 text-xs appearance-none"
-                >
-                  {SORT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-1">
-                {(['tags', 'key', 'lang', 'bpm'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setFilterTab(tab)}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                      filterTab === tab
-                        ? 'bg-accent-600 border-accent-500 text-white'
-                        : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)]'
-                    )}
-                  >
-                    {tab === 'tags' ? 'Tags' : tab === 'key' ? 'Key' : tab === 'lang' ? 'Lang' : 'BPM'}
-                  </button>
+          <div id="song-filters" className="surface p-4 space-y-4 animate-fade-in">
+            {originalLanguages.length > 0 && (
+              <FilterGroup title="Original language">
+                {originalLanguages.map((lang) => (
+                  <OptionChip key={lang} on={f.originalLang === lang} onClick={() => set('originalLang', f.originalLang === lang ? '' : lang)}>
+                    {LANGUAGE_NAMES[lang] ?? lang}
+                  </OptionChip>
                 ))}
-              </div>
+              </FilterGroup>
+            )}
+            {lyricsLanguages.length > 0 && (
+              <FilterGroup title="Has lyrics in">
+                {lyricsLanguages.map((lang) => (
+                  <OptionChip key={lang} on={f.lyricsLang === lang} onClick={() => set('lyricsLang', f.lyricsLang === lang ? '' : lang)}>
+                    {LANGUAGE_NAMES[lang] ?? lang}
+                  </OptionChip>
+                ))}
+              </FilterGroup>
+            )}
+            <FilterGroup title="Tags">
+              {ALL_TAGS.map((tag) => (
+                <OptionChip key={tag} on={f.tags.includes(tag)} onClick={() => toggleTag(tag)}>{tag}</OptionChip>
+              ))}
+            </FilterGroup>
+            <FilterGroup title="Song key">
+              {MUSICAL_KEYS.map((k) => (
+                <OptionChip key={k} className="w-11 px-0" on={f.key === k} onClick={() => set('key', f.key === k ? '' : k)}>{k}</OptionChip>
+              ))}
+            </FilterGroup>
+            <FilterGroup title="My key">
+              {MUSICAL_KEYS.map((k) => (
+                <OptionChip key={k} className="w-11 px-0" on={f.userKey === k} onClick={() => set('userKey', f.userKey === k ? '' : k)}>{k}</OptionChip>
+              ))}
+            </FilterGroup>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FilterGroup title="Mode">
+                {(['major', 'minor'] as const).map((m) => (
+                  <OptionChip key={m} on={f.mode === m} onClick={() => set('mode', f.mode === m ? '' : m)}>{m === 'major' ? 'Major' : 'Minor'}</OptionChip>
+                ))}
+              </FilterGroup>
+              <FilterGroup title="Time signature">
+                {TIME_SIGS.map((ts) => (
+                  <OptionChip key={ts} on={f.timeSig === ts} onClick={() => set('timeSig', f.timeSig === ts ? '' : ts)}>{ts}</OptionChip>
+                ))}
+              </FilterGroup>
             </div>
-
-            {/* Tags filter */}
-            {filterTab === 'tags' && (
-              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                {ALL_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={cn(
-                      'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
-                      selectedTags.includes(tag)
-                        ? 'bg-accent-600 border-accent-500 text-white'
-                        : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
+            <fieldset>
+              <legend className="section-label mb-2">Tempo (BPM)</legend>
+              <div className="flex gap-2 items-center max-w-xs">
+                <input type="number" inputMode="numeric" value={f.bpmMin} onChange={(e) => set('bpmMin', e.target.value)} placeholder="From" aria-label="Minimum BPM" className="input-base" min={20} max={300} />
+                <span aria-hidden className="text-[var(--fg-subtle)]">–</span>
+                <input type="number" inputMode="numeric" value={f.bpmMax} onChange={(e) => set('bpmMax', e.target.value)} placeholder="To" aria-label="Maximum BPM" className="input-base" min={20} max={300} />
               </div>
-            )}
-
-            {/* Key filter */}
-            {filterTab === 'key' && (
-              <div className="space-y-2">
-                <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider">Song Key</p>
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {MUSICAL_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedKey(selectedKey === key ? '' : key)}
-                      className={cn(
-                        'shrink-0 w-9 py-1.5 rounded-lg text-xs font-medium border transition-all text-center',
-                        selectedKey === key
-                          ? 'bg-accent-600 border-accent-500 text-white'
-                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                      )}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider pt-1">My Key</p>
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {MUSICAL_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedUserKey(selectedUserKey === key ? '' : key)}
-                      className={cn(
-                        'shrink-0 w-9 py-1.5 rounded-lg text-xs font-medium border transition-all text-center',
-                        selectedUserKey === key
-                          ? 'bg-emerald-600 border-emerald-500 text-white'
-                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                      )}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider pt-1">Mode</p>
-                <div className="flex gap-2">
-                  {([['', 'All'], ['major', 'Major'], ['minor', 'Minor']] as const).map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => setSelectedMode(selectedMode === val ? '' : val)}
-                      className={cn(
-                        'flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                        selectedMode === val && val !== ''
-                          ? val === 'minor'
-                            ? 'bg-purple-600 border-purple-500 text-white'
-                            : 'bg-accent-600 border-accent-500 text-white'
-                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Language filter */}
-            {filterTab === 'lang' && (
-              <div className="space-y-2">
-                {availableOriginalLanguages.length > 0 && (
-                  <>
-                    <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider">Original Language</p>
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                      {availableOriginalLanguages.map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => setSelectedOriginalLang(selectedOriginalLang === lang ? '' : lang)}
-                          className={cn(
-                            'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
-                            selectedOriginalLang === lang
-                              ? 'bg-sky-600 border-sky-500 text-white'
-                              : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                          )}
-                        >
-                          {LANGUAGE_NAMES[lang] ?? lang}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <p className="text-[10px] text-[var(--fg-subtle)] font-medium uppercase tracking-wider pt-1">Has Lyrics In</p>
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {availableLanguages.length === 0 ? (
-                    <p className="text-xs text-[var(--fg-subtle)] py-1">No lyrics added yet</p>
-                  ) : (
-                    availableLanguages.map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => setSelectedLang(selectedLang === lang ? '' : lang)}
-                        className={cn(
-                          'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
-                          selectedLang === lang
-                            ? 'bg-accent-600 border-accent-500 text-white'
-                            : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                        )}
-                      >
-                        {LANGUAGE_NAMES[lang] ?? lang}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* BPM + time signature filter */}
-            {filterTab === 'bpm' && (
-              <div className="space-y-2">
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number"
-                    value={bpmMin}
-                    onChange={(e) => setBpmMin(e.target.value)}
-                    placeholder="Min BPM"
-                    className="input-base py-2 text-xs"
-                    min={40}
-                    max={250}
-                  />
-                  <span className="text-[var(--fg-subtle)] text-sm">–</span>
-                  <input
-                    type="number"
-                    value={bpmMax}
-                    onChange={(e) => setBpmMax(e.target.value)}
-                    placeholder="Max BPM"
-                    className="input-base py-2 text-xs"
-                    min={40}
-                    max={250}
-                  />
-                </div>
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  {TIME_SIGS.map((ts) => (
-                    <button
-                      key={ts}
-                      onClick={() => setSelectedTimeSig(selectedTimeSig === ts ? '' : ts)}
-                      className={cn(
-                        'shrink-0 px-3 py-2 rounded-full text-xs font-medium border transition-all',
-                        selectedTimeSig === ts
-                          ? 'bg-accent-600 border-accent-500 text-white'
-                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-card-hover)]'
-                      )}
-                    >
-                      {ts}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            </fieldset>
           </div>
         )}
 
-        {/* Results count + clear */}
-        {hasFilters && (
-          <div className="flex items-center justify-between mt-1.5 pb-1">
-            <span className="text-xs text-[var(--fg-subtle)]">
-              {filteredSongs.length} of {songs.length} songs
-            </span>
-            <button onClick={clearFilters} className="text-xs text-accent-400 hover:text-accent-300">
-              Clear all
+        {/* Result count, selected filters, reset */}
+        <div className="flex items-center gap-2 flex-wrap min-h-[28px]" aria-live="polite">
+          <span className="text-sm text-[var(--fg-muted)]">
+            {loading ? 'Loading songs…' : anyFilter ? `${filteredSongs.length} of ${songs.length} songs` : `${songs.length} songs`}
+          </span>
+          {chips.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={c.clear}
+              aria-label={`Remove filter: ${c.label}`}
+              className="h-7 pl-2.5 pr-1.5 rounded-full text-xs font-medium flex items-center gap-1 bg-[var(--accent-soft)] text-[var(--accent-fg)] border border-[var(--accent-border)]"
+            >
+              {c.label}
+              <X aria-hidden className="w-3.5 h-3.5" />
             </button>
-          </div>
-        )}
+          ))}
+          {anyFilter && (
+            <button type="button" onClick={resetAll} className="h-7 px-2 text-xs font-medium text-[var(--accent-fg)] hover:underline">
+              Reset
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* List */}
+      {/* Desktop column headings */}
+      {!loading && filteredSongs.length > 0 && (
+        <div aria-hidden className="hidden md:grid song-row-grid px-3 border border-transparent text-xs font-medium text-[var(--fg-subtle)]">
+          <span>Key</span><span>Song</span><span>Time · BPM</span><span>Languages</span><span>Last sung</span><span />
+        </div>
+      )}
+
       {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SongCardSkeleton key={i} />
-          ))}
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => <SongCardSkeleton key={i} />)}
         </div>
       ) : filteredSongs.length === 0 ? (
         <EmptyState
           icon={<Music2 className="w-7 h-7" />}
-          title={hasFilters ? 'No songs match' : 'No songs yet'}
-          description={
-            hasFilters
-              ? 'Try adjusting your search or filters'
-              : 'Add your first song to start building your worship library'
-          }
+          title={anyFilter ? 'No songs match' : 'No songs yet'}
+          description={anyFilter ? 'Try a different search, or reset the filters.' : 'Add your first song to start building your worship library.'}
+          action={anyFilter ? <button type="button" onClick={resetAll} className="h-10 px-4 rounded-xl border border-[var(--border-strong)] text-sm font-medium text-[var(--fg)]">Reset search &amp; filters</button> : undefined}
         />
       ) : (
-        <div className="space-y-1.5">
+        <ul className="space-y-1.5" data-song-list>
           {filteredSongs.slice(0, visibleCount).map((song, i) => (
-            <div key={song.id}>
-              {i === firstLyricOnlyIdx && (
-                <p className="section-label pt-3 pb-1.5">Found in lyrics</p>
-              )}
-              <SongCard song={song} userKey={userKeys[song.id]} />
-            </div>
+            <li key={song.id}>
+              {i === firstLyricOnlyIdx && <p className="section-label pt-3 pb-1.5">Found in lyrics</p>}
+              <SongCard
+                song={song}
+                userKey={userKeys[song.id]}
+                onOpen={() => { try { sessionStorage.setItem(RETURN_FLAG, '1') } catch { /* ignore */ } }}
+              />
+            </li>
           ))}
-          {visibleCount < filteredSongs.length && <div ref={sentinelRef} className="h-10" aria-hidden />}
-        </div>
+          {visibleCount < filteredSongs.length && <li ref={sentinelRef} className="h-10" aria-hidden />}
+        </ul>
       )}
     </div>
   )

@@ -9,12 +9,24 @@ import { saveOfflineSongs } from '@/lib/offlineDB'
  * Silently syncs all songs (with full lyrics) to IndexedDB whenever
  * the user is online. Runs once per session, in the background.
  */
+const LAST_SYNC_KEY = 'songsaver-offline-synced-at'
+const MIN_INTERVAL_MS = 60 * 60 * 1000 // re-download the full library at most hourly
+let syncedThisSession = false            // module-level: survives page navigations
+
+function readLastSync(): Date | null {
+  try {
+    const v = localStorage.getItem(LAST_SYNC_KEY)
+    return v ? new Date(Number(v)) : null
+  } catch { return null }
+}
+
 export function useOfflineSync() {
   const supabase = useSupabase()
   const { user } = useAuth()
   const [syncing, setSyncing] = useState(false)
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
   const hasSynced = useRef(false)
+  useEffect(() => { setLastSynced(readLastSync()) }, [])
 
   const sync = async () => {
     if (!user || !navigator.onLine || syncing) return
@@ -53,7 +65,9 @@ export function useOfflineSync() {
         }))
       )
 
-      setLastSynced(new Date())
+      const now = new Date()
+      setLastSynced(now)
+      try { localStorage.setItem(LAST_SYNC_KEY, String(now.getTime())) } catch { /* ignore */ }
     } catch {
       // Silent failure — offline sync is best-effort
     } finally {
@@ -61,10 +75,14 @@ export function useOfflineSync() {
     }
   }
 
-  // Auto-sync once per session when user is available
+  // Auto-sync once per browser session (and only if the copy is over an hour old).
+  // Previously this re-downloaded every song with full lyrics on each visit to Songs.
   useEffect(() => {
-    if (!user || hasSynced.current) return
+    if (!user || hasSynced.current || syncedThisSession) return
     hasSynced.current = true
+    syncedThisSession = true
+    const last = readLastSync()
+    if (last && Date.now() - last.getTime() < MIN_INTERVAL_MS) return
     sync()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
