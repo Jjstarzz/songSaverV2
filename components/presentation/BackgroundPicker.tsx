@@ -33,15 +33,15 @@ export function BackgroundPicker({ value, onChange }: { value: string; onChange:
               style={{
                 flex: 1, padding: '8px 0', borderRadius: 10, cursor: 'pointer',
                 fontSize: '0.72rem', fontWeight: 600,
-                background: active ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${active ? 'rgba(139,92,246,0.6)' : 'rgba(255,255,255,0.1)'}`,
-                color: active ? '#c4b5fd' : 'rgba(255,255,255,0.55)',
+                background: active ? 'rgba(35,102,83,0.3)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${active ? 'rgba(140,201,179,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                color: active ? '#b5dccd' : 'rgba(255,255,255,0.55)',
                 position: 'relative',
               }}
             >
               {g.label}
               {hasSelected && !active && (
-                <span aria-hidden style={{ position: 'absolute', top: 5, right: 7, width: 5, height: 5, borderRadius: '50%', background: '#a78bfa' }} />
+                <span aria-hidden style={{ position: 'absolute', top: 5, right: 7, width: 5, height: 5, borderRadius: '50%', background: '#8cc9b3' }} />
               )}
             </button>
           )
@@ -60,8 +60,8 @@ export function BackgroundPicker({ value, onChange }: { value: string; onChange:
               aria-label={`${bg.label} background`}
               style={{
                 position: 'relative', aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', padding: 0,
-                border: selected ? '2px solid #a78bfa' : '1px solid rgba(255,255,255,0.12)',
-                boxShadow: selected ? '0 0 0 3px rgba(167,139,250,0.25)' : 'none',
+                border: selected ? '2px solid #8cc9b3' : '1px solid rgba(255,255,255,0.12)',
+                boxShadow: selected ? '0 0 0 3px rgba(140,201,179,0.25)' : 'none',
                 background: bg.css,
               }}
             >
@@ -78,7 +78,7 @@ export function BackgroundPicker({ value, onChange }: { value: string; onChange:
                 {bg.label}
               </span>
               {selected && (
-                <span aria-hidden style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%', background: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span aria-hidden style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%', background: '#236653', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Check style={{ width: 11, height: 11, color: '#fff' }} />
                 </span>
               )}

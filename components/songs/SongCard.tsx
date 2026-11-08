@@ -45,17 +45,17 @@ export const SongCard = memo(function SongCard({ song, compact, userKey, onOpen 
   const keyTile = (
     <span
       className={cn(
-        'shrink-0 rounded-lg flex items-center justify-center font-semibold tabular text-sm',
-        compact ? 'w-9 h-9' : 'w-11 h-11',
+        'shrink-0 flex items-center tabular text-[15px]',
+        compact ? 'w-8' : 'w-11',
         userKey
-          ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success)]'
+          ? 'font-semibold text-[var(--accent-fg)]'
           : keyShort
-            ? 'bg-[var(--accent-soft)] text-[var(--accent-fg)]'
-            : 'border border-dashed border-[var(--border-strong)] text-[var(--fg-subtle)] text-xs font-normal'
+            ? 'font-medium text-[var(--fg)]'
+            : 'text-[var(--fg-subtle)]'
       )}
       title={key ? `${formatKey(key, song.mode)}${userKey ? ' (your key)' : ''}` : 'No key set'}
     >
-      {keyShort ?? '–'}
+      {keyShort ?? '—'}
       <span className="sr-only">{key ? `Key ${formatKey(key, song.mode)}${userKey ? ', your key' : ''}` : 'No key set'}</span>
     </span>
   )
@@ -66,8 +66,8 @@ export const SongCard = memo(function SongCard({ song, compact, userKey, onOpen 
         href={`/songs/${song.id}`}
         onClick={onOpen}
         className={cn(
-          'glass-card-hover flex items-center gap-3',
-          compact ? 'p-2.5 pr-3' : 'p-3 pr-14 md:song-row-grid md:pr-3'
+          'row-link flex items-center gap-3',
+          compact ? 'py-3 px-2' : 'py-3.5 px-2 pr-14 md:song-row-grid md:pr-2'
         )}
       >
         {keyTile}

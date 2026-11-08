@@ -58,7 +58,7 @@ export function ReadingControls() {
     })
   }
 
-  const btn = 'h-10 min-w-[40px] px-2.5 flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-input)] text-[var(--fg-muted)] text-xs font-medium disabled:opacity-35 transition-colors'
+  const btn = 'h-9 min-w-[36px] px-2.5 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] text-[var(--fg-muted)] text-xs font-medium hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] disabled:opacity-35 transition-colors'
 
   return (
     <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export function ReadingControls() {
       </div>
       {wakeSupported && (
         <button
-          className={cn(btn, 'ml-auto', keepAwake && 'border-amber-500/40 bg-amber-500/15 text-amber-400')}
+          className={cn(btn, 'ml-auto', keepAwake && 'border-[var(--accent-border)] text-[var(--accent-fg)]')}
           onClick={() => setKeepAwake((v) => { writePref(AWAKE_KEY, String(!v)); return !v })}
           aria-pressed={keepAwake}
           title="Stop the screen from dimming while you read"
@@ -111,7 +111,7 @@ const LyricsDisplay = memo(function LyricsDisplay({ text, lang }: { text: string
       {sections.map((section, i) => (
         <section key={i} aria-label={section.label ?? undefined}>
           {section.label && (
-            <h3 className="text-xs font-semibold tracking-wide uppercase text-[var(--accent-fg)] mb-1.5" lang="en">
+            <h3 className="font-display italic text-[15px] text-[var(--fg-subtle)] mb-1" lang="en">
               {section.label}
             </h3>
           )}
@@ -302,8 +302,8 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
       />
       {/* Language switcher */}
       {lyrics.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div role="tablist" aria-label="Lyrics language" className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1">
+        <div className="flex items-end gap-2 border-b border-[var(--border)]">
+          <div role="tablist" aria-label="Lyrics language" className="flex gap-6 overflow-x-auto no-scrollbar flex-1 -mb-px">
             {lyrics.map((lyric) => {
               const d = describeLyrics(lyric.language, lyric.lyrics, originalLanguage)
               const selected = activeLang === lyric.language
@@ -314,15 +314,15 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
                   aria-selected={selected}
                   onClick={() => { setActiveLang(lyric.language); setEditing(false) }}
                   className={cn(
-                    'shrink-0 min-h-[44px] px-3.5 py-1.5 rounded-xl text-left border transition-colors',
+                    'shrink-0 min-h-[44px] pb-2 pt-1 text-left border-b-2 transition-colors',
                     selected
-                      ? 'bg-[var(--accent-soft)] border-[var(--accent-border)] text-[var(--accent-fg)]'
-                      : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--fg-muted)] hover:text-[var(--fg)]'
+                      ? 'border-[var(--accent-fg)] text-[var(--fg)]'
+                      : 'border-transparent text-[var(--fg-subtle)] hover:text-[var(--fg)]'
                   )}
                 >
-                  <span className="block text-sm font-medium leading-tight">{d.name}</span>
+                  <span className="block text-sm font-semibold leading-tight">{d.name}</span>
                   {(d.kind || lyric.is_default) && (
-                    <span className="block text-[11px] leading-tight">
+                    <span className="block text-[11px] leading-tight text-[var(--fg-subtle)] mt-0.5">
                       {[d.kind ? KIND_LABEL[d.kind] : null, lyric.is_default ? 'Default' : null].filter(Boolean).join(' · ')}
                     </span>
                   )}
@@ -357,7 +357,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
                   onClick={() => triggerOcr('add')}
                   disabled={ocrLoading}
                   title="Scan image for lyrics"
-                  className="w-9 h-9 flex items-center justify-center rounded-xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors border border-purple-500/20 disabled:opacity-50"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-accent-400 bg-accent-500/10 hover:bg-accent-500/20 transition-colors border border-accent-500/20 disabled:opacity-50"
                 >
                   {ocrLoading && ocrTarget === 'add'
                     ? <span className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin" />
@@ -374,7 +374,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
                 onClick={() => { setPasteMode(true); setShowPreview(false) }}
                 className={cn(
                   'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
-                  pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
+                  pasteMode ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : 'text-[var(--fg-muted)]'
                 )}
               >
                 <ClipboardPaste className="w-3.5 h-3.5" />
@@ -384,7 +384,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
                 onClick={() => setPasteMode(false)}
                 className={cn(
                   'flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
-                  !pasteMode ? 'bg-accent-600 text-white' : 'text-[var(--fg-muted)]'
+                  !pasteMode ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : 'text-[var(--fg-muted)]'
                 )}
               >
                 Manual
@@ -532,7 +532,7 @@ export function LyricsViewer({ songId, lyrics, onUpdate, isOwner = true, origina
               ) : (
                 <div className="space-y-2.5">
                   <ReadingControls />
-                  <div role="tabpanel" className="surface px-4 py-5 sm:px-6">
+                  <div role="tabpanel" className="pt-2 pb-4">
                     <LyricsDisplay text={activeLyric.lyrics} lang={describeLyrics(activeLyric.language, activeLyric.lyrics, originalLanguage).langAttr} />
                   </div>
                 </div>
