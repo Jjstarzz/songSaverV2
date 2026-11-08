@@ -13,6 +13,7 @@ import { parseLyrics, normaliseLyrics } from '@/lib/parseLyrics'
 import { resizeImage } from '@/lib/resizeImage'
 import { cn, goBack } from '@/lib/utils'
 import { LyricsSearch } from './LyricsSearch'
+import { DuplicateHint } from './DuplicateHint'
 import { BackHeader } from '@/components/layout/PageHeader'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 
@@ -261,6 +262,7 @@ export function SongForm({ song, heading }: SongFormProps) {
           aria-required="true"
           error={errors.title}
         />
+        {!song && <DuplicateHint title={form.title} />}
         <Input
           label="Artist / Band"
           value={form.artist}

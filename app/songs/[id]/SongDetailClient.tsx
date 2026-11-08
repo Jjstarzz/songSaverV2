@@ -11,6 +11,7 @@ import { Button, buttonVariants } from '@/components/ui/Button'
 import { LyricsViewer } from '@/components/songs/LyricsViewer'
 import { KeySuggester } from '@/components/songs/KeySuggester'
 import { SongTransitions } from '@/components/songs/SongTransitions'
+import { SongArrangements, SongSingerKeys, SongFeedback } from '@/components/songs/SongExtras'
 import { ConfirmModal, Modal } from '@/components/ui/Modal'
 import { Menu } from '@/components/ui/Menu'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -268,7 +269,13 @@ export function SongDetailClient({ id }: Props) {
             </SidePanel>
           )}
 
+          <SongArrangements songId={id} songOwner={song.created_by} canEditSong={canEdit} />
+
+          <SongSingerKeys songId={id} />
+
           <SongTransitions songId={id} songTitle={song.title} />
+
+          <SongFeedback songId={id} />
 
           {serviceHistory.length > 0 && (
             <SidePanel title={`Sung in ${serviceHistory.length} ${serviceHistory.length === 1 ? 'service' : 'services'}`}>

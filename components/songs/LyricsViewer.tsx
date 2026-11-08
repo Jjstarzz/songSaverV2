@@ -32,7 +32,7 @@ function writePref(key: string, value: string) {
 }
 
 /** Text size + keep-screen-awake controls for reading lyrics during practice. */
-function ReadingControls() {
+export function ReadingControls() {
   const [scaleIdx, setScaleIdx] = useState(1)
   const [keepAwake, setKeepAwake] = useState(false)
   const { supported: wakeSupported, active: awake } = useWakeLock(keepAwake)

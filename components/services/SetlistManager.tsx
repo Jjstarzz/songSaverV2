@@ -7,11 +7,17 @@ import { Song, ServiceSong, MUSICAL_KEYS, formatKey } from '@/types/database'
 import { Button } from '@/components/ui/Button'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useSongs } from '@/hooks/useSongs'
+import { useFeatureTable } from '@/hooks/useFeatureTable'
+import type { Arrangement, Singer, SingerSongKey } from '@/lib/features'
 import { toast } from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
 
 interface SetlistItem extends ServiceSong {
   songs: Song
+  /** Added by the November 2026 migration (absent until it's applied) */
+  arrangement_id?: string | null
+  singer_id?: string | null
+  slot_label?: string | null
 }
 
 interface SetlistManagerProps {
@@ -90,6 +96,19 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
     if (error) toast.error('Failed to remove song')
     else toast.success(`Removed "${title}"`)
     onUpdate()
+  }
+
+  // Arrangements, singers and singers' keys for the songs in this setlist (empty until the migration is applied)
+  const songIds = list.map((i) => i.song_id)
+  const arrangements = useFeatureTable<Arrangement>('song_arrangements', { in: ['song_id', songIds] })
+  const singers = useFeatureTable<Singer>('singers', { order: ['name', { ascending: true }], skip: arrangements.missing })
+  const singerKeys = useFeatureTable<SingerSongKey>('singer_song_keys', { in: ['song_id', songIds], skip: arrangements.missing })
+  const featuresOn = !arrangements.missing && !arrangements.loading
+
+  const updateRow = async (itemId: string, patch: Record<string, string | null>) => {
+    const { error } = await supabase.from('service_songs').update(patch).eq('id', itemId)
+    if (error) toast.error('Failed to update')
+    else onUpdate()
   }
 
   const updateKey = async (itemId: string, key: string | null) => {
@@ -226,12 +245,26 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
 
                     {/* Song info — tappable link */}
                     <Link href={`/songs/${item.song_id}?serviceId=${serviceId}`} className="flex-1 min-w-0 group/link">
+                      {item.slot_label && (
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fg-subtle)]">{item.slot_label}</p>
+                      )}
                       <p className="text-[15px] font-medium text-[var(--fg)] line-clamp-2 break-words group-hover/link:text-[var(--accent-fg)] transition-colors">
                         {item.songs.title}
                       </p>
                       {item.songs.artist && (
                         <p className="text-xs text-[var(--fg-muted)] truncate">{item.songs.artist}</p>
                       )}
+                      {(() => {
+                        const arr = arrangements.rows.find((a) => a.id === item.arrangement_id)
+                        const singer = singers.rows.find((x) => x.id === item.singer_id)
+                        const sKey = singer && singerKeys.rows.find((k) => k.singer_id === singer.id && k.song_id === item.song_id)?.key
+                        if (!arr && !singer) return null
+                        return (
+                          <p className="text-xs text-[var(--fg-muted)] mt-0.5">
+                            {[arr && `Arrangement: ${arr.name}`, singer && `Lead: ${singer.name}${sKey ? ` (sings in ${sKey})` : ''}`].filter(Boolean).join(' · ')}
+                          </p>
+                        )
+                      })()}
                     </Link>
 
                     {/* Key badge — tappable to edit */}
@@ -334,6 +367,50 @@ export function SetlistManager({ serviceId, items, onUpdate, readOnly = false }:
                           </button>
                         ))}
                       </div>
+                      {featuresOn && (() => {
+                        const songArrs = arrangements.rows.filter((a) => a.song_id === item.song_id)
+                        const singer = singers.rows.find((x) => x.id === item.singer_id)
+                        const sKey = singer && singerKeys.rows.find((k) => k.singer_id === singer.id && k.song_id === item.song_id)?.key
+                        return (
+                          <div className="grid gap-2 sm:grid-cols-3 mt-3">
+                            <label className="text-xs text-[var(--fg-muted)]">
+                              Slot
+                              <input
+                                defaultValue={item.slot_label ?? ''}
+                                onBlur={(e) => { const v = e.target.value.trim() || null; if (v !== (item.slot_label ?? null)) updateRow(item.id, { slot_label: v }) }}
+                                placeholder="e.g. Opening"
+                                className="input-base mt-1"
+                              />
+                            </label>
+                            <label className="text-xs text-[var(--fg-muted)]">
+                              Arrangement
+                              <select
+                                value={item.arrangement_id ?? ''}
+                                onChange={(e) => {
+                                  const a = songArrs.find((x) => x.id === e.target.value)
+                                  updateRow(item.id, { arrangement_id: e.target.value || null, ...(a?.key ? { key_override: a.key } : {}) })
+                                }}
+                                className="input-base mt-1"
+                              >
+                                <option value="">{songArrs.length ? 'Default' : 'None saved'}</option>
+                                {songArrs.map((a) => <option key={a.id} value={a.id}>{a.name}{a.key ? ` (${a.key})` : ''}</option>)}
+                              </select>
+                            </label>
+                            <label className="text-xs text-[var(--fg-muted)]">
+                              Lead singer
+                              <select value={item.singer_id ?? ''} onChange={(e) => updateRow(item.id, { singer_id: e.target.value || null })} className="input-base mt-1">
+                                <option value="">—</option>
+                                {singers.rows.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                              </select>
+                            </label>
+                            {sKey && sKey !== item.key_override && (
+                              <button type="button" onClick={() => updateKey(item.id, sKey)} className="sm:col-span-3 justify-self-start h-9 px-3 rounded-lg border border-[var(--accent-border)] text-sm text-[var(--accent-fg)]">
+                                Use {singer!.name}&apos;s key ({sKey})
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
                 </div>

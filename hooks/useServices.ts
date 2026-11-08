@@ -6,6 +6,7 @@ import { useAuth } from './useAuth'
 import { Service, ServiceWithSongs } from '@/types/database'
 import { batchFetchCreatorNames } from './useCreatorName'
 import { getCached, setCached, onCacheClear } from '@/lib/listCache'
+import { getOfflineService } from '@/lib/offlineDB'
 
 const SERVICES_KEY = 'services'
 
@@ -69,6 +70,11 @@ export function useService(id: string) {
       .single()
 
     if (!error) setService(data as unknown as ServiceWithSongs)
+    else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      // Offline: use the service pack saved on this device, if any
+      const saved = await getOfflineService<ServiceWithSongs>(id).catch(() => null)
+      if (saved) setService(saved)
+    }
     setLoading(false)
   }, [supabase, id])
 

@@ -244,7 +244,7 @@ export function PresentationController({ title, lyricsText, availableLyrics, pla
     const nextSong = !next && playlist ? playlist[songIdx + 1] : undefined
     const upNext = next
       ? { section: next.label, lines: next.content, title: activeTitle }
-      : nextSong ? { section: '', lines: toSlides(nextSong.lyricsText)[0]?.content ?? '', title: nextSong.title } : null
+      : nextSong ? (() => { const first = toSlides(nextSong.lyricsText)[0]; return { section: first?.label ?? '', lines: first?.content ?? '', title: nextSong.title } })() : null
     send({
       ...appearance(),
       blank: false,
