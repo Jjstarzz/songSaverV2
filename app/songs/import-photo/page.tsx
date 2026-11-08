@@ -137,7 +137,7 @@ export default function ImportPhotoPage() {
         onChange={handleFileChange}
       />
 
-      <div className="px-4 pt-6 pb-24 max-w-lg mx-auto space-y-5">
+      <div className="px-4 pt-6 pb-6 max-w-lg mx-auto space-y-5">
         {step === 'pick' && (
           <>
             <p className="text-sm text-[var(--fg-muted)]">

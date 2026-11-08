@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { BottomNav } from '@/components/layout/BottomNav'
+import { AppShell } from '@/components/layout/AppShell'
 import { Toaster } from '@/components/ui/Toaster'
 import { ServiceWorkerInit } from '@/components/layout/ServiceWorkerInit'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#ede7da', // cream (default theme); ThemeColorSync updates it at runtime
+  themeColor: '#efe9de', // cream (default theme); ThemeColorSync updates it at runtime
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -61,11 +61,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="cream" themes={['dark', 'cream', 'light']} enableSystem={false}>
           <OfflineBanner />
-          {/* Max-width container centred on large screens, full-width on mobile */}
-          <div id="app-shell" className="min-h-dvh max-w-lg mx-auto relative" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
-            {children}
-          </div>
-          <BottomNav />
+          <AppShell>{children}</AppShell>
           <Toaster />
           <ServiceWorkerInit />
           <ThemeColorSync />

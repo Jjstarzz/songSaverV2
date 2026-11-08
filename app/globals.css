@@ -3,56 +3,81 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────
-   CSS Variables — theme tokens
+   Design tokens — every theme defines the same set.
+   Text levels are chosen to meet WCAG AA (≥ 4.5:1) on --bg and --bg-card.
    ───────────────────────────────────────────── */
 :root {
-  /* dark theme (default) */
-  --bg:           #08080e;
-  --bg-surface:   #0d0d18;
-  --bg-elevated:  #12121e;
-  --bg-card:      rgba(255,255,255,0.055);
-  --bg-card-hover:rgba(255,255,255,0.09);
-  --bg-input:     rgba(255,255,255,0.07);
-  --fg:           #ffffff;
-  --fg-muted:     rgba(255,255,255,0.55);
-  --fg-subtle:    rgba(255,255,255,0.32);
-  --border:       rgba(255,255,255,0.10);
-  --border-focus: rgba(124,92,252,0.55);
+  /* dark (default) */
+  --bg:            #0c0c11;
+  --bg-surface:    #111117;
+  --bg-elevated:   #18181f;
+  --bg-card:       #14141b;
+  --bg-card-hover: #1a1a23;
+  --bg-input:      #1b1b23;
+  --bg-hover:      rgba(255,255,255,0.05);
+  --fg:            #f1f1f4;
+  --fg-muted:      #b0b0bd;
+  --fg-subtle:     #8a8a99;
+  --border:        rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.15);
+  --border-focus:  #8b6bff;
+  --accent-fg:     #a993ff;
+  --accent-soft:   rgba(124,92,252,0.14);
+  --accent-border: rgba(124,92,252,0.42);
+  --danger:        #f87171;
+  --success:       #34d399;
+  --warning:       #fbbf24;
+  --shadow-card:   none;
+  --nav-h:         64px;
   color-scheme: dark;
 }
 
 html.cream {
-  --bg:           #ede7da;
-  --bg-surface:   #e4ddd0;
-  --bg-elevated:  #f5f1eb;
-  --bg-card:      rgba(255,255,255,0.52);
-  --bg-card-hover:rgba(255,255,255,0.72);
-  --bg-input:     rgba(60,50,35,0.07);
-  --fg:           #2c2418;
-  --fg-muted:     rgba(44,36,24,0.60);
-  --fg-subtle:    rgba(44,36,24,0.38);
-  --border:       rgba(44,36,24,0.11);
-  --border-focus: rgba(124,92,252,0.45);
+  --bg:            #efe9de;
+  --bg-surface:    #e7e0d2;
+  --bg-elevated:   #fbf8f2;
+  --bg-card:       #f8f4ec;
+  --bg-card-hover: #fffdf8;
+  --bg-input:      #fbf8f3;
+  --bg-hover:      rgba(60,45,20,0.06);
+  --fg:            #271f14;
+  --fg-muted:      #594d3c;
+  --fg-subtle:     #6e6150;
+  --border:        rgba(60,45,20,0.13);
+  --border-strong: rgba(60,45,20,0.22);
+  --border-focus:  #6d46f5;
+  --accent-fg:     #5530d0;
+  --accent-soft:   rgba(109,70,245,0.10);
+  --accent-border: rgba(109,70,245,0.35);
+  --danger:        #b42318;
+  --success:       #067a52;
+  --warning:       #a15c07;
+  --shadow-card:   0 1px 2px rgba(60,45,20,0.06);
   color-scheme: light;
-  /* Soft warm glow instead of dark purple */
-  background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(180,140,80,0.14) 0%, transparent 60%) !important;
 }
 
 html.light {
-  --bg:           #f6f5f2;
-  --bg-surface:   #eeede9;
-  --bg-elevated:  #ffffff;
-  --bg-card:      rgba(255,255,255,0.80);
-  --bg-card-hover:rgba(255,255,255,0.97);
-  --bg-input:     rgba(0,0,0,0.045);
-  --fg:           #111118;
-  --fg-muted:     rgba(17,17,24,0.56);
-  --fg-subtle:    rgba(17,17,24,0.36);
-  --border:       rgba(0,0,0,0.08);
-  --border-focus: rgba(124,92,252,0.45);
+  --bg:            #f5f5f8;
+  --bg-surface:    #ececf1;
+  --bg-elevated:   #ffffff;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #fafaff;
+  --bg-input:      #ffffff;
+  --bg-hover:      rgba(20,20,40,0.05);
+  --fg:            #14141b;
+  --fg-muted:      #4a4a58;
+  --fg-subtle:     #636372;
+  --border:        rgba(20,20,40,0.10);
+  --border-strong: rgba(20,20,40,0.18);
+  --border-focus:  #6d46f5;
+  --accent-fg:     #5530d0;
+  --accent-soft:   rgba(109,70,245,0.09);
+  --accent-border: rgba(109,70,245,0.32);
+  --danger:        #b42318;
+  --success:       #067a52;
+  --warning:       #a15c07;
+  --shadow-card:   0 1px 2px rgba(20,20,40,0.05);
   color-scheme: light;
-  /* Subtle lavender glow instead of heavy dark gradient */
-  background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(124,92,252,0.08) 0%, transparent 60%) !important;
 }
 
 /* ─────────────────────────────────────────────
@@ -63,7 +88,6 @@ html.light {
 
   html {
     background-color: var(--bg);
-    background-image: radial-gradient(ellipse 90% 50% at 50% -5%, rgba(109,70,245,0.13) 0%, transparent 65%);
     color: var(--fg);
     @apply antialiased;
     -webkit-text-size-adjust: 100%;
@@ -72,7 +96,7 @@ html.light {
   }
 
   body {
-    background-color: transparent;
+    background-color: var(--bg);
     color: var(--fg);
     font-feature-settings: "rlig" 1, "calt" 1;
     min-height: 100vh;
@@ -81,243 +105,217 @@ html.light {
 
   a, button { -webkit-tap-highlight-color: transparent; }
 
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: var(--fg-subtle);
-    border-radius: 9999px;
-  }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 9999px; }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-accent-500 ring-offset-2;
-    ring-offset-color: var(--bg);
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 
-  ::selection {
-    background: rgba(124,92,252,0.30);
-    color: var(--fg);
+  ::selection { background: rgba(124,92,252,0.30); color: var(--fg); }
+}
+
+/* Short, subtle motion — and none for people who ask for less */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 /* ─────────────────────────────────────────────
-   Component layer — uses CSS vars for theming
+   Component layer — tokens only, so all themes share one system
    ───────────────────────────────────────────── */
 @layer components {
 
-  /* Glass card */
-  .glass-card {
+  /* Surface card (no glow, no blur — cheap to repeat in long lists) */
+  .glass-card,
+  .surface {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-card);
     @apply rounded-2xl;
   }
 
   .glass-card-hover {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.4);
-    @apply rounded-2xl transition-all duration-200;
+    box-shadow: var(--shadow-card);
+    @apply rounded-2xl transition-colors duration-150;
   }
   .glass-card-hover:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(255,255,255,0.16);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.45);
-  }
-
-  /* In light/cream mode, override shadows */
-  html.light .glass-card,
-  html.light .glass-card-hover,
-  html.cream .glass-card,
-  html.cream .glass-card-hover {
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.05);
-    backdrop-filter: none;
-  }
-  html.light .glass-card-hover:hover,
-  html.cream .glass-card-hover:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.07);
-    border-color: rgba(0,0,0,0.13);
+    border-color: var(--border-strong);
   }
 
   /* Section label */
   .section-label {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--fg-muted);
+    color: var(--fg-subtle);
   }
 
   /* Input base */
   .input-base {
     width: 100%;
     background: var(--bg-input);
-    border: 1px solid var(--border);
-    @apply rounded-xl px-4 py-3 text-sm transition-all duration-200;
+    border: 1px solid var(--border-strong);
+    @apply rounded-xl px-4 py-3 text-sm transition-colors duration-150;
     color: var(--fg);
     font-size: 16px; /* Prevents iOS zoom */
+    min-height: 44px;
   }
   .input-base::placeholder { color: var(--fg-subtle); }
   .input-base:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--border-focus);
-    border-color: rgba(124,92,252,0.50);
-    background: color-mix(in srgb, var(--bg-input) 100%, rgba(124,92,252,0.05) 100%);
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--accent-soft);
   }
+  .input-base[aria-invalid="true"] { border-color: var(--danger); }
   @media (min-width: 640px) {
-    .input-base { font-size: 0.875rem; }
+    .input-base { font-size: 0.9rem; }
   }
 
   /* Tag pill */
   .tag-pill {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
-           text-xs font-medium bg-accent-500/20 text-accent-300 border border-accent-500/25;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium;
+    background: var(--accent-soft);
+    color: var(--accent-fg);
   }
 
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent;
+  /* Status / visibility chips */
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border;
+    border-color: var(--border-strong);
+    color: var(--fg-muted);
   }
+  .chip-success { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
+  .chip-accent  { color: var(--accent-fg); border-color: var(--accent-border); }
+  .chip-warning { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
 
-  /* Status badges */
-  .status-draft     { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/60 border border-white/10; }
-  .status-confirmed { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/20; }
-  .status-completed { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-500/15 text-accent-400 border border-accent-500/20; }
+  .gradient-text { color: var(--fg); }
+
+  /* Status badges (legacy class names) */
+  .status-draft     { @apply chip; }
+  .status-confirmed { @apply chip chip-success; }
+  .status-completed { @apply chip chip-accent; }
 
   /* Lyrics display */
   .lyrics-text {
     color: var(--fg);
-    opacity: 0.9;
     white-space: pre-wrap;
-    line-height: 1.9;
-    font-size: calc(clamp(0.95rem, 2.5vw, 1.125rem) * var(--lyrics-scale, 1));
+    line-height: 1.75;
+    font-size: calc(clamp(1rem, 2.4vw, 1.15rem) * var(--lyrics-scale, 1));
+    overflow-wrap: anywhere;
   }
+  /* Indic scripts need a little more line height for stacked vowel signs */
+  .lyrics-text:lang(ml), .lyrics-text:lang(ta), .lyrics-text:lang(hi), .lyrics-text:lang(te) { line-height: 1.95; }
 
-  /* Bottom nav (dark default — light/cream override below) */
+  /* Bottom nav (mobile) */
   .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 z-50;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
-    border-top: 1px solid rgba(255,255,255,0.10);
-    background: rgba(8,8,14,0.96);
-    -webkit-backdrop-filter: blur(24px);
-    backdrop-filter: blur(24px);
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
   }
 
-  /* Sticky top bars: frosted background + clear the iOS status bar / notch */
+  /* Sticky top bars: solid background + clear the iOS status bar / notch */
   .sticky-header-bg {
-    background: rgba(8,8,14,0.88);
-    -webkit-backdrop-filter: blur(24px);
-    backdrop-filter: blur(24px);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     padding-top: env(safe-area-inset-top, 0px);
   }
-  .sticky-search-bg {
-    background: rgba(8,8,14,0.90);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-  }
-  html.light .sticky-search-bg { background: rgba(246,245,242,0.95); }
-  html.cream .sticky-search-bg { background: rgba(237,231,218,0.95); }
+  .sticky-search-bg { background: var(--bg); }
 
   /* Top-of-page header that must clear the status bar on notched iPhones */
   .page-top {
-    padding-top: max(3rem, calc(env(safe-area-inset-top, 0px) + 1rem));
+    padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 1rem));
+  }
+  @media (max-width: 1023px) {
+    .page-top { padding-top: max(2.25rem, calc(env(safe-area-inset-top, 0px) + 1rem)); }
   }
 
-  /* Light mode: bottom nav */
-  html.light .bottom-nav {
-    background: rgba(248,247,244,0.97) !important;
-    border-top-color: var(--border);
-  }
-
-  /* Light mode: sticky back header */
-  html.light .sticky-header-bg {
-    background: rgba(248,247,244,0.90) !important;
-  }
+  /* Space reserved under page content for the mobile bottom nav */
+  .pb-nav { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 1.5rem); }
+  @media (min-width: 1024px) { .pb-nav { padding-bottom: 3rem; } }
 }
 
 /* ─────────────────────────────────────────────
-   Utility overrides — light mode text/bg fixes
+   Utilities
    ───────────────────────────────────────────── */
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .tabular { font-variant-numeric: tabular-nums; }
 }
 
-/* Override hard-coded dark Tailwind classes in light/cream mode */
+/* ─────────────────────────────────────────────
+   Legacy colour classes → theme tokens (all themes).
+   Older components hard-code white-with-opacity text, which is unreadable
+   on light themes and too faint (< 4.5:1) on dark. Map them onto the
+   token text levels instead.
+   ───────────────────────────────────────────── */
+html.light .text-white, html.cream .text-white { color: var(--fg); }
 
-/* text-white (no opacity modifier) */
-html.light .text-white,
-html.cream .text-white { color: var(--fg) !important; }
+.text-white\/90,
+.text-white\/85,
+.text-white\/80 { color: var(--fg); }
+.text-white\/75,
+.text-white\/70,
+.text-white\/65,
+.text-white\/60,
+.text-white\/55,
+.text-white\/50 { color: var(--fg-muted); }
+.text-white\/45,
+.text-white\/40,
+.text-white\/35,
+.text-white\/30,
+.text-white\/25,
+.text-white\/20,
+.text-white\/15,
+.text-white\/10 { color: var(--fg-subtle); }
 
-/* …but white text on solid coloured buttons/chips must stay white
+.bg-white\/\[0\.03\],
+.bg-white\/\[0\.04\],
+.bg-white\/\[0\.05\],
+.bg-white\/\[0\.06\],
+.bg-white\/\[0\.07\],
+.bg-white\/\[0\.08\],
+.bg-white\/10 { background-color: var(--bg-input); }
+.hover:bg-white\/\[0\.08\],
+.hover:bg-white\/\[0\.13\],
+.hover:bg-white\/10:hover { background-color: var(--bg-hover); }
+.border-white\/\[0\.06\],
+.border-white\/\[0\.07\],
+.border-white\/\[0\.08\],
+.border-white\/10 { border-color: var(--border); }
+.border-white\/\[0\.12\],
+.border-white\/20,
+.border-white\/30 { border-color: var(--border-strong); }
+.divide-white\/\[0\.06\] > * + * { border-color: var(--border); }
+
+/* Accent and semantic text use the theme's readable shades */
+.text-accent-300, .text-accent-400 { color: var(--accent-fg); }
+.text-emerald-400 { color: var(--success); }
+.text-red-400 { color: var(--danger); }
+.text-amber-400 { color: var(--warning); }
+html.light .text-purple-300, html.cream .text-purple-300 { color: var(--accent-fg); }
+
+/* …but white text on solid coloured buttons/chips stays white
    (exact class tokens, so tinted backgrounds like bg-accent-500/15 aren't affected) */
-html.light .text-white:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]),
-html.cream .text-white:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]),
-html.light :is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]) .text-white,
-html.cream :is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="from-accent-400"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]) .text-white { color: #fff !important; }
-
-/* text-white with opacity modifiers */
-html.light .text-white\/90, html.light .text-white\/80, html.light .text-white\/70,
-html.cream .text-white\/90, html.cream .text-white\/80, html.cream .text-white\/70 { color: rgba(44,40,32,0.80) !important; }
-
-html.light .text-white\/60, html.light .text-white\/50,
-html.cream .text-white\/60, html.cream .text-white\/50 { color: var(--fg-muted) !important; }
-
-html.light .text-white\/40, html.light .text-white\/30, html.light .text-white\/20,
-html.cream .text-white\/40, html.cream .text-white\/30, html.cream .text-white\/20 { color: var(--fg-subtle) !important; }
-
-/* In-between opacities that were previously unthemed (near-invisible on cream/light) */
-html.light .text-white\/85, html.cream .text-white\/85 { color: rgba(44,40,32,0.85) !important; }
-html.light .text-white\/65, html.light .text-white\/55, html.light .text-white\/45,
-html.cream .text-white\/65, html.cream .text-white\/55, html.cream .text-white\/45 { color: var(--fg-muted) !important; }
-html.light .text-white\/35, html.light .text-white\/25, html.light .text-white\/15, html.light .text-white\/10,
-html.cream .text-white\/35, html.cream .text-white\/25, html.cream .text-white\/15, html.cream .text-white\/10 { color: var(--fg-subtle) !important; }
-
-/* Purple-tinted controls (e.g. Present button) need darker text on light grounds */
-html.light .text-purple-300, html.cream .text-purple-300 { color: #6d28d9 !important; }
-
-/* bg-white with opacity → input/surface tones */
-html.light .bg-white\/\[0\.04\], html.light .bg-white\/\[0\.05\],
-html.light .bg-white\/\[0\.06\], html.light .bg-white\/\[0\.07\], html.light .bg-white\/\[0\.08\],
-html.cream .bg-white\/\[0\.04\], html.cream .bg-white\/\[0\.05\],
-html.cream .bg-white\/\[0\.06\], html.cream .bg-white\/\[0\.07\], html.cream .bg-white\/\[0\.08\] { background-color: var(--bg-input) !important; }
-
-html.light .bg-white\/10, html.cream .bg-white\/10 { background-color: rgba(44,40,32,0.05) !important; }
-html.light .bg-white\/20, html.cream .bg-white\/20 { background-color: rgba(44,40,32,0.08) !important; }
-
-/* border-white with opacity → themed border */
-html.light .border-white\/\[0\.06\], html.light .border-white\/\[0\.08\],
-html.light .border-white\/10,      html.light .border-white\/20,
-html.cream .border-white\/\[0\.06\], html.cream .border-white\/\[0\.08\],
-html.cream .border-white\/10,       html.cream .border-white\/20 { border-color: var(--border) !important; }
-
-/* divide utility */
-html.light .divide-white\/\[0\.06\] > * + *,
-html.cream .divide-white\/\[0\.06\] > * + * { border-color: var(--border) !important; }
-
-/* Accent/semantic colours: the 300/400 shades are tuned for dark backgrounds
-   and wash out on cream/light, so use deeper shades there. (Previously this
-   used `revert`, which reset them to the browser default — link blue/black.) */
-html.light .text-accent-400, html.light .text-accent-300,
-html.cream .text-accent-400, html.cream .text-accent-300 { color: #5c34e0 !important; }
-html.light .text-emerald-400, html.cream .text-emerald-400 { color: #047857 !important; }
-html.light .text-red-400,     html.cream .text-red-400     { color: #b91c1c !important; }
-html.light .text-amber-400,   html.cream .text-amber-400   { color: #b45309 !important; }
-
-/* Page title gradient (from-white to-white/70) is invisible in light/cream — replace with dark gradient */
-html.light h1.bg-gradient-to-b,
-html.cream h1.bg-gradient-to-b {
-  background-image: linear-gradient(to bottom, var(--fg) 0%, color-mix(in srgb, var(--fg) 70%, transparent) 100%) !important;
-}
-
-/* Cream: bottom nav + sticky header */
-html.cream .bottom-nav { background: rgba(232,224,210,0.97) !important; border-top-color: var(--border); }
-html.cream .sticky-header-bg { background: rgba(237,231,218,0.95) !important; }
-
-/* Light: sticky header */
-html.light .sticky-header-bg { background: rgba(246,245,242,0.95) !important; }
+:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-400"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]).text-white,
+:is([class~="bg-accent-500"], [class~="bg-accent-600"], [class~="bg-accent-700"], [class~="from-accent-400"], [class~="from-accent-500"], [class~="from-accent-600"], [class~="bg-purple-500"], [class~="bg-purple-600"], [class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-red-500"], [class~="bg-red-600"]) .text-white { color: #fff !important; }
 
 /* ─────────────────────────────────────────────
    Animations

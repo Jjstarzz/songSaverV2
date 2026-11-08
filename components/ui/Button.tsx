@@ -5,27 +5,27 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none select-none active:scale-[0.97]',
+  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none select-none',
   {
     variants: {
       variant: {
         primary:
-          'bg-gradient-to-b from-accent-500 to-accent-700 hover:from-accent-400 hover:to-accent-600 text-white shadow-[0_0_20px_-4px_rgba(124,92,252,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]',
+          'bg-accent-600 hover:bg-accent-700 text-white',
         secondary:
-          'bg-white/[0.08] hover:bg-white/[0.13] text-white border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+          'bg-[var(--bg-elevated)] hover:bg-[var(--bg-card-hover)] text-[var(--fg)] border border-[var(--border-strong)]',
         ghost:
-          'hover:bg-white/[0.08] text-white/60 hover:text-white',
+          'text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)]',
         destructive:
-          'bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20',
+          'bg-[var(--bg-elevated)] text-[var(--danger)] border border-[color-mix(in_srgb,var(--danger)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]',
         outline:
-          'border border-accent-500/40 hover:border-accent-500/70 text-accent-400 hover:bg-accent-500/10',
+          'border border-[var(--accent-border)] text-[var(--accent-fg)] hover:bg-[var(--accent-soft)]',
       },
       size: {
-        sm: 'text-xs px-3 py-2 h-9',
-        md: 'text-sm px-4 py-2.5 h-10',
-        lg: 'text-base px-6 py-3.5 h-12',
-        icon: 'w-10 h-10 rounded-xl',
-        'icon-sm': 'w-10 h-10 rounded-xl',
+        sm: 'text-sm px-3 h-10',
+        md: 'text-sm px-4 h-11',
+        lg: 'text-base px-6 h-12',
+        icon: 'w-11 h-11',
+        'icon-sm': 'w-10 h-10',
       },
     },
     defaultVariants: {
@@ -51,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading ? (
-          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <span aria-hidden className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
         ) : null}
         {children}
       </button>

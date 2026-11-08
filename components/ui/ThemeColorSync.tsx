@@ -5,9 +5,9 @@ import { useTheme } from 'next-themes'
 
 // Background colour of each theme — keep in sync with --bg in globals.css.
 const THEME_BG: Record<string, string> = {
-  dark: '#08080e',
-  cream: '#ede7da',
-  light: '#f6f5f2',
+  dark: '#0c0c11',
+  cream: '#efe9de',
+  light: '#f5f5f8',
 }
 
 /**

@@ -15,30 +15,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-white/70 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-[var(--fg-muted)] mb-1.5">
             {label}
           </label>
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)] pointer-events-none">
               {leftIcon}
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
             className={cn(
               'input-base',
               leftIcon && 'pl-10',
-              error && 'border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50',
+              
               className
             )}
             {...props}
           />
         </div>
-        {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
-        {hint && !error && <p className="mt-1.5 text-xs text-white/40">{hint}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-[var(--danger)]">{error}</p>}
+        {hint && !error && <p id={`${inputId}-hint`} className="mt-1.5 text-xs text-[var(--fg-subtle)]">{hint}</p>}
       </div>
     )
   }
@@ -59,22 +61,24 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-white/70 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-[var(--fg-muted)] mb-1.5">
             {label}
           </label>
         )}
         <textarea
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
             'input-base resize-none min-h-[120px]',
-            error && 'border-red-500/50 focus:ring-red-500/50',
+            
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
-        {hint && !error && <p className="mt-1.5 text-xs text-white/40">{hint}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-[var(--danger)]">{error}</p>}
+        {hint && !error && <p id={`${inputId}-hint`} className="mt-1.5 text-xs text-[var(--fg-subtle)]">{hint}</p>}
       </div>
     )
   }
@@ -95,27 +99,29 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-white/70 mb-1.5">
+          <label htmlFor={inputId} className="block text-sm font-medium text-[var(--fg-muted)] mb-1.5">
             {label}
           </label>
         )}
         <select
           ref={ref}
           id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
             'input-base appearance-none cursor-pointer',
-            error && 'border-red-500/50',
+            
             className
           )}
           {...props}
         >
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-base-800">
+            <option key={opt.value} value={opt.value} className="bg-[var(--bg-elevated)] text-[var(--fg)]">
               {opt.label}
             </option>
           ))}
         </select>
-        {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="mt-1.5 text-xs text-[var(--danger)]">{error}</p>}
       </div>
     )
   }

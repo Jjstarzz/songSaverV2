@@ -176,18 +176,6 @@ export default function PrintPage() {
     load()
   }, [user, supabase, id])
 
-  // Hide the app's bottom nav and width limit on this page
-  useEffect(() => {
-    const nav = document.querySelector('.bottom-nav') as HTMLElement | null
-    const wrap = document.getElementById('app-shell')
-    if (nav) nav.style.display = 'none'
-    if (wrap) { wrap.style.maxWidth = 'none'; wrap.style.paddingBottom = '0' }
-    return () => {
-      if (nav) nav.style.display = ''
-      if (wrap) { wrap.style.maxWidth = ''; wrap.style.paddingBottom = '' }
-    }
-  }, [])
-
   const partsBySong = useMemo(() => songs.map((s) => songParts(s.songs)), [songs])
 
   const model = useMemo(

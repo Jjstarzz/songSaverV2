@@ -165,7 +165,7 @@ export default function BiblePage() {
   }
 
   return (
-    <div className="pb-24">
+    <div>
       <PageHeader
         title="Scripture"
         subtitle="Search and browse Bible verses"
