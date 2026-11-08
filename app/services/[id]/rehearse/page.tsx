@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, X, Mic2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useService } from '@/hooks/useServices'
 import { useUserSongKeys } from '@/hooks/useUserSongKeys'
 import { useFeatureTable } from '@/hooks/useFeatureTable'
-import { useSupabase } from '@/hooks/useSupabase'
 import { ReadingControls } from '@/components/songs/LyricsViewer'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { parseLyrics } from '@/lib/parseLyrics'
@@ -30,35 +29,7 @@ interface Row {
   }
 }
 
-interface Recording { id: string; file_url: string; file_name: string | null; song_id: string | null; service_id: string | null }
-
-/** Recording URLs were saved as public URLs on a private bucket; turn them into signed URLs. */
-function useRecordings(serviceId: string, songIds: string[]) {
-  const supabase = useSupabase()
-  const [recs, setRecs] = useState<(Recording & { url: string })[]>([])
-  const key = songIds.join(',')
-  useEffect(() => {
-    if (!serviceId) return
-    let cancelled = false
-    ;(async () => {
-      const filter = [`service_id.eq.${serviceId}`, ...(songIds.length ? [`song_id.in.(${songIds.join(',')})`] : [])].join(',')
-      const { data } = await supabase.from('rehearsal_recordings').select('id, file_url, file_name, song_id, service_id').or(filter)
-      const rows = (data ?? []) as Recording[]
-      const signed = await Promise.all(rows.map(async (r) => {
-        const path = r.file_url.split('/recordings/')[1]
-        if (!path) return { ...r, url: r.file_url }
-        const { data: s } = await supabase.storage.from('recordings').createSignedUrl(decodeURIComponent(path), 60 * 60)
-        return { ...r, url: s?.signedUrl ?? r.file_url }
-      }))
-      if (!cancelled) setRecs(signed)
-    })()
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, serviceId, key])
-  return recs
-}
-
-/** Rehearsal mode: one song at a time with key, arrangement, notes, recordings and lyrics. */
+/** Rehearsal mode: one song at a time with key, arrangement, notes and lyrics. */
 export default function RehearsePage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -69,7 +40,6 @@ export default function RehearsePage() {
   const arrangements = useFeatureTable<Arrangement>('song_arrangements', { in: ['song_id', songIds] })
   const singers = useFeatureTable<Singer>('singers', { skip: arrangements.missing })
   const singerKeys = useFeatureTable<SingerSongKey>('singer_song_keys', { in: ['song_id', songIds], skip: arrangements.missing })
-  const recordings = useRecordings(id, songIds)
   const [idx, setIdx] = useState(0)
   const [lang, setLang] = useState<string | null>(null)
 
@@ -111,8 +81,6 @@ export default function RehearsePage() {
   const lyrics = song.song_lyrics ?? []
   const lyric = lyrics.find((l) => l.language === lang) ?? lyrics.find((l) => l.is_default) ?? lyrics[0]
   const desc = lyric ? describeLyrics(lyric.language, lyric.lyrics, song.original_language) : null
-  const songRecs = recordings.filter((r) => r.song_id === song.id)
-  const serviceRecs = idx === 0 ? recordings.filter((r) => !r.song_id) : []
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--bg)]">
@@ -179,19 +147,6 @@ export default function RehearsePage() {
             {arr?.notes && <p className="text-[var(--fg-muted)] whitespace-pre-wrap">{arr.notes}</p>}
             {row.notes && <p className="text-[var(--fg)] whitespace-pre-wrap"><span className="text-[var(--fg-subtle)]">For this service: </span>{row.notes}</p>}
             {song.notes && <p className="text-[var(--fg-muted)] whitespace-pre-wrap"><span className="text-[var(--fg-subtle)]">Song notes: </span>{song.notes}</p>}
-          </section>
-        )}
-
-        {/* Recordings */}
-        {(songRecs.length > 0 || serviceRecs.length > 0) && (
-          <section aria-label="Recordings" className="space-y-2">
-            <h3 className="section-label flex items-center gap-1.5"><Mic2 aria-hidden className="w-3.5 h-3.5" /> Recordings</h3>
-            {[...songRecs, ...serviceRecs].map((r) => (
-              <div key={r.id} className="surface p-3">
-                <p className="text-sm text-[var(--fg)] mb-1">{r.file_name || 'Recording'}</p>
-                <audio controls preload="none" src={r.url} className="w-full" />
-              </div>
-            ))}
           </section>
         )}
 
