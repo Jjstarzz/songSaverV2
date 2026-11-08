@@ -37,7 +37,12 @@ function SettingRow({
 }) {
   return (
     <div className="flex items-center gap-3 py-3.5 border-b border-white/[0.06] last:border-0">
-      <Icon aria-hidden strokeWidth={1.75} className={cn('w-[18px] h-[18px] shrink-0', danger ? 'text-red-400' : 'text-white/50')} />
+      <div className={cn(
+        'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+        danger ? 'bg-red-500/15 text-red-400' : 'bg-white/[0.06] text-white/50'
+      )}>
+        <Icon className="w-4 h-4" />
+      </div>
       <div className="flex-1 min-w-0">
         <p className={cn('text-sm font-medium', danger ? 'text-red-400' : 'text-white')}>{label}</p>
         {description && <p className="text-xs text-white/40 mt-0.5">{description}</p>}
@@ -204,7 +209,7 @@ export default function SettingsPage() {
       <PageHeader className="px-0" title="Settings" />
 
       {/* Section tabs */}
-      <div role="tablist" aria-label="Settings sections" className="flex gap-1 mb-6 p-1 bg-[var(--bg-surface)] rounded-lg">
+      <div role="tablist" aria-label="Settings sections" className="flex gap-1 mb-6 p-1 bg-[var(--bg-input)] rounded-xl border border-[var(--border)]">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -212,9 +217,9 @@ export default function SettingsPage() {
             aria-selected={activeSection === key}
             onClick={() => setActiveSection(key)}
             className={cn(
-              'flex-1 min-h-[40px] rounded-md text-sm font-medium transition-colors',
+              'flex-1 min-h-[40px] rounded-lg text-sm font-medium transition-colors',
               activeSection === key
-                ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]'
+                ? 'bg-accent-600 text-white'
                 : 'text-[var(--fg-muted)] hover:text-[var(--fg)]'
             )}
           >
@@ -228,8 +233,8 @@ export default function SettingsPage() {
         <div className="space-y-5 animate-fade-in">
           {/* Avatar card */}
           <div className="glass-card p-5 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-[var(--bg-surface)] border border-[var(--border)] flex items-center justify-center shrink-0">
-              <User strokeWidth={1.5} className="w-6 h-6 text-[var(--fg-muted)]" />
+            <div className="w-16 h-16 rounded-2xl bg-accent-600 flex items-center justify-center shrink-0">
+              <User className="w-8 h-8 text-white" />
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-white truncate">
@@ -255,7 +260,7 @@ export default function SettingsPage() {
                   onClick={() => setLinkOpen(v => !v)}
                   className="w-full p-4 flex items-center gap-3 text-left hover:bg-white/[0.04] transition-colors"
                 >
-                  <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-accent-500/20 flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5 text-accent-400" />
                   </div>
                   <div className="flex-1">
@@ -277,7 +282,7 @@ export default function SettingsPage() {
                         onClick={() => { setLinkMode(mode); setLinkEmail('') }}
                         className={cn(
                           'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
-                          linkMode === mode ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : 'text-white/50 hover:text-white/70'
+                          linkMode === mode ? 'bg-accent-600 text-white' : 'text-white/50 hover:text-white/70'
                         )}
                       >
                         {mode === 'new' ? 'New account' : 'Sign in'}
@@ -387,20 +392,20 @@ export default function SettingsPage() {
                 label="Theme"
                 description="Choose your preferred appearance"
               >
-                <div className="flex gap-0.5 p-0.5 rounded-lg bg-[var(--bg-surface)] shrink-0">
+                <div className="flex rounded-xl overflow-hidden border border-white/10 shrink-0">
                   {(['dark', 'cream', 'light'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => mounted && setTheme(t)}
                       className={cn(
-                        'px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 border-0',
+                        'px-3 py-1.5 text-xs font-medium transition-colors duration-150 border-0 outline-none',
                         mounted && theme === t
-                          ? 'bg-[var(--bg-elevated)] text-[var(--fg)] shadow-[0_1px_2px_rgba(0,0,0,0.12)]'
+                          ? 'bg-accent-600 text-white'
                           : 'text-white/50 hover:text-white/70'
                       )}
-                      aria-label={`${t === 'cream' ? 'Paper' : t === 'light' ? 'White' : 'Dark'} theme`}
+                      aria-label={`${t} theme`}
                     >
-                      {t === 'dark' ? 'Dark' : t === 'cream' ? 'Paper' : 'White'}
+                      {t === 'dark' ? 'Dark' : t === 'cream' ? 'Cream' : 'Light'}
                     </button>
                   ))}
                 </div>
@@ -484,7 +489,7 @@ export default function SettingsPage() {
         <div className="space-y-5 animate-fade-in">
           {/* Owner badge */}
           <div className="glass-card p-4 flex items-center gap-3 border border-amber-500/20">
-            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
               <Crown className="w-5 h-5 text-amber-400" />
             </div>
             <div>

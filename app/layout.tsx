@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Hanken_Grotesk, Newsreader } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import { AppShell } from '@/components/layout/AppShell'
 import { Toaster } from '@/components/ui/Toaster'
@@ -8,19 +8,10 @@ import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import { OfflineBanner } from '@/components/ui/OfflineBanner'
 import { ThemeColorSync } from '@/components/ui/ThemeColorSync'
 
-const sans = Hanken_Grotesk({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-geist-sans',
   display: 'swap',
-})
-
-const display = Newsreader({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
-  adjustFontFallback: false,
 })
 
 export const metadata: Metadata = {
@@ -48,7 +39,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#f3f1ec', // paper/cream (default theme); ThemeColorSync updates it at runtime
+  themeColor: '#efe9de', // cream (default theme); ThemeColorSync updates it at runtime
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -67,7 +58,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${sans.variable} ${display.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="cream" themes={['dark', 'cream', 'light']} enableSystem={false}>
           <OfflineBanner />
           <AppShell>{children}</AppShell>

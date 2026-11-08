@@ -20,9 +20,7 @@ function getClient(): SupabaseClient {
     )
   }
   if (!browserClient) {
-    // Heartbeats run in a Web Worker so projector/stage windows that are hidden
-    // or covered aren't throttled into dropping the realtime connection.
-    browserClient = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, { realtime: { worker: true } })
+    browserClient = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   }
   return browserClient
 }

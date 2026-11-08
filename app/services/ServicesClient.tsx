@@ -68,7 +68,6 @@ export function ServicesClient() {
   return (
     <div className="px-4">
       <PageHeader
-        className="px-0"
         title="Services"
         subtitle={loading ? '' : `${services.length} total`}
         action={

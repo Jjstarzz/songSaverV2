@@ -37,7 +37,6 @@ export function SongsClient() {
   return (
     <div className="px-4">
       <PageHeader
-        className="px-0"
         title="Songs"
         action={
           <>

@@ -4,8 +4,8 @@
   "description": "Worship song management for church teams",
   "start_url": "/songs",
   "display": "standalone",
-  "background_color": "#f3f1ec",
-  "theme_color": "#f3f1ec",
+  "background_color": "#ede7da",
+  "theme_color": "#ede7da",
   "orientation": "any",
   "categories": [
     "music",

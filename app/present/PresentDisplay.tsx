@@ -73,41 +73,23 @@ export function PresentDisplay() {
   useEffect(() => {
     if (!code) return
     const channel = supabase.channel(presentChannelName(code), { config: { broadcast: { ack: false } } })
-    let current: SlideState | null = null
-    let fadeTimer: ReturnType<typeof setTimeout> | null = null
-    const requestState = () => channel.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
     channel
       .on('broadcast', { event: SLIDE_EVENT }, ({ payload }) => {
-        const next = payload as SlideState
         setConnected(true)
-        if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null }
-        // Look-only changes (size, font, colour, background) apply instantly;
-        // only a change of words fades. Hidden windows skip the fade too, since
-        // browsers delay timers there.
-        const sameWords = !!current && current.lines === next.lines && current.blank === next.blank &&
-          (current.translationLines ?? '') === (next.translationLines ?? '') && !!current.logoMode === !!next.logoMode
-        current = next
-        if (sameWords || document.hidden) { setSlide(next); setFadeIn(true); return }
         setFadeIn(false)
-        fadeTimer = setTimeout(() => { setSlide(next); setFadeIn(true); fadeTimer = null }, 150)
+        setTimeout(() => {
+          setSlide(payload as SlideState)
+          setFadeIn(true)
+        }, 150)
       })
       .subscribe((status) => {
         // Ask the controller for what's on screen now — so opening or
         // reloading this window mid-service doesn't wait for the next slide.
-        if (status === 'SUBSCRIBED') requestState()
+        if (status === 'SUBSCRIBED') {
+          channel.send({ type: 'broadcast', event: REQUEST_STATE_EVENT, payload: {} })
+        }
       })
-    // Catch up on anything missed while the window was hidden or offline
-    const resync = () => { if (!document.hidden) requestState() }
-    document.addEventListener('visibilitychange', resync)
-    window.addEventListener('focus', resync)
-    window.addEventListener('online', resync)
-    return () => {
-      if (fadeTimer) clearTimeout(fadeTimer)
-      document.removeEventListener('visibilitychange', resync)
-      window.removeEventListener('focus', resync)
-      window.removeEventListener('online', resync)
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [code, supabase])
 
   const requestFullscreen = () => {
